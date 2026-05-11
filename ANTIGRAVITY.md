@@ -13,7 +13,7 @@
 
 ## Logging
 
-- All conversations between the user and the agents are logged in `LOG.md`.
+- All conversations between the user and the agents must be logged in `LOG.md` verbatim, without any summaries, cuts, or omissions. Every turn must be recorded exactly as it occurred.
 
 ## Specs
 
