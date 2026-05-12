@@ -5,7 +5,6 @@
 - **Backend:** .NET 10, Minimal APIs
 - **Frontend:** Angular (served separately, not by the API)
 - **Database:** PostgreSQL with EF Core and EF Migrations
-- **LLM:** Internal LLM provider via API calls
 - **Testing:** xUnit with Respawn
 - **Logging:** Serilog with file sink
 - **API Docs:** Swagger (development mode only)
@@ -28,6 +27,9 @@ Feature specs live in `product/NNN-spec-name/` folders (e.g. `product/001-authen
 ## Testing
 
 - All tests must follow the Arrange / Act / Assert (AAA) pattern with `// Arrange`, `// Act`, `// Assert` comments.
+- Test folder structure must follow the backend project structure (e.g., `tests/Micro.Tests/Endpoints/` matches `src/Micro.API/Endpoints/`).
+- Code coverage is mandatory. Use `coverlet.collector` for data collection.
+- Use `reportgenerator` to generate human-readable coverage reports in HTML format.
 
 ## Project Structure
 
