@@ -5,7 +5,8 @@ public static class HealthCheckEndpoints
     public static void MapHealthCheckEndpoints(this IEndpointRouteBuilder app)
     {
         app.MapGet("/health", HandleHealthCheck)
-           .WithName("HealthCheck");
+           .WithName("HealthCheck")
+           .RequireAuthorization();
     }
 
     private static IResult HandleHealthCheck()

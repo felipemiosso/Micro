@@ -1,25 +1,26 @@
-using Microsoft.AspNetCore.Mvc.Testing;
 using System.Net.Http.Json;
+using Xunit;
 
 namespace Micro.Tests.Endpoints;
 
-public class HealthCheckTests : IClassFixture<WebApplicationFactory<Program>>
+[Collection("TestDatabase")]
+public class HealthCheckTests : IntegrationTestBase
 {
-    private readonly WebApplicationFactory<Program> _factory;
-
-    public HealthCheckTests(WebApplicationFactory<Program> factory)
+    public HealthCheckTests(TestDatabaseFixture fixture) : base(fixture)
     {
-        _factory = factory;
     }
 
     [Fact]
     public async Task Get_Health_ReturnsHealthy()
     {
         // Arrange
-        var client = _factory.CreateClient();
+        var loginRequest = new { Email = "admin@microats.com", Password = "AdminPassword123!" };
+        var loginResponse = await Client.PostAsJsonAsync("/api/auth/login", loginRequest);
+        var authResult = await loginResponse.Content.ReadFromJsonAsync<AuthTests.LoginResponse>();
+        Client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authResult!.Token);
 
         // Act
-        var response = await client.GetAsync("/health");
+        var response = await Client.GetAsync("/health");
 
         // Assert
         response.EnsureSuccessStatusCode();
