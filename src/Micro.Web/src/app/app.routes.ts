@@ -7,6 +7,24 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/login/login').then(m => m.LoginComponent)
   },
   {
+    path: 'admin',
+    canActivate: [authGuard],
+    children: [
+      {
+        path: 'requisitions',
+        loadComponent: () => import('./features/requisitions/list/requisition-list').then(m => m.RequisitionListComponent)
+      },
+      {
+        path: 'requisitions/new',
+        loadComponent: () => import('./features/requisitions/form/requisition-form').then(m => m.RequisitionFormComponent)
+      },
+      {
+        path: 'requisitions/edit/:id',
+        loadComponent: () => import('./features/requisitions/form/requisition-form').then(m => m.RequisitionFormComponent)
+      }
+    ]
+  },
+  {
     path: '',
     canActivate: [authGuard],
     children: [
@@ -17,7 +35,7 @@ export const routes: Routes = [
       },
       {
         path: 'dashboard',
-        loadComponent: () => import('./app').then(m => m.AppComponent)
+        loadComponent: () => import('./features/requisitions/list/requisition-list').then(m => m.RequisitionListComponent)
       }
     ]
   }

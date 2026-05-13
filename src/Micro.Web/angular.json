@@ -60,7 +60,8 @@
               "buildTarget": "Micro.Web:build:production"
             },
             "development": {
-              "buildTarget": "Micro.Web:build:development"
+              "buildTarget": "Micro.Web:build:development",
+              "proxyConfig": "proxy.conf.json"
             }
           },
           "defaultConfiguration": "development"

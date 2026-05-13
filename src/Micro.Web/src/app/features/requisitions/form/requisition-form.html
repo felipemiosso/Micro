@@ -1,0 +1,36 @@
+<div class="form-container">
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="requisition-form">
+    <div class="form-group">
+      <label for="title">Job Title</label>
+      <input id="title" type="text" formControlName="title" placeholder="e.g. Senior Backend Engineer">
+      @if (form.get('title')?.invalid && form.get('title')?.touched) {
+        <span class="error">Title is required.</span>
+      }
+    </div>
+
+    <div class="form-group">
+      <label for="department">Department</label>
+      <input id="department" type="text" formControlName="department" placeholder="e.g. Engineering">
+      @if (form.get('department')?.invalid && form.get('department')?.touched) {
+        <span class="error">Department is required.</span>
+      }
+    </div>
+
+    <div class="form-group">
+      <label for="openings">Number of Openings</label>
+      <input id="openings" type="number" formControlName="openings">
+      @if (form.get('openings')?.invalid && form.get('openings')?.touched) {
+        <span class="error">Must have at least 1 opening.</span>
+      }
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn btn-secondary" routerLink="/admin/requisitions">Cancel</button>
+      @if (form.enabled) {
+        <button type="submit" class="btn btn-primary">
+          {{ isEdit ? 'Update' : 'Create' }} Requisition
+        </button>
+      }
+    </div>
+  </form>
+</div>

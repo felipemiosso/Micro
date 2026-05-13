@@ -1,0 +1,96 @@
+using System.Net;
+using System.Net.Http.Json;
+using Micro.API.Data.Models;
+using Micro.API.Endpoints;
+using Xunit;
+
+namespace Micro.Tests.Endpoints;
+
+[Collection("TestDatabase")]
+public class RequisitionTests : IntegrationTestBase
+{
+    public RequisitionTests(TestDatabaseFixture fixture) : base(fixture)
+    {
+    }
+
+    private async Task AuthenticateAsync()
+    {
+        var loginRequest = new { Email = "admin@microats.com", Password = "AdminPassword123!" };
+        var loginResponse = await Client.PostAsJsonAsync("/api/auth/login", loginRequest);
+        var authResult = await loginResponse.Content.ReadFromJsonAsync<AuthTests.LoginResponse>();
+        Client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authResult!.Token);
+    }
+
+    [Fact]
+    public async Task Create_WithValidData_ReturnsCreated()
+    {
+        // Arrange
+        await AuthenticateAsync();
+        var request = new RequisitionEndpoints.CreateRequisitionRequest("Dev", "IT", 2);
+
+        // Act
+        var response = await Client.PostAsJsonAsync("/api/requisitions", request);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var requisition = await response.Content.ReadFromJsonAsync<Requisition>();
+        Assert.NotNull(requisition);
+        Assert.Equal("Dev", requisition.Title);
+        Assert.Equal("admin@microats.com", requisition.CreatedBy);
+    }
+
+    [Fact]
+    public async Task Update_DraftRequisition_ReturnsNoContent()
+    {
+        // Arrange
+        await AuthenticateAsync();
+        var createRequest = new RequisitionEndpoints.CreateRequisitionRequest("Dev", "IT", 2);
+        var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
+        var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();
+        var updateRequest = new RequisitionEndpoints.UpdateRequisitionRequest("Senior Dev", "IT", 1);
+
+        // Act
+        var response = await Client.PutAsJsonAsync($"/api/requisitions/{requisition!.Id}", updateRequest);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Finalize_DraftRequisition_ChangesStatus()
+    {
+        // Arrange
+        await AuthenticateAsync();
+        var createRequest = new RequisitionEndpoints.CreateRequisitionRequest("Dev", "IT", 2);
+        var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
+        var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();
+
+        // Act
+        var response = await Client.PostAsync($"/api/requisitions/{requisition!.Id}/finalize", null);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        
+        var getResponse = await Client.GetAsync("/api/requisitions");
+        var requisitions = await getResponse.Content.ReadFromJsonAsync<List<Requisition>>();
+        Assert.Equal(RequisitionStatus.Finalized, requisitions!.First(r => r.Id == requisition.Id).Status);
+    }
+
+    [Fact]
+    public async Task Update_FinalizedRequisition_ReturnsBadRequest()
+    {
+        // Arrange
+        await AuthenticateAsync();
+        var createRequest = new RequisitionEndpoints.CreateRequisitionRequest("Dev", "IT", 2);
+        var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
+        var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();
+        await Client.PostAsync($"/api/requisitions/{requisition!.Id}/finalize", null);
+
+        // Act
+        var updateRequest = new RequisitionEndpoints.UpdateRequisitionRequest("Senior Dev", "IT", 1);
+        var response = await Client.PutAsJsonAsync($"/api/requisitions/{requisition!.Id}", updateRequest);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+}

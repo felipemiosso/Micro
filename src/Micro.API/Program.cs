@@ -48,6 +48,10 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
+builder.Services.ConfigureHttpJsonOptions(options => {
+    options.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+});
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
@@ -69,6 +73,7 @@ app.UseAuthorization();
 
 app.MapAuthEndpoints();
 app.MapHealthCheckEndpoints();
+app.MapRequisitionEndpoints();
 
 if (!app.Environment.IsEnvironment("Testing"))
 {

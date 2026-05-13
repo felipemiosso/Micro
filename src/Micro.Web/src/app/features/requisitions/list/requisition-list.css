@@ -1,0 +1,83 @@
+.requisition-container {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.list-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 2rem;
+}
+
+.requisition-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.requisition-table th, 
+.requisition-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.requisition-table th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #444;
+}
+
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.status-badge.draft { background: #e9ecef; color: #495057; }
+.status-badge.finalized { background: #d1ecf1; color: #0c5460; }
+.status-badge.closed { background: #f8d7da; color: #721c24; }
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.action-link {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.action-btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.action-btn.finalize { color: #28a745; border: 1px solid #28a745; }
+.action-btn.close { color: #dc3545; border: 1px solid #dc3545; }
+
+.btn-primary {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 0.5rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.empty-state {
+  text-align: center;
+  color: #6c757d;
+  padding: 3rem;
+}

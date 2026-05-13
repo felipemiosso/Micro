@@ -10,7 +10,7 @@ interface AuthResponse {
   providedIn: 'root'
 })
 export class AuthService {
-  private readonly apiUrl = 'https://localhost:7283/api/auth';
+  private readonly apiUrl = '/api/auth';
   private readonly tokenKey = 'micro_ats_token';
   
   isAuthenticated = signal<boolean>(this.checkToken());

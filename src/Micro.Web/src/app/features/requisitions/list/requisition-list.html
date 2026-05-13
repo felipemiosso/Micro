@@ -1,0 +1,50 @@
+<div class="requisition-container">
+  <div class="list-actions">
+    <button class="btn btn-primary" routerLink="/admin/requisitions/new">New Requisition</button>
+  </div>
+
+  <table class="requisition-table">
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Department</th>
+        <th>Openings</th>
+        <th>Status</th>
+        <th>Created By</th>
+        <th>Created At</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (req of requisitions(); track req.id) {
+        <tr>
+          <td>{{ req.title }}</td>
+          <td>{{ req.department }}</td>
+          <td>{{ req.openings }}</td>
+          <td>
+            <span class="status-badge" [class]="getStatusLabel(req.status).toLowerCase()">
+              {{ getStatusLabel(req.status) }}
+            </span>
+          </td>
+          <td>{{ req.createdBy }}</td>
+          <td>{{ req.createdAt | date:'short' }}</td>
+          <td>
+            <div class="actions">
+              @if (req.status === Status.Draft) {
+                <a [routerLink]="['/admin/requisitions/edit', req.id]" class="action-link">Edit</a>
+                <button (click)="finalize(req.id)" class="action-btn finalize">Finalize</button>
+              }
+              @if (req.status !== Status.Closed) {
+                <button (click)="close(req.id)" class="action-btn close">Close</button>
+              }
+            </div>
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="7" class="empty-state">No requisitions found.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
