@@ -93,4 +93,39 @@ public class RequisitionTests : IntegrationTestBase
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
+
+    [Fact]
+    public async Task Close_ExistingRequisition_ChangesStatus()
+    {
+        // Arrange
+        await AuthenticateAsync();
+        var createRequest = new RequisitionEndpoints.CreateRequisitionRequest("To Close", "IT", 1);
+        var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
+        var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();
+
+        // Act
+        var response = await Client.PostAsync($"/api/requisitions/{requisition!.Id}/close", null);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        var getResponse = await Client.GetAsync($"/api/requisitions/{requisition.Id}");
+        var updated = await getResponse.Content.ReadFromJsonAsync<Requisition>();
+        Assert.Equal(RequisitionStatus.Closed, updated!.Status);
+        Assert.NotNull(updated.ClosedAt);
+    }
+
+    [Fact]
+    public async Task Close_NonExistentRequisition_ReturnsNotFound()
+    {
+        // Arrange
+        await AuthenticateAsync();
+        var nonExistentId = Guid.NewGuid();
+
+        // Act
+        var response = await Client.PostAsync($"/api/requisitions/{nonExistentId}/close", null);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
 }

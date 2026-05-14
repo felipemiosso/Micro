@@ -3,6 +3,7 @@
     <Project Path="src/Micro.API/Micro.API.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Micro.E2E/Micro.E2E.csproj" />
     <Project Path="tests/Micro.Tests/Micro.Tests.csproj" />
   </Folder>
 </Solution>

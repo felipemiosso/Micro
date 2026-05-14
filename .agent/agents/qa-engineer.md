@@ -37,8 +37,7 @@ Any data, configuration, or state that must exist before tests can run (e.g. aut
 ## Scenarios
 
 ### [Scenario Group Name] (e.g. Happy Path, Authentication, Validation, Error Handling)
-
-#### AC-[N]: [Short description]
+#### AC-[N]: [Short description] [layer: e2e|integration]
 ```
 Given [precondition or system state]
 When [action performed by actor]
@@ -48,6 +47,7 @@ And [additional outcome if needed]
 **Notes:** Any clarifications, test data requirements, or known ambiguities for this criterion.
 
 [Repeat for each scenario]
+```
 
 ## Out of Scope
 Explicitly list behaviors that are NOT tested here and why (deferred features, other feature's responsibility, etc.).
@@ -59,6 +59,9 @@ Unresolved ambiguities that could affect testability. Each question must name th
 ## What belongs in acceptance.md
 
 Only observable business behavior — outcomes a tester can verify through the UI or API with no access to source code, logs, or internal state.
+
+- **layer: e2e**: Scenarios that require the full system (UI + API + DB). Use for happy paths and critical user flows.
+- **layer: integration**: Scenarios that can be verified via API calls directly. Use for detailed business rules, auth edge cases, and validation logic.
 
 **Include:**
 - **Happy path**: Does the core flow work end-to-end?

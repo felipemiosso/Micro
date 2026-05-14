@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -13,7 +13,7 @@ import { AuthService } from '../../../core/auth/auth';
 })
 export class LoginComponent {
   loginForm: FormGroup;
-  errorMessage: string = '';
+  errorMessage = signal<string>('');
 
   constructor(
     private fb: FormBuilder,
@@ -30,7 +30,7 @@ export class LoginComponent {
     if (this.loginForm.valid) {
       this.authService.login(this.loginForm.value).subscribe({
         next: () => this.router.navigate(['/']),
-        error: () => this.errorMessage = 'Invalid email or password'
+        error: () => this.errorMessage.set('Invalid email or password')
       });
     }
   }

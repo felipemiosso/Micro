@@ -17,10 +17,7 @@ cleanup() {
   kill $API_PID $WEB_PID 2>/dev/null
   stop_port $API_PORT
   stop_port $WEB_PORT
-  exit
 }
-
-trap cleanup SIGINT SIGTERM
 
 # Cleanup before start
 stop_port $API_PORT
@@ -34,6 +31,23 @@ echo "Starting Frontend (Micro.Web)..."
 cmd //c "npm.cmd start --prefix src/Micro.Web -- --port $WEB_PORT" &
 WEB_PID=$!
 
-echo "Dev environment running. Press Ctrl+C to stop."
+echo "Waiting for servers to be ready..."
+# Wait for API
+while ! curl -s http://localhost:$API_PORT/health > /dev/null; do
+  sleep 1
+done
+echo "Backend is ready."
 
-wait
+# Wait for Web
+while ! curl -s http://localhost:$WEB_PORT > /dev/null; do
+  sleep 1
+done
+echo "Frontend is ready."
+
+echo "Running E2E tests..."
+dotnet test tests/Micro.E2E/Micro.E2E.csproj
+TEST_EXIT_CODE=$?
+
+cleanup
+
+exit $TEST_EXIT_CODE
