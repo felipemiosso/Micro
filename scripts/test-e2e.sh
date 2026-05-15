@@ -25,25 +25,37 @@ stop_port $WEB_PORT
 
 echo "Starting Backend (Micro.API)..."
 export ASPNETCORE_ENVIRONMENT=Testing
-dotnet run --project src/Micro.API --urls=http://localhost:$API_PORT &
+dotnet run --project src/Micro.API --urls=http://localhost:$API_PORT --no-launch-profile --environment Testing &
 API_PID=$!
 
 echo "Starting Frontend (Micro.Web)..."
 cmd //c "npm.cmd start --prefix src/Micro.Web -- --port $WEB_PORT" &
 WEB_PID=$!
 
-echo "Waiting for servers to be ready..."
-# Wait for API
-while ! curl -s http://localhost:$API_PORT/health > /dev/null; do
-  sleep 1
+echo "Waiting for Backend (Health Check)..."
+# Give it a few seconds to build and start
+sleep 10
+# Loop until health check returns 200 (or 401 if unauthorized but alive)
+for i in {1..30}; do
+  if curl -s http://localhost:$API_PORT/health > /dev/null; then
+    echo "Backend is alive."
+    break
+  fi
+  echo "Retrying backend check ($i/30)..."
+  sleep 2
 done
-echo "Backend is ready."
 
-# Wait for Web
-while ! curl -s http://localhost:$WEB_PORT > /dev/null; do
-  sleep 1
+echo "Waiting for Frontend..."
+# ng serve takes longer
+sleep 15
+for i in {1..30}; do
+  if curl -s http://localhost:$WEB_PORT > /dev/null; then
+    echo "Frontend is ready."
+    break
+  fi
+  echo "Retrying frontend check ($i/30)..."
+  sleep 2
 done
-echo "Frontend is ready."
 
 echo "Running E2E tests..."
 dotnet test tests/Micro.E2E/Micro.E2E.csproj

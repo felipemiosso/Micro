@@ -14,7 +14,10 @@ public static class ApplicationEndpoints
         // Admin endpoints
         var adminGroup = app.MapGroup("/api/admin/applications").RequireAuthorization();
         adminGroup.MapGet("/", GetAdminApplications);
+        adminGroup.MapGet("/{id:guid}", GetApplicationDetail);
         adminGroup.MapGet("/{id:guid}/resume", GetApplicationResume);
+        adminGroup.MapPut("/{id:guid}/status", UpdateApplicationStatus);
+        adminGroup.MapPost("/{id:guid}/feedback", AddFeedback);
     }
 
     private static async Task<IResult> ApplyToJob(
@@ -92,12 +95,22 @@ public static class ApplicationEndpoints
         return Results.Created($"/api/admin/applications/{application.Id}", new { application.Id });
     }
 
-    private static async Task<IResult> GetAdminApplications(Guid? jobPostingId, MicroDbContext db)
+    private static async Task<IResult> GetAdminApplications(
+        Guid? jobPostingId,
+        string? search,
+        MicroDbContext db)
     {
         var query = db.Applications.Include(a => a.JobPosting).AsQueryable();
+        
         if (jobPostingId.HasValue)
         {
             query = query.Where(a => a.JobPostingId == jobPostingId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.ToLower();
+            query = query.Where(a => a.CandidateName.ToLower().Contains(s) || a.CandidateEmail.ToLower().Contains(s));
         }
 
         var applications = await query
@@ -130,4 +143,93 @@ public static class ApplicationEndpoints
         var bytes = await File.ReadAllBytesAsync(application.ResumePath);
         return Results.File(bytes, "application/pdf", $"{application.CandidateName}_Resume.pdf");
     }
+
+    private static async Task<IResult> GetApplicationDetail(Guid id, MicroDbContext db)
+    {
+        var application = await db.Applications
+            .Include(a => a.JobPosting)
+            .Include(a => a.Feedbacks.OrderByDescending(f => f.CreatedAt))
+            .Where(a => a.Id == id)
+            .Select(a => new {
+                a.Id,
+                a.JobPostingId,
+                JobTitle = a.JobPosting.Title,
+                a.CandidateName,
+                a.CandidateEmail,
+                a.CandidatePhone,
+                a.Status,
+                a.ArchivalResolution,
+                a.AppliedAt,
+                Feedbacks = a.Feedbacks.Select(f => new {
+                    f.Id,
+                    f.Notes,
+                    f.Score,
+                    f.CreatedAt
+                })
+            })
+            .FirstOrDefaultAsync();
+
+        return application is null ? Results.NotFound() : Results.Ok(application);
+    }
+
+    private static async Task<IResult> UpdateApplicationStatus(
+        Guid id,
+        UpdateStatusRequest request,
+        MicroDbContext db)
+    {
+        var application = await db.Applications.FindAsync(id);
+        if (application is null) return Results.NotFound();
+
+        if (request.Status == ApplicationStatus.Archive && request.Resolution == ArchivalResolution.None)
+        {
+            return Results.BadRequest("Archival resolution is required when moving to Archive status.");
+        }
+
+        application.Status = request.Status;
+        application.ArchivalResolution = request.Resolution;
+        application.UpdatedAt = DateTime.UtcNow;
+
+        await db.SaveChangesAsync();
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> AddFeedback(
+        Guid id,
+        AddFeedbackRequest request,
+        HttpContext context,
+        MicroDbContext db)
+    {
+        var application = await db.Applications.FindAsync(id);
+        if (application is null) return Results.NotFound();
+
+        if (string.IsNullOrWhiteSpace(request.Notes))
+        {
+            return Results.BadRequest("Notes are required.");
+        }
+
+        if (request.Score < 1 || request.Score > 5)
+        {
+            return Results.BadRequest("Score must be between 1 and 5.");
+        }
+
+        var adminId = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+
+        var feedback = new Feedback
+        {
+            Id = Guid.NewGuid(),
+            ApplicationId = id,
+            AdminId = adminId,
+            Notes = request.Notes,
+            Score = request.Score,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        db.Feedbacks.Add(feedback);
+        await db.SaveChangesAsync();
+
+        return Results.Created($"/api/admin/applications/{id}/feedback", new { feedback.Id });
+    }
+
+    public record UpdateStatusRequest(ApplicationStatus Status, ArchivalResolution Resolution);
+    public record AddFeedbackRequest(string Notes, int Score);
 }

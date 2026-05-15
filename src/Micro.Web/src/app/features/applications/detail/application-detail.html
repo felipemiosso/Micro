@@ -1,0 +1,106 @@
+<div class="detail-container">
+  @if (loading()) {
+    <div class="loading">Loading candidate details...</div>
+  } @else if (application(); as app) {
+    <header class="detail-header">
+      <div class="header-main">
+        <a routerLink="/admin/candidates" class="back-link">← Back to Candidates</a>
+        <h1>{{ app.candidateName }}</h1>
+        <p class="subtitle">{{ app.jobTitle }} • Applied {{ app.appliedAt | date:'mediumDate' }}</p>
+      </div>
+      <div class="header-actions">
+        <button (click)="downloadResume()" class="btn btn-secondary">Download Resume</button>
+      </div>
+    </header>
+
+    <div class="detail-grid">
+      <aside class="sidebar">
+        <section class="info-section">
+          <h3>Contact Information</h3>
+          <p><strong>Email:</strong> {{ app.candidateEmail }}</p>
+          <p><strong>Phone:</strong> {{ app.candidatePhone || 'Not provided' }}</p>
+        </section>
+
+        <section class="stage-section">
+          <h3>Hiring Stage</h3>
+          <div class="current-status status-{{ app.status }}">
+            {{ getStatusLabel(app.status) }}
+            @if (app.status === ApplicationStatus.Archive) {
+              : {{ getResolutionLabel(app.archivalResolution) }}
+            }
+          </div>
+          
+          <div class="status-buttons">
+            <button (click)="updateStatus(ApplicationStatus.Applied)" [disabled]="app.status === ApplicationStatus.Applied">Applied</button>
+            <button (click)="updateStatus(ApplicationStatus.Interview)" [disabled]="app.status === ApplicationStatus.Interview">Interview</button>
+            <button (click)="updateStatus(ApplicationStatus.Offer)" [disabled]="app.status === ApplicationStatus.Offer">Offer</button>
+            <button (click)="updateStatus(ApplicationStatus.Archive)" class="btn-archive" [disabled]="app.status === ApplicationStatus.Archive">Archive</button>
+          </div>
+        </section>
+      </aside>
+
+      <main class="content">
+        <section class="feedback-section">
+          <h3>Evaluation Feedback</h3>
+          
+          <form (ngSubmit)="submitFeedback()" class="feedback-form">
+            <div class="form-group">
+              <label for="notes">Notes</label>
+              <textarea id="notes" [(ngModel)]="newNotes" name="notes" placeholder="Enter evaluation notes..." required></textarea>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="score">Score (1-5)</label>
+                <select id="score" [(ngModel)]="newScore" name="score">
+                  <option value="1">1 - Poor</option>
+                  <option value="2">2 - Fair</option>
+                  <option value="3">3 - Good</option>
+                  <option value="4">4 - Very Good</option>
+                  <option value="5">5 - Excellent</option>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-primary" [disabled]="!newNotes().trim() || submittingFeedback()">
+                {{ submittingFeedback() ? 'Saving...' : 'Add Feedback' }}
+              </button>
+            </div>
+          </form>
+
+          <div class="feedback-list">
+            @for (f of app.feedbacks; track f.id) {
+              <div class="feedback-item">
+                <div class="feedback-header">
+                  <span class="score-badge">★ {{ f.score }}</span>
+                  <span class="date">{{ f.createdAt | date:'short' }}</span>
+                </div>
+                <p class="notes">{{ f.notes }}</p>
+              </div>
+            } @empty {
+              <p class="empty-state">No feedback recorded yet.</p>
+            }
+          </div>
+        </section>
+      </main>
+    </div>
+  }
+
+  @if (showArchivalModal()) {
+    <div class="modal-overlay">
+      <div class="modal">
+        <h2>Archive Candidate</h2>
+        <p>Please select a resolution for this application:</p>
+        <div class="form-group">
+          <select [(ngModel)]="selectedResolution">
+            <option [ngValue]="ArchivalResolution.Hired">Hired</option>
+            <option [ngValue]="ArchivalResolution.Rejected">Rejected</option>
+            <option [ngValue]="ArchivalResolution.Declined">Declined</option>
+            <option [ngValue]="ArchivalResolution.Withdrawn">Withdrawn</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button (click)="showArchivalModal.set(false)" class="btn btn-secondary">Cancel</button>
+          <button (click)="confirmArchive()" class="btn btn-primary">Archive</button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

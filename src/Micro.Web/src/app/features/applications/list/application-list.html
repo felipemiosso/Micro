@@ -10,6 +10,10 @@
         }
       </p>
     </div>
+    <div class="header-search">
+      <input type="text" id="searchQuery" [(ngModel)]="searchQuery" (keyup.enter)="onSearch()" placeholder="Search by name or email..." class="form-control">
+      <button (click)="onSearch()" class="btn btn-secondary">Search</button>
+    </div>
   </header>
 
   @if (loading()) {
@@ -42,8 +46,9 @@
                   {{ getStatusLabel(app.status) }}
                 </span>
               </td>
-              <td>
-                <button (click)="downloadResume(app.id, app.candidateName)" class="btn-link">Download Resume</button>
+              <td class="actions">
+                <a [routerLink]="['/admin/candidates', app.id]" class="action-link">View Details</a>
+                <button (click)="downloadResume(app.id, app.candidateName)" class="btn-link">Resume</button>
               </td>
             </tr>
           } @empty {

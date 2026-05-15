@@ -30,6 +30,15 @@ echo "Starting Backend (Micro.API)..."
 dotnet run --project src/Micro.API --urls=http://localhost:$API_PORT &
 API_PID=$!
 
+echo "Waiting for Backend to be ready..."
+for i in {1..30}; do
+  if curl -s http://localhost:$API_PORT/health > /dev/null; then
+    echo "Backend is alive."
+    break
+  fi
+  sleep 1
+done
+
 echo "Starting Frontend (Micro.Web)..."
 cmd //c "npm.cmd start --prefix src/Micro.Web -- --port $WEB_PORT" &
 WEB_PID=$!

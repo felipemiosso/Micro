@@ -192,4 +192,61 @@ public class ApplicationTests : IntegrationTestBase
         var downloadedBytes = await response.Content.ReadAsByteArrayAsync();
         Assert.Equal(fileBytes, downloadedBytes);
     }
+
+    [Fact]
+    public async Task UpdateStatus_ValidRequest_UpdatesDatabase()
+    {
+        // Arrange
+        var jobId = await CreatePublishedJob();
+        using var content = new MultipartFormDataContent();
+        content.Add(new StringContent("Status Guy"), "name");
+        content.Add(new StringContent("status@example.com"), "email");
+        content.Add(new ByteArrayContent(new byte[] { 0x25, 0x50, 0x44, 0x46 }), "resume", "resume.pdf");
+        var createResponse = await Client.PostAsync($"/api/public/jobs/{jobId}/apply", content);
+        var appInfo = await createResponse.Content.ReadFromJsonAsync<dynamic>();
+        Guid appId = appInfo!.GetProperty("id").GetGuid();
+
+        await AuthenticateAsync();
+
+        // Act
+        var updateRequest = new ApplicationEndpoints.UpdateStatusRequest(ApplicationStatus.Interview, ArchivalResolution.None);
+        var response = await Client.PutAsJsonAsync($"/api/admin/applications/{appId}/status", updateRequest);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        
+        var detailResponse = await Client.GetAsync($"/api/admin/applications/{appId}");
+        var detail = await detailResponse.Content.ReadFromJsonAsync<dynamic>();
+        Assert.Equal((int)ApplicationStatus.Interview, detail!.GetProperty("status").GetInt32());
+    }
+
+    [Fact]
+    public async Task AddFeedback_ValidRequest_PersistsFeedback()
+    {
+        // Arrange
+        var jobId = await CreatePublishedJob();
+        using var content = new MultipartFormDataContent();
+        content.Add(new StringContent("Feedback Guy"), "name");
+        content.Add(new StringContent("feedback@example.com"), "email");
+        content.Add(new ByteArrayContent(new byte[] { 0x25, 0x50, 0x44, 0x46 }), "resume", "resume.pdf");
+        var createResponse = await Client.PostAsync($"/api/public/jobs/{jobId}/apply", content);
+        var appInfo = await createResponse.Content.ReadFromJsonAsync<dynamic>();
+        Guid appId = appInfo!.GetProperty("id").GetGuid();
+
+        await AuthenticateAsync();
+
+        // Act
+        var feedbackRequest = new ApplicationEndpoints.AddFeedbackRequest("Great candidate!", 5);
+        var response = await Client.PostAsJsonAsync($"/api/admin/applications/{appId}/feedback", feedbackRequest);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+
+        var detailResponse = await Client.GetAsync($"/api/admin/applications/{appId}");
+        var detail = await detailResponse.Content.ReadFromJsonAsync<dynamic>();
+        var feedbacks = detail!.GetProperty("feedbacks");
+        Assert.Equal(1, feedbacks.GetArrayLength());
+        Assert.Equal("Great candidate!", feedbacks[0].GetProperty("notes").GetString());
+        Assert.Equal(5, feedbacks[0].GetProperty("score").GetInt32());
+    }
 }

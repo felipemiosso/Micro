@@ -1,12 +1,13 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { ApplicationService, Application, ApplicationStatus } from '../application.service';
 
 @Component({
   selector: 'app-application-list',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './application-list.html',
   styleUrls: ['./application-list.css'],
 })
@@ -16,6 +17,7 @@ export class ApplicationListComponent implements OnInit {
 
   applications = signal<Application[]>([]);
   jobPostingId = signal<string | null>(null);
+  searchQuery = signal('');
   loading = signal(true);
 
   ngOnInit() {
@@ -27,7 +29,7 @@ export class ApplicationListComponent implements OnInit {
 
   loadApplications() {
     this.loading.set(true);
-    this.applicationService.getApplications(this.jobPostingId() ?? undefined).subscribe({
+    this.applicationService.getApplications(this.jobPostingId() ?? undefined, this.searchQuery() || undefined).subscribe({
       next: (data) => {
         this.applications.set(data);
         this.loading.set(false);
@@ -37,6 +39,10 @@ export class ApplicationListComponent implements OnInit {
         this.loading.set(false);
       }
     });
+  }
+
+  onSearch() {
+    this.loadApplications();
   }
 
   getStatusLabel(status: ApplicationStatus): string {

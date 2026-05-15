@@ -77,4 +77,90 @@ public class ApplicationTests : PageTest
         
         File.Delete(tempPath);
     }
+
+    [Fact]
+    public async Task AC02_SearchAndFilterCandidates()
+    {
+        string jobTitle = $"Searchable Job {Guid.NewGuid()}";
+        await CreatePublishedJob(jobTitle);
+
+        // Apply
+        await Page.GotoAsync($"{BaseUrl}/jobs");
+        await Page.Locator(".job-card").Filter(new() { HasText = jobTitle }).Locator(".btn-link").ClickAsync();
+        await Page.ClickAsync("a:has-text('Apply Now')");
+        string candidateName = $"Unique Candidate {Guid.NewGuid()}";
+        await Page.FillAsync("#name", candidateName);
+        await Page.FillAsync("#email", "unique@search.com");
+        var tempPath = Path.Combine(Path.GetTempPath(), "resume.pdf");
+        await File.WriteAllBytesAsync(tempPath, new byte[] { 0x25, 0x50, 0x44, 0x46 });
+        await Page.SetInputFilesAsync("#resume", tempPath);
+        await Page.ClickAsync("button[type='submit']");
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/success"));
+
+        // Login as Admin
+        await Page.GotoAsync($"{BaseUrl}/login");
+        await Page.FillAsync("#email", "admin@microats.com");
+        await Page.FillAsync("#password", "AdminPassword123!");
+        await Page.ClickAsync("button[type='submit']");
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/dashboard|/admin/requisitions"));
+
+        // Go to candidates list
+        await Page.GotoAsync($"{BaseUrl}/admin/candidates");
+        
+        // Search
+        await Page.FillAsync("#searchQuery", candidateName);
+        await Page.ClickAsync("button:has-text('Search')");
+        
+        var row = Page.Locator(".application-table tbody tr").Filter(new() { HasText = candidateName });
+        await Expect(row).ToBeVisibleAsync();
+        
+        File.Delete(tempPath);
+    }
+
+    [Fact]
+    public async Task AC03_UpdateStageAndAddFeedback()
+    {
+        string jobTitle = $"Tracking Job {Guid.NewGuid()}";
+        await CreatePublishedJob(jobTitle);
+
+        // Apply
+        await Page.GotoAsync($"{BaseUrl}/jobs");
+        await Page.Locator(".job-card").Filter(new() { HasText = jobTitle }).Locator(".btn-link").ClickAsync();
+        await Page.ClickAsync("a:has-text('Apply Now')");
+        string candidateName = $"Feedback User {Guid.NewGuid()}";
+        await Page.FillAsync("#name", candidateName);
+        await Page.FillAsync("#email", "feedback@track.com");
+        var tempPath = Path.Combine(Path.GetTempPath(), "resume.pdf");
+        await File.WriteAllBytesAsync(tempPath, new byte[] { 0x25, 0x50, 0x44, 0x46 });
+        await Page.SetInputFilesAsync("#resume", tempPath);
+        await Page.ClickAsync("button[type='submit']");
+
+        // Admin login
+        await Page.GotoAsync($"{BaseUrl}/login");
+        await Page.FillAsync("#email", "admin@microats.com");
+        await Page.FillAsync("#password", "AdminPassword123!");
+        await Page.ClickAsync("button[type='submit']");
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/dashboard|/admin/requisitions"));
+
+        // Navigate to detail
+        await Page.GotoAsync($"{BaseUrl}/admin/candidates");
+        await Page.FillAsync("#searchQuery", candidateName);
+        await Page.ClickAsync("button:has-text('Search')");
+        await Page.ClickAsync(".action-link:has-text('View Details')");
+
+        // Update Stage
+        await Page.ClickAsync("button:has-text('Interview')");
+        await Expect(Page.Locator(".current-status")).ToContainTextAsync("Interview");
+
+        // Add Feedback
+        await Page.FillAsync("#notes", "Very promising candidate.");
+        await Page.SelectOptionAsync("#score", new[] { "5" });
+        await Page.ClickAsync("button:has-text('Add Feedback')");
+
+        // Verify Feedback
+        await Expect(Page.Locator(".feedback-item")).ToContainTextAsync("Very promising candidate.");
+        await Expect(Page.Locator(".score-badge")).ToContainTextAsync("★ 5");
+
+        File.Delete(tempPath);
+    }
 }

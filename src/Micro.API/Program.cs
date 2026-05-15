@@ -14,7 +14,11 @@ builder.Host.UseSerilog((context, configuration) =>
     configuration.ReadFrom.Configuration(context.Configuration));
 
 builder.Services.AddDbContext<MicroDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    Log.Information("Using connection string: {ConnectionString}", connectionString);
+    options.UseNpgsql(connectionString);
+});
 
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
     {

@@ -9,6 +9,21 @@ export enum ApplicationStatus {
   Archive = 3,
 }
 
+export enum ArchivalResolution {
+  None = 0,
+  Hired = 1,
+  Rejected = 2,
+  Declined = 3,
+  Withdrawn = 4
+}
+
+export interface Feedback {
+  id: string;
+  notes: string;
+  score: number;
+  createdAt: string;
+}
+
 export interface Application {
   id: string;
   jobPostingId: string;
@@ -18,6 +33,11 @@ export interface Application {
   candidatePhone?: string;
   status: ApplicationStatus;
   appliedAt: string;
+}
+
+export interface ApplicationDetail extends Application {
+  archivalResolution: ArchivalResolution;
+  feedbacks: Feedback[];
 }
 
 @Injectable({
@@ -34,9 +54,26 @@ export class ApplicationService {
   }
 
   // Admin APIs
-  getApplications(jobPostingId?: string): Observable<Application[]> {
-    const url = jobPostingId ? `${this.adminApiUrl}?jobPostingId=${jobPostingId}` : this.adminApiUrl;
+  getApplications(jobPostingId?: string, search?: string): Observable<Application[]> {
+    let url = this.adminApiUrl;
+    const params: string[] = [];
+    if (jobPostingId) params.push(`jobPostingId=${jobPostingId}`);
+    if (search) params.push(`search=${encodeURIComponent(search)}`);
+    if (params.length > 0) url += `?${params.join('&')}`;
+    
     return this.http.get<Application[]>(url);
+  }
+
+  getApplication(id: string): Observable<ApplicationDetail> {
+    return this.http.get<ApplicationDetail>(`${this.adminApiUrl}/${id}`);
+  }
+
+  updateStatus(id: string, status: ApplicationStatus, resolution: ArchivalResolution = ArchivalResolution.None): Observable<void> {
+    return this.http.put<void>(`${this.adminApiUrl}/${id}/status`, { status, resolution });
+  }
+
+  addFeedback(id: string, notes: string, score: number): Observable<void> {
+    return this.http.post<void>(`${this.adminApiUrl}/${id}/feedback`, { notes, score });
   }
 
   downloadResume(id: string): Observable<Blob> {
