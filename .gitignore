@@ -43,6 +43,9 @@ ScaffoldingReadMe.txt
 ~$*
 *~
 CodeCoverage/
+*.lscache
+Storage/
+src/Micro.API/Storage/
 
 # MSBuild Binary and Structured Log
 *.binlog

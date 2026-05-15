@@ -24,6 +24,7 @@ stop_port $API_PORT
 stop_port $WEB_PORT
 
 echo "Starting Backend (Micro.API)..."
+export ASPNETCORE_ENVIRONMENT=Testing
 dotnet run --project src/Micro.API --urls=http://localhost:$API_PORT &
 API_PID=$!
 

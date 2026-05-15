@@ -12,8 +12,9 @@ public class JobPosting
     public DateTime? UpdatedAt { get; set; }
     public DateTime? ClosedAt { get; set; }
 
-    // Navigation property
+    // Navigation properties
     public Requisition Requisition { get; set; } = null!;
+    public ICollection<Application> Applications { get; set; } = new List<Application>();
 }
 
 public enum JobPostingStatus

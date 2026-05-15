@@ -1,0 +1,55 @@
+<div class="apply-container">
+  @if (job(); as data) {
+    <header class="apply-header">
+      <a [routerLink]="['/jobs', jobId]" class="back-link">← Back to Job Details</a>
+      <h1>Apply for {{ data.title }}</h1>
+      <p class="subtitle">{{ data.department }}</p>
+    </header>
+
+    @if (errorMessage()) {
+      <div class="alert alert-error">
+        {{ errorMessage() }}
+      </div>
+    }
+
+    <form [formGroup]="applyForm" (ngSubmit)="onSubmit()" class="apply-form">
+      <div class="form-group">
+        <label for="name">Full Name *</label>
+        <input type="text" id="name" formControlName="name" class="form-control" placeholder="John Doe">
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email Address *</label>
+        <input type="email" id="email" formControlName="email" class="form-control" placeholder="john.doe@example.com">
+      </div>
+
+      <div class="form-group">
+        <label for="phone">Phone Number</label>
+        <input type="tel" id="phone" formControlName="phone" class="form-control" placeholder="+1 (555) 000-0000">
+      </div>
+
+      <div class="form-group">
+        <label for="resume">Resume (PDF only) *</label>
+        <input type="file" id="resume" (change)="onFileChange($event)" class="form-control" accept=".pdf">
+        <p class="help-text">Max file size: 5MB</p>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-large" [disabled]="applyForm.invalid || submitting()">
+          @if (submitting()) {
+            Submitting...
+          } @else {
+            Submit Application
+          }
+        </button>
+      </div>
+    </form>
+  } @else if (!errorMessage()) {
+    <div class="loading">Loading job details...</div>
+  } @else {
+    <div class="error-state">
+      <div class="alert alert-error">{{ errorMessage() }}</div>
+      <a routerLink="/jobs" class="btn btn-secondary">Back to Job Board</a>
+    </div>
+  }
+</div>

@@ -38,7 +38,7 @@ public class JobPostingTests : PageTest
         Page.Dialog += HandleDialog;
         try 
         {
-            await reqRow.Locator(".action-btn.finalize").ClickAsync();
+            await reqRow.Locator(".action-btn.finalize:has-text('Publish')").ClickAsync();
         }
         finally
         {

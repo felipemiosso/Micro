@@ -1,0 +1,58 @@
+<div class="admin-container">
+  <header class="admin-header">
+    <div class="header-content">
+      <h1>Candidates</h1>
+      <p class="subtitle">
+        @if (jobPostingId()) {
+          Filtering by job posting
+        } @else {
+          All applications
+        }
+      </p>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="loading">Loading applications...</div>
+  } @else {
+    <div class="table-container">
+      <table class="application-table">
+        <thead>
+          <tr>
+            <th>Candidate</th>
+            <th>Job Posting</th>
+            <th>Applied At</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (app of applications(); track app.id) {
+            <tr>
+              <td>
+                <div class="candidate-info">
+                  <span class="name">{{ app.candidateName }}</span>
+                  <span class="email">{{ app.candidateEmail }}</span>
+                </div>
+              </td>
+              <td>{{ app.jobTitle }}</td>
+              <td>{{ app.appliedAt | date:'short' }}</td>
+              <td>
+                <span class="status-badge status-{{ app.status }}">
+                  {{ getStatusLabel(app.status) }}
+                </span>
+              </td>
+              <td>
+                <button (click)="downloadResume(app.id, app.candidateName)" class="btn-link">Download Resume</button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5" class="empty-state">No applications found.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

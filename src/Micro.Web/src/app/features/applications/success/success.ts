@@ -1,0 +1,12 @@
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
+
+@Component({
+  selector: 'app-application-success',
+  standalone: true,
+  imports: [CommonModule, RouterModule],
+  templateUrl: './success.html',
+  styleUrls: ['./success.css'],
+})
+export class ApplicationSuccessComponent {}

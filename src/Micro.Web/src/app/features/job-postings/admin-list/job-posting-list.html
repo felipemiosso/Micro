@@ -25,6 +25,7 @@
           <td>
             <div class="actions">
               <a [routerLink]="['/admin/jobs/edit', job.id]" class="action-link">Edit</a>
+              <a [routerLink]="['/admin/candidates']" [queryParams]="{ jobPostingId: job.id }" class="action-link">Applications</a>
               @if (job.status === Status.Published) {
                 <button (click)="closeJob(job.id)" class="action-btn close">Close</button>
               }

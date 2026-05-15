@@ -1,0 +1,38 @@
+.success-container {
+  max-width: 500px;
+  margin: 5rem auto;
+  padding: 3rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  text-align: center;
+}
+
+.success-icon {
+  width: 64px;
+  height: 64px;
+  background-color: #22c55e;
+  color: white;
+  border-radius: 50%;
+  font-size: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 2rem;
+}
+
+h1 {
+  margin-bottom: 1rem;
+  color: #1e293b;
+}
+
+p {
+  color: #64748b;
+  margin-bottom: 2rem;
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+}

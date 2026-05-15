@@ -15,6 +15,14 @@ export const routes: Routes = [
     loadComponent: () => import('./features/job-postings/public-detail/job-detail').then(m => m.JobDetailComponent)
   },
   {
+    path: 'jobs/:id/apply',
+    loadComponent: () => import('./features/applications/apply/apply').then(m => m.ApplyComponent)
+  },
+  {
+    path: 'jobs/apply/success',
+    loadComponent: () => import('./features/applications/success/success').then(m => m.ApplicationSuccessComponent)
+  },
+  {
     path: 'admin',
     canActivate: [authGuard],
     children: [
@@ -37,6 +45,10 @@ export const routes: Routes = [
       {
         path: 'jobs/edit/:id',
         loadComponent: () => import('./features/job-postings/admin-edit/job-posting-edit').then(m => m.JobPostingEditComponent)
+      },
+      {
+        path: 'candidates',
+        loadComponent: () => import('./features/applications/list/application-list').then(m => m.ApplicationListComponent)
       }
     ]
   },

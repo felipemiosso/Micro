@@ -22,8 +22,7 @@
       </section>
 
       <div class="apply-action">
-        <button class="btn btn-primary btn-large">Apply Now</button>
-        <p class="apply-note">This button will be functional soon!</p>
+        <a [routerLink]="['/jobs', data.id, 'apply']" class="btn btn-primary btn-large">Apply Now</a>
       </div>
     </div>
   } @else {

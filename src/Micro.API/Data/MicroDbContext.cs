@@ -10,6 +10,7 @@ public class MicroDbContext : IdentityDbContext
 
     public DbSet<Requisition> Requisitions { get; set; }
     public DbSet<JobPosting> JobPostings { get; set; }
+    public DbSet<Application> Applications { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

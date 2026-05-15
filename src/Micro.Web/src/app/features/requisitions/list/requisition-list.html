@@ -32,9 +32,9 @@
             <div class="actions">
               @if (req.status === Status.Draft) {
                 <a [routerLink]="['/admin/requisitions/edit', req.id]" class="action-link">Edit</a>
-                <button (click)="finalize(req.id)" class="action-btn finalize">Finalize</button>
-              }
-              @if (req.status !== Status.Closed) {
+                <button (click)="finalize(req.id)" class="action-btn finalize" title="Publish">Publish</button>
+                }
+                @if (req.status !== Status.Closed) {
                 <button (click)="close(req.id)" class="action-btn close">Close</button>
               }
             </div>

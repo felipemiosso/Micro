@@ -25,10 +25,10 @@ When I update the title to "Senior Software Engineer"
 Then the change is saved successfully.
 ```
 
-#### AC-03: Finalize Requisition [layer: e2e]
+#### AC-03: Publish Requisition [layer: e2e]
 ```
 Given a "Draft" Requisition exists
-When I click "Finalize"
+When I click "Publish"
 Then the status changes to "Finalized"
 And I can no longer edit the details.
 ```
