@@ -1,0 +1,32 @@
+<div class="job-detail-container">
+  @if (job(); as data) {
+    <header class="job-header">
+      <a routerLink="/jobs" class="back-link">← Back to Openings</a>
+      <h1>{{ data.title }}</h1>
+      <div class="job-meta">
+        <span class="meta-item">{{ data.department }}</span>
+        <span class="meta-separator">•</span>
+        <span class="meta-item">Posted {{ data.createdAt | date:'longDate' }}</span>
+      </div>
+    </header>
+
+    <div class="job-content">
+      <section class="job-section">
+        <h2>About the Role</h2>
+        <div class="formatted-text">{{ data.description }}</div>
+      </section>
+
+      <section class="job-section">
+        <h2>Requirements</h2>
+        <div class="formatted-text">{{ data.requirements }}</div>
+      </section>
+
+      <div class="apply-action">
+        <button class="btn btn-primary btn-large">Apply Now</button>
+        <p class="apply-note">This button will be functional soon!</p>
+      </div>
+    </div>
+  } @else {
+    <div class="loading">Loading job details...</div>
+  }
+</div>

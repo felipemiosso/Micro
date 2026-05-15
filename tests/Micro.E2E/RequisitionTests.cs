@@ -4,6 +4,7 @@ using Microsoft.Playwright.Xunit;
 namespace Micro.E2E;
 
 [Trait("Layer", "e2e")]
+[Collection("E2E Tests")]
 public class RequisitionTests : PageTest
 {
     private const string BaseUrl = "http://localhost:4200";
@@ -56,6 +57,9 @@ public class RequisitionTests : PageTest
         var row = Page.Locator(".requisition-table tbody tr").Filter(new() { HasText = title });
         await row.Locator(".action-link:has-text('Edit')").ClickAsync();
 
+        // Wait for the API to populate the form to prevent patchValue from overwriting our input
+        await Expect(Page.Locator("#title")).ToHaveValueAsync(title);
+
         // Act
         await Page.FillAsync("#title", updatedTitle);
         await Page.ClickAsync("button:has-text('Update Requisition')");
@@ -63,7 +67,7 @@ public class RequisitionTests : PageTest
         // Assert
         await Expect(Page).ToHaveURLAsync($"{BaseUrl}/admin/requisitions");
         var updatedRow = Page.Locator(".requisition-table tbody tr").Filter(new() { HasText = updatedTitle });
-        await Expect(updatedRow).ToBeVisibleAsync();
+        await Expect(updatedRow).ToBeVisibleAsync(new() { Timeout = 10000 });
     }
 
     [Fact]

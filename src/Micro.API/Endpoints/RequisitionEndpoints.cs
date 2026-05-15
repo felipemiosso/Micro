@@ -73,6 +73,21 @@ public static class RequisitionEndpoints
         requisition.Status = RequisitionStatus.Finalized;
         requisition.FinalizedAt = DateTime.UtcNow;
 
+        // Automatically create a Job Posting
+        var existingPosting = await db.JobPostings.FirstOrDefaultAsync(jp => jp.RequisitionId == id);
+        if (existingPosting == null)
+        {
+            db.JobPostings.Add(new JobPosting
+            {
+                Id = Guid.NewGuid(),
+                RequisitionId = id,
+                Title = requisition.Title,
+                Description = $"We are looking for a {requisition.Title} for our {requisition.Department} department.",
+                Status = JobPostingStatus.Published,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
         await db.SaveChangesAsync();
         return Results.NoContent();
     }
@@ -84,6 +99,14 @@ public static class RequisitionEndpoints
         
         requisition.Status = RequisitionStatus.Closed;
         requisition.ClosedAt = DateTime.UtcNow;
+
+        // Automatically close the associated Job Posting
+        var posting = await db.JobPostings.FirstOrDefaultAsync(jp => jp.RequisitionId == id);
+        if (posting != null && posting.Status == JobPostingStatus.Published)
+        {
+            posting.Status = JobPostingStatus.Closed;
+            posting.ClosedAt = DateTime.UtcNow;
+        }
 
         await db.SaveChangesAsync();
         return Results.NoContent();

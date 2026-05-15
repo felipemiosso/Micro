@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Run tests with coverage
+# Run tests with coverage for the Integration/Unit tests only
 # Exclude system, Microsoft namespaces and any generated files
-dotnet test --collect:"XPlat Code Coverage" -- \
+dotnet test tests/Micro.Tests/Micro.Tests.csproj --collect:"XPlat Code Coverage" -- \
   DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Exclude="[System.*]*,[Microsoft.*]*" \
   DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.ExcludeByFile="**/*.generated.cs"
 

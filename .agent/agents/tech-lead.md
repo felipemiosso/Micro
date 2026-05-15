@@ -39,8 +39,8 @@ Brief description of what this feature does technically and which layers it touc
 ### New Tables / Changes
 Describe schema changes. For each table: columns, types, constraints, indexes.
 
-### EF Core Entities
-Describe new or modified entity classes and their relationships.
+### EF Core Entities & Configurations
+Describe new or modified entity classes, their relationships, and their explicit `IEntityTypeConfiguration<T>` mapping classes located in the `Data/Configuration` folder.
 
 ### Migrations
 Describe the migration strategy: what the migration adds/modifies, any data migrations needed, rollback considerations.

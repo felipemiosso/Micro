@@ -74,6 +74,7 @@ app.UseAuthorization();
 app.MapAuthEndpoints();
 app.MapHealthCheckEndpoints();
 app.MapRequisitionEndpoints();
+app.MapJobPostingEndpoints();
 
 if (!app.Environment.IsEnvironment("Testing"))
 {

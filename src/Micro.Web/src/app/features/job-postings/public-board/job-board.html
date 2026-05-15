@@ -1,0 +1,24 @@
+<div class="job-board-container">
+  <h1>Current Openings</h1>
+  <p class="subtitle">Join our team and help us build the future.</p>
+
+  <div class="job-list">
+    @for (job of jobs(); track job.id) {
+      <div class="job-card">
+        <div class="job-card-header">
+          <h3>{{ job.title }}</h3>
+          <span class="department-badge">{{ job.department }}</span>
+        </div>
+        <p class="job-summary">{{ job.description | slice:0:150 }}{{ job.description.length > 150 ? '...' : '' }}</p>
+        <div class="job-card-footer">
+          <span class="post-date">Posted {{ job.createdAt | date:'mediumDate' }}</span>
+          <a [routerLink]="['/jobs', job.id]" class="btn-link">View Details</a>
+        </div>
+      </div>
+    } @empty {
+      <div class="no-jobs">
+        <p>No open positions at the moment. Please check back later!</p>
+      </div>
+    }
+  </div>
+</div>

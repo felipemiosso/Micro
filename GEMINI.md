@@ -43,6 +43,7 @@ src/Micro.API/
   Data/
     Models/       — domain models (EF entities and config-bound models)
     Migrations/   — EF Core migrations
+    Configuration/— EF Core entity type configurations
     AppDbContext.cs
   Endpoints/      — one file per endpoint group
   Infrastructure/ — cross-cutting concerns (auth, extensions, identity wrappers)
@@ -52,6 +53,7 @@ Rules:
 - No service layer, no repository pattern — use `AppDbContext` directly in endpoints
 - Minimal indirection: prefer inline logic over extra classes
 - `Infrastructure/` is for framework plumbing (auth handlers, option extensions, identity helpers), not business logic
+- All Entity Framework model configurations must be in separated files implementing `IEntityTypeConfiguration<T>` inside the `Data/Configuration` folder. Do not configure models directly in `OnModelCreating`.
 
 ## Endpoints
 

@@ -4,6 +4,7 @@ using Microsoft.Playwright.Xunit;
 namespace Micro.E2E;
 
 [Trait("Layer", "e2e")]
+[Collection("E2E Tests")]
 public class AuthTests : PageTest
 {
     private const string BaseUrl = "http://localhost:4200";

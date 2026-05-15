@@ -1,0 +1,34 @@
+<div class="form-container">
+  <h2>Edit Job Posting</h2>
+  
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="job-posting-form">
+    <div class="form-group">
+      <label for="title">Public Title</label>
+      <input id="title" type="text" formControlName="title" placeholder="Public title for this job">
+      @if (form.get('title')?.invalid && form.get('title')?.touched) {
+        <span class="error">Title is required.</span>
+      }
+    </div>
+
+    <div class="form-group">
+      <label for="description">Job Description</label>
+      <textarea id="description" formControlName="description" rows="5" placeholder="Detailed job description..."></textarea>
+      @if (form.get('description')?.invalid && form.get('description')?.touched) {
+        <span class="error">Description is required.</span>
+      }
+    </div>
+
+    <div class="form-group">
+      <label for="requirements">Requirements</label>
+      <textarea id="requirements" formControlName="requirements" rows="5" placeholder="List of requirements..."></textarea>
+      @if (form.get('requirements')?.invalid && form.get('requirements')?.touched) {
+        <span class="error">Requirements are required.</span>
+      }
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn btn-secondary" routerLink="/admin/jobs">Cancel</button>
+      <button type="submit" class="btn btn-primary">Save Changes</button>
+    </div>
+  </form>
+</div>

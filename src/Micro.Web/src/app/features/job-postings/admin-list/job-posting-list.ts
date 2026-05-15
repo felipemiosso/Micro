@@ -1,0 +1,38 @@
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
+import { JobPostingService, JobPosting, JobPostingStatus } from '../job-posting.service';
+
+@Component({
+  selector: 'app-job-posting-list',
+  standalone: true,
+  imports: [CommonModule, RouterModule],
+  templateUrl: './job-posting-list.html',
+  styleUrls: ['./job-posting-list.css'],
+})
+export class JobPostingListComponent implements OnInit {
+  private jobPostingService = inject(JobPostingService);
+  jobPostings = signal<JobPosting[]>([]);
+  Status = JobPostingStatus;
+
+  ngOnInit() {
+    this.loadJobs();
+  }
+
+  loadJobs() {
+    this.jobPostingService.getAllJobs().subscribe({
+      next: (data) => this.jobPostings.set(data),
+      error: (err) => console.error('Failed to load job postings', err)
+    });
+  }
+
+  closeJob(id: string) {
+    if (confirm('Are you sure you want to close this job posting? Candidates will no longer be able to apply.')) {
+      this.jobPostingService.closeJob(id).subscribe(() => this.loadJobs());
+    }
+  }
+
+  getStatusLabel(status: JobPostingStatus): string {
+    return status === JobPostingStatus.Published ? 'Published' : 'Closed';
+  }
+}

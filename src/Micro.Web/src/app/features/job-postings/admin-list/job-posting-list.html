@@ -1,0 +1,41 @@
+<div class="job-posting-container">
+  <h2>Job Postings</h2>
+
+  <table class="job-table">
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Department</th>
+        <th>Status</th>
+        <th>Created At</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (job of jobPostings(); track job.id) {
+        <tr>
+          <td>{{ job.title }}</td>
+          <td>{{ job.requisition?.department }}</td>
+          <td>
+            <span class="status-badge" [class]="getStatusLabel(job.status).toLowerCase()">
+              {{ getStatusLabel(job.status) }}
+            </span>
+          </td>
+          <td>{{ job.createdAt | date:'short' }}</td>
+          <td>
+            <div class="actions">
+              <a [routerLink]="['/admin/jobs/edit', job.id]" class="action-link">Edit</a>
+              @if (job.status === Status.Published) {
+                <button (click)="closeJob(job.id)" class="action-btn close">Close</button>
+              }
+            </div>
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="5" class="empty-state">No job postings found. Finalize a requisition to create one.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
