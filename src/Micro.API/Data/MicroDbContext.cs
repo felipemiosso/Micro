@@ -1,13 +1,13 @@
 using Micro.API.Data.Models;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace Micro.API.Data;
 
-public class MicroDbContext : IdentityDbContext<AppUser>
+public class MicroDbContext : DbContext
 {
     public MicroDbContext(DbContextOptions<MicroDbContext> options) : base(options) { }
 
+    public DbSet<AppUser> Users { get; set; }
     public DbSet<Requisition> Requisitions { get; set; }
     public DbSet<JobPosting> JobPostings { get; set; }
     public DbSet<Application> Applications { get; set; }
@@ -15,8 +15,6 @@ public class MicroDbContext : IdentityDbContext<AppUser>
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
-        base.OnModelCreating(builder);
-
         builder.ApplyConfigurationsFromAssembly(typeof(MicroDbContext).Assembly);
     }
 }

@@ -10,14 +10,16 @@ public class HealthCheckTests : IntegrationTestBase
     {
     }
 
+    private void Authenticate()
+    {
+        Client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "test-token");
+    }
+
     [Fact]
     public async Task Get_Health_ReturnsHealthy()
     {
         // Arrange
-        var loginRequest = new { Email = "admin@microats.com", Password = "AdminPassword123!" };
-        var loginResponse = await Client.PostAsJsonAsync("/api/auth/login", loginRequest);
-        var authResult = await loginResponse.Content.ReadFromJsonAsync<AuthTests.LoginResponse>();
-        Client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authResult!.Token);
+        Authenticate();
 
         // Act
         var response = await Client.GetAsync("/health");

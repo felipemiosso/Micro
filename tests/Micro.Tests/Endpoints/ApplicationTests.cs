@@ -2,8 +2,6 @@ using System.Net;
 using System.Net.Http.Json;
 using Micro.API.Data.Models;
 using Micro.API.Endpoints;
-using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Micro.Tests.Endpoints;
 
@@ -14,17 +12,14 @@ public class ApplicationTests : IntegrationTestBase
     {
     }
 
-    private async Task AuthenticateAsync()
+    private void Authenticate()
     {
-        var loginRequest = new { Email = "admin@microats.com", Password = "AdminPassword123!" };
-        var loginResponse = await Client.PostAsJsonAsync("/api/auth/login", loginRequest);
-        var authResult = await loginResponse.Content.ReadFromJsonAsync<AuthTests.LoginResponse>();
-        Client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authResult!.Token);
+        Client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "test-token");
     }
 
     private async Task<Guid> CreatePublishedJob()
     {
-        await AuthenticateAsync();
+        Authenticate();
         var createRequest = new RequisitionEndpoints.CreateRequisitionRequest("Tester", "QA", 1);
         var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
         var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();
@@ -56,7 +51,7 @@ public class ApplicationTests : IntegrationTestBase
         // Assert
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
-        await AuthenticateAsync();
+        Authenticate();
         var adminResponse = await Client.GetAsync($"/api/admin/applications?jobPostingId={jobId}");
         var applications = await adminResponse.Content.ReadFromJsonAsync<List<dynamic>>();
         Assert.Single(applications!);
@@ -181,7 +176,7 @@ public class ApplicationTests : IntegrationTestBase
         var appInfo = await createResponse.Content.ReadFromJsonAsync<dynamic>();
         Guid appId = appInfo!.GetProperty("id").GetGuid();
 
-        await AuthenticateAsync();
+        Authenticate();
 
         // Act
         var response = await Client.GetAsync($"/api/admin/applications/{appId}/resume");
@@ -206,7 +201,7 @@ public class ApplicationTests : IntegrationTestBase
         var appInfo = await createResponse.Content.ReadFromJsonAsync<dynamic>();
         Guid appId = appInfo!.GetProperty("id").GetGuid();
 
-        await AuthenticateAsync();
+        Authenticate();
 
         // Act
         var updateRequest = new ApplicationEndpoints.UpdateStatusRequest(ApplicationStatus.Interview, ArchivalResolution.None);
@@ -233,7 +228,7 @@ public class ApplicationTests : IntegrationTestBase
         var appInfo = await createResponse.Content.ReadFromJsonAsync<dynamic>();
         Guid appId = appInfo!.GetProperty("id").GetGuid();
 
-        await AuthenticateAsync();
+        Authenticate();
 
         // Act - Move to Archive without resolution
         var updateRequest = new ApplicationEndpoints.UpdateStatusRequest(ApplicationStatus.Archive, ArchivalResolution.None);
@@ -256,7 +251,7 @@ public class ApplicationTests : IntegrationTestBase
         var appInfo = await createResponse.Content.ReadFromJsonAsync<dynamic>();
         Guid appId = appInfo!.GetProperty("id").GetGuid();
 
-        await AuthenticateAsync();
+        Authenticate();
 
         // Act
         var feedbackRequest = new ApplicationEndpoints.AddFeedbackRequest("Great candidate!", 5);

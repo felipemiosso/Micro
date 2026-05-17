@@ -1,32 +1,30 @@
 using Micro.API.Data.Models;
-using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace Micro.API.Data;
 
 public static class DbInitializer
 {
-    public static async Task SeedAdminUser(IServiceProvider serviceProvider)
+    public static async Task SeedUser(IServiceProvider serviceProvider)
     {
-        var userManager = serviceProvider.GetRequiredService<UserManager<AppUser>>();
-        var adminEmail = "admin@microats.com";
-        var adminPassword = "AdminPassword123!";
-
-        var adminUser = await userManager.FindByEmailAsync(adminEmail);
-        if (adminUser == null)
+        var dbContext = serviceProvider.GetRequiredService<MicroDbContext>();
+        
+        // We don't strictly need to seed users anymore as they are managed by Firebase
+        // and created in our DB on their first request to /api/profile.
+        // However, we can seed a test user for development/testing if needed.
+        
+        var testUserId = "test-user-id";
+        var exists = await dbContext.Users.AnyAsync(u => u.Id == testUserId);
+        
+        if (!exists)
         {
-            adminUser = new AppUser
+            dbContext.Users.Add(new AppUser
             {
-                UserName = adminEmail,
-                Email = adminEmail,
-                EmailConfirmed = true,
-                FullName = "System Admin"
-            };
-
-            var result = await userManager.CreateAsync(adminUser, adminPassword);
-            if (!result.Succeeded && result.Errors.All(e => e.Code != "DuplicateUserName" && e.Code != "DuplicateEmail"))
-            {
-                throw new Exception($"Failed to seed admin user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
-            }
+                Id = testUserId,
+                Email = "test@microats.com",
+                FullName = "Test User"
+            });
+            await dbContext.SaveChangesAsync();
         }
     }
 }

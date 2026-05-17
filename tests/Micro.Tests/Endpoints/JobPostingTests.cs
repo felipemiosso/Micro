@@ -13,19 +13,16 @@ public class JobPostingTests : IntegrationTestBase
     {
     }
 
-    private async Task AuthenticateAsync()
+    private void Authenticate()
     {
-        var loginRequest = new { Email = "admin@microats.com", Password = "AdminPassword123!" };
-        var loginResponse = await Client.PostAsJsonAsync("/api/auth/login", loginRequest);
-        var authResult = await loginResponse.Content.ReadFromJsonAsync<AuthTests.LoginResponse>();
-        Client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authResult!.Token);
+        Client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "test-token");
     }
 
     [Fact]
     public async Task FinalizeRequisition_CreatesJobPosting()
     {
         // Arrange
-        await AuthenticateAsync();
+        Authenticate();
         var createRequest = new RequisitionEndpoints.CreateRequisitionRequest("Engineer", "IT", 1);
         var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
         var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();
@@ -43,7 +40,7 @@ public class JobPostingTests : IntegrationTestBase
     public async Task CloseRequisition_ClosesJobPosting()
     {
         // Arrange
-        await AuthenticateAsync();
+        Authenticate();
         var createRequest = new RequisitionEndpoints.CreateRequisitionRequest("Closer", "IT", 1);
         var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
         var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();
@@ -62,7 +59,7 @@ public class JobPostingTests : IntegrationTestBase
     public async Task UpdateJobPosting_ReturnsNoContent()
     {
         // Arrange
-        await AuthenticateAsync();
+        Authenticate();
         var createRequest = new RequisitionEndpoints.CreateRequisitionRequest("To Update", "IT", 1);
         var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
         var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();

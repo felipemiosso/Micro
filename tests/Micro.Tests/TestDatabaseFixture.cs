@@ -6,6 +6,8 @@ using Microsoft.EntityFrameworkCore;
 using Respawn;
 using Npgsql;
 using Micro.API.Data;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.AspNetCore.Authentication;
 
 namespace Micro.Tests;
 
@@ -25,8 +27,16 @@ public class TestDatabaseFixture : IAsyncLifetime
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["ConnectionStrings:DefaultConnection"] = "Host=localhost;Database=MicroATS_Tests;Username=postgres;Password=postgres",
-                    ["Serilog:MinimumLevel:Override:Microsoft.EntityFrameworkCore.Database.Connection"] = "Fatal"
+                    ["Serilog:MinimumLevel:Override:Microsoft.EntityFrameworkCore.Database.Connection"] = "Fatal",
+                    ["Firebase:ProjectId"] = "test-project"
                 });
+            });
+
+            builder.ConfigureTestServices(services =>
+            {
+                services.AddAuthentication(defaultScheme: "Test")
+                    .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(
+                        "Test", options => { });
             });
         });
     }
@@ -62,10 +72,9 @@ public class TestDatabaseFixture : IAsyncLifetime
         await conn.OpenAsync();
         await Respawner.ResetAsync(conn);
         
-        // Re-seed admin user after reset if needed, 
-        // but since we want clean state for tests, we let tests handle seeding or use DbInitializer
+        // Re-seed user after reset if needed
         using var scope = Factory.Services.CreateScope();
-        await DbInitializer.SeedAdminUser(scope.ServiceProvider);
+        await DbInitializer.SeedUser(scope.ServiceProvider);
     }
 
     public async Task DisposeAsync()

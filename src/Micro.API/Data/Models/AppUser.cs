@@ -1,9 +1,9 @@
-using Microsoft.AspNetCore.Identity;
-
 namespace Micro.API.Data.Models;
 
-public class AppUser : IdentityUser
+public class AppUser
 {
+    public string Id { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
     public string? PhotoUrl { get; set; }
 }

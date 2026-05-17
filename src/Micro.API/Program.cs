@@ -1,9 +1,6 @@
-using System.Text;
 using Micro.API.Data;
-using Micro.API.Data.Models;
 using Micro.API.Endpoints;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
@@ -21,33 +18,18 @@ builder.Services.AddDbContext<MicroDbContext>(options =>
     options.UseNpgsql(connectionString);
 });
 
-builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
-    {
-        options.Password.RequireDigit = true;
-        options.Password.RequiredLength = 8;
-        options.Password.RequireNonAlphanumeric = false;
-        options.Password.RequireUppercase = true;
-        options.Password.RequireLowercase = true;
-    })
-    .AddEntityFrameworkStores<MicroDbContext>()
-    .AddDefaultTokenProviders();
-
-builder.Services.AddAuthentication(options =>
-    {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    })
+var projectId = builder.Configuration["Firebase:ProjectId"];
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.Authority = $"https://securetoken.google.com/{projectId}";
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
+            ValidIssuer = $"https://securetoken.google.com/{projectId}",
             ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+            ValidAudience = projectId,
+            ValidateLifetime = true
         };
     });
 
@@ -76,7 +58,6 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapAuthEndpoints();
 app.MapUserProfileEndpoints();
 app.MapHealthCheckEndpoints();
 app.MapRequisitionEndpoints();
@@ -89,7 +70,7 @@ if (!app.Environment.IsEnvironment("Testing"))
     {
         var dbContext = scope.ServiceProvider.GetRequiredService<MicroDbContext>();
         await dbContext.Database.MigrateAsync();
-        await DbInitializer.SeedAdminUser(scope.ServiceProvider);
+        await DbInitializer.SeedUser(scope.ServiceProvider);
     }
 }
 
