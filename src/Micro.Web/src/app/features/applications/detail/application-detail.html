@@ -46,12 +46,12 @@
           <form (ngSubmit)="submitFeedback()" class="feedback-form">
             <div class="form-group">
               <label for="notes">Notes</label>
-              <textarea id="notes" [(ngModel)]="newNotes" name="notes" placeholder="Enter evaluation notes..." required></textarea>
+              <textarea id="notes" [ngModel]="newNotes()" (ngModelChange)="newNotes.set($event)" name="notes" placeholder="Enter evaluation notes..." required></textarea>
             </div>
             <div class="form-row">
               <div class="form-group">
                 <label for="score">Score (1-5)</label>
-                <select id="score" [(ngModel)]="newScore" name="score">
+                <select id="score" [ngModel]="newScore()" (ngModelChange)="newScore.set($event)" name="score">
                   <option value="1">1 - Poor</option>
                   <option value="2">2 - Fair</option>
                   <option value="3">3 - Good</option>
@@ -89,7 +89,7 @@
         <h2>Archive Candidate</h2>
         <p>Please select a resolution for this application:</p>
         <div class="form-group">
-          <select [(ngModel)]="selectedResolution">
+          <select [ngModel]="selectedResolution()" (ngModelChange)="selectedResolution.set($event)">
             <option [ngValue]="ArchivalResolution.Hired">Hired</option>
             <option [ngValue]="ArchivalResolution.Rejected">Rejected</option>
             <option [ngValue]="ArchivalResolution.Declined">Declined</option>

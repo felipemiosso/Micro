@@ -1,24 +1,36 @@
-<div class="job-board-container">
-  <h1>Current Openings</h1>
-  <p class="subtitle">Join our team and help us build the future.</p>
+<div class="min-h-screen bg-surface-alt bg-hex-pattern py-16 px-6">
+  <div class="max-w-5xl mx-auto">
+    <div class="text-center mb-16">
+      <span class="text-honeycomb-600 font-bold uppercase tracking-widest text-sm mb-4 block">Careers at Micro</span>
+      <h1 class="text-5xl font-bold text-ink tracking-tight mb-4">Join our mission</h1>
+      <p class="text-slate-600 text-lg font-medium max-w-2xl mx-auto">We're looking for passionate individuals to help us build the next generation of recruitment tools.</p>
+    </div>
 
-  <div class="job-list">
-    @for (job of jobs(); track job.id) {
-      <div class="job-card">
-        <div class="job-card-header">
-          <h3>{{ job.title }}</h3>
-          <span class="department-badge">{{ job.department }}</span>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      @for (job of jobs(); track job.id) {
+        <div class="card-honeycomb group flex flex-col justify-between hover:-translate-y-1 transition-transform">
+          <div>
+            <div class="flex justify-between items-start mb-6">
+              <span class="badge-honeycomb">{{ job.department }}</span>
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Full Time</span>
+            </div>
+            <h3 class="text-2xl font-bold text-ink mb-3 group-hover:text-honeycomb-600 transition-colors">{{ job.title }}</h3>
+            <p class="text-slate-600 leading-relaxed mb-8">
+              {{ job.description | slice:0:150 }}{{ job.description.length > 150 ? '...' : '' }}
+            </p>
+          </div>
+          <div class="flex justify-between items-center pt-6 border-t border-slate-100">
+            <span class="text-xs font-medium text-slate-400">Posted {{ job.createdAt | date:'longDate' }}</span>
+            <a [routerLink]="['/jobs', job.id]" class="btn-primary text-sm no-underline">Apply Now</a>
+          </div>
         </div>
-        <p class="job-summary">{{ job.description | slice:0:150 }}{{ job.description.length > 150 ? '...' : '' }}</p>
-        <div class="job-card-footer">
-          <span class="post-date">Posted {{ job.createdAt | date:'mediumDate' }}</span>
-          <a [routerLink]="['/jobs', job.id]" class="btn-link">View Details</a>
+      } @empty {
+        <div class="col-span-full bg-white border border-slate-200 rounded-2xl p-20 text-center shadow-sm">
+          <div class="text-4xl mb-4">✨</div>
+          <h3 class="text-xl font-bold text-ink mb-2">No open positions right now</h3>
+          <p class="text-slate-500 font-medium">Please check back later or follow us for updates!</p>
         </div>
-      </div>
-    } @empty {
-      <div class="no-jobs">
-        <p>No open positions at the moment. Please check back later!</p>
-      </div>
-    }
+      }
+    </div>
   </div>
 </div>

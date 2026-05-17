@@ -55,7 +55,7 @@ Rules:
 - `Infrastructure/` is for framework plumbing (auth handlers, option extensions, identity helpers), not business logic
 - All Entity Framework model configurations must be in separated files implementing `IEntityTypeConfiguration<T>` inside the `Data/Configuration` folder. Do not configure models directly in `OnModelCreating`.
 
-## Endpoints
+## Frontend Rules
 
-- Each endpoint group must live in its own file.
-- Never use anonymous functions (lambdas) to define endpoint handlers — always use named methods.
+- **Angular Signals:** Use Angular Signals (`signal`, `computed`, `effect`) for all component state and data flow. Avoid manual change detection (`ChangeDetectorRef.detectChanges()`) and raw property assignments for reactive data.
+- **Standalone Components:** All new components must be standalone.

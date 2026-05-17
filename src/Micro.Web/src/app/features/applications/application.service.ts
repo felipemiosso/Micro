@@ -32,6 +32,7 @@ export interface Application {
   candidateEmail: string;
   candidatePhone?: string;
   status: ApplicationStatus;
+  archivalResolution: ArchivalResolution;
   appliedAt: string;
 }
 

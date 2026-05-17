@@ -1,36 +1,43 @@
-<div class="form-container">
-  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="requisition-form">
-    <div class="form-group">
-      <label for="title">Job Title</label>
-      <input id="title" type="text" formControlName="title" placeholder="e.g. Senior Backend Engineer">
-      @if (form.get('title')?.invalid && form.get('title')?.touched) {
-        <span class="error">Title is required.</span>
-      }
+<div class="p-8 bg-hex-pattern min-h-screen flex justify-center items-start">
+  <div class="w-full max-w-2xl bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden">
+    <div class="bg-ink-dark px-8 py-6 border-b border-honeycomb-500/30">
+      <h2 class="text-2xl font-bold text-white tracking-tight">{{ isEdit ? 'Edit' : 'Create' }} Requisition</h2>
+      <p class="text-slate-400 text-sm mt-1 font-medium">Define the requirements for a new headcount.</p>
     </div>
 
-    <div class="form-group">
-      <label for="department">Department</label>
-      <input id="department" type="text" formControlName="department" placeholder="e.g. Engineering">
-      @if (form.get('department')?.invalid && form.get('department')?.touched) {
-        <span class="error">Department is required.</span>
-      }
-    </div>
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="p-8 flex flex-col gap-8">
+      <div class="flex flex-col gap-2">
+        <label for="title" class="text-xs font-bold text-ink uppercase tracking-widest">Job Title</label>
+        <input id="title" type="text" formControlName="title" placeholder="e.g. Senior Backend Engineer" class="input-honeycomb">
+        @if (form.get('title')?.invalid && form.get('title')?.touched) {
+          <span class="text-red-500 text-[10px] font-bold uppercase tracking-wide">Title is required.</span>
+        }
+      </div>
 
-    <div class="form-group">
-      <label for="openings">Number of Openings</label>
-      <input id="openings" type="number" formControlName="openings">
-      @if (form.get('openings')?.invalid && form.get('openings')?.touched) {
-        <span class="error">Must have at least 1 opening.</span>
-      }
-    </div>
+      <div class="flex flex-col gap-2">
+        <label for="department" class="text-xs font-bold text-ink uppercase tracking-widest">Department</label>
+        <input id="department" type="text" formControlName="department" placeholder="e.g. Engineering" class="input-honeycomb">
+        @if (form.get('department')?.invalid && form.get('department')?.touched) {
+          <span class="text-red-500 text-[10px] font-bold uppercase tracking-wide">Department is required.</span>
+        }
+      </div>
 
-    <div class="actions">
-      <button type="button" class="btn btn-secondary" routerLink="/admin/requisitions">Cancel</button>
-      @if (form.enabled) {
-        <button type="submit" class="btn btn-primary">
-          {{ isEdit ? 'Update' : 'Create' }} Requisition
-        </button>
-      }
-    </div>
-  </form>
+      <div class="flex flex-col gap-2">
+        <label for="openings" class="text-xs font-bold text-ink uppercase tracking-widest">Number of Openings</label>
+        <input id="openings" type="number" formControlName="openings" class="input-honeycomb">
+        @if (form.get('openings')?.invalid && form.get('openings')?.touched) {
+          <span class="text-red-500 text-[10px] font-bold uppercase tracking-wide">Must have at least 1 opening.</span>
+        }
+      </div>
+
+      <div class="flex justify-end gap-4 pt-4 border-t border-slate-100">
+        <button type="button" class="btn-secondary" routerLink="/admin/requisitions">Cancel</button>
+        @if (form.enabled) {
+          <button type="submit" class="btn-primary" [disabled]="form.invalid">
+            {{ isEdit ? 'Update' : 'Create' }} Requisition
+          </button>
+        }
+      </div>
+    </form>
+  </div>
 </div>

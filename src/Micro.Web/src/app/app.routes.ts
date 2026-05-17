@@ -51,8 +51,20 @@ export const routes: Routes = [
         loadComponent: () => import('./features/applications/list/application-list').then(m => m.ApplicationListComponent)
       },
       {
+        path: 'pipeline',
+        loadComponent: () => import('./features/applications/pipeline-board/pipeline-board').then(m => m.PipelineBoardComponent)
+      },
+      {
+        path: 'pipeline/archived',
+        loadComponent: () => import('./features/applications/archived-pipeline/archived-pipeline').then(m => m.ArchivedPipelineComponent)
+      },
+      {
         path: 'candidates/:id',
         loadComponent: () => import('./features/applications/detail/application-detail').then(m => m.ApplicationDetailComponent)
+      },
+      {
+        path: 'profile',
+        loadComponent: () => import('./features/auth/profile/profile').then(m => m.ProfileComponent)
       }
     ]
   },

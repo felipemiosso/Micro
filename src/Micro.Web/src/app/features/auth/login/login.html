@@ -1,29 +1,43 @@
-<div class="login-container">
-  <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
-    <div class="form-group">
-      <label for="email">Email</label>
-      <input id="email" type="email" formControlName="email">
-      @if (loginForm.get('email')?.touched && loginForm.get('email')?.invalid) {
-        <div class="error">
-          Valid email is required
-        </div>
-      }
+<div class="min-h-screen bg-hex-pattern flex items-center justify-center p-6">
+  <div class="w-full max-w-md bg-white border border-slate-200 rounded-2xl shadow-xl p-10">
+    <div class="text-center mb-10">
+      <div class="inline-block px-4 py-1.5 bg-honeycomb-100 text-honeycomb-800 rounded-full text-xs font-bold uppercase tracking-widest mb-4">
+        Secure Access
+      </div>
+      <h1 class="text-3xl font-bold text-ink tracking-tight">Welcome back</h1>
+      <p class="text-slate-500 mt-2 font-medium">Log in to manage your pipeline</p>
     </div>
 
-    <div class="form-group">
-      <label for="password">Password</label>
-      <input id="password" type="password" formControlName="password">
-      @if (loginForm.get('password')?.touched && loginForm.get('password')?.invalid) {
-        <div class="error">
-          Password must be at least 8 characters
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="flex flex-col gap-6">
+      <div class="flex flex-col gap-2">
+        <label for="email" class="text-xs font-bold text-ink uppercase tracking-wider">Email Address</label>
+        <input id="email" type="email" formControlName="email" class="input-honeycomb" placeholder="name@company.com">
+        @if (loginForm.get('email')?.touched && loginForm.get('email')?.invalid) {
+          <div class="text-red-500 text-[10px] font-bold uppercase tracking-wide mt-1">
+            Valid email is required
+          </div>
+        }
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <label for="password" class="text-xs font-bold text-ink uppercase tracking-wider">Password</label>
+        <input id="password" type="password" formControlName="password" class="input-honeycomb" placeholder="••••••••">
+        @if (loginForm.get('password')?.touched && loginForm.get('password')?.invalid) {
+          <div class="text-red-500 text-[10px] font-bold uppercase tracking-wide mt-1">
+            Min. 8 characters required
+          </div>
+        }
+      </div>
+
+      @if (errorMessage()) {
+        <div class="p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-xs font-medium text-center">
+          {{ errorMessage() }}
         </div>
       }
-    </div>
 
-    @if (errorMessage()) {
-      <p class="error-summary">{{ errorMessage() }}</p>
-    }
-
-    <button type="submit" [disabled]="loginForm.invalid">Login</button>
-  </form>
+      <button type="submit" [disabled]="loginForm.invalid" class="btn-primary w-full mt-2 py-3">
+        Sign in to Micro ATS
+      </button>
+    </form>
+  </div>
 </div>

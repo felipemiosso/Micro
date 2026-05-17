@@ -123,6 +123,7 @@ public static class ApplicationEndpoints
                 a.CandidateEmail,
                 a.CandidatePhone,
                 a.Status,
+                a.ArchivalResolution,
                 a.AppliedAt
             })
             .ToListAsync();

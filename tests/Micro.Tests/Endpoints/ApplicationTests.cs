@@ -221,6 +221,29 @@ public class ApplicationTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task UpdateStatus_ArchiveWithoutResolution_ReturnsBadRequest()
+    {
+        // Arrange
+        var jobId = await CreatePublishedJob();
+        using var content = new MultipartFormDataContent();
+        content.Add(new StringContent("Archive Fail"), "name");
+        content.Add(new StringContent("archivefail@example.com"), "email");
+        content.Add(new ByteArrayContent(new byte[] { 0x25, 0x50, 0x44, 0x46 }), "resume", "resume.pdf");
+        var createResponse = await Client.PostAsync($"/api/public/jobs/{jobId}/apply", content);
+        var appInfo = await createResponse.Content.ReadFromJsonAsync<dynamic>();
+        Guid appId = appInfo!.GetProperty("id").GetGuid();
+
+        await AuthenticateAsync();
+
+        // Act - Move to Archive without resolution
+        var updateRequest = new ApplicationEndpoints.UpdateStatusRequest(ApplicationStatus.Archive, ArchivalResolution.None);
+        var response = await Client.PutAsJsonAsync($"/api/admin/applications/{appId}/status", updateRequest);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task AddFeedback_ValidRequest_PersistsFeedback()
     {
         // Arrange

@@ -163,4 +163,111 @@ public class ApplicationTests : PageTest
 
         File.Delete(tempPath);
     }
+
+    [Fact]
+    public async Task AC04_PipelineDragAndDrop()
+    {
+        string jobTitle = $"Pipeline Job {Guid.NewGuid()}";
+        await CreatePublishedJob(jobTitle);
+
+        // Apply
+        await Page.GotoAsync($"{BaseUrl}/jobs");
+        await Page.Locator(".job-card").Filter(new() { HasText = jobTitle }).Locator(".btn-link").ClickAsync();
+        await Page.ClickAsync("a:has-text('Apply Now')");
+        string candidateName = $"Pipeline User {Guid.NewGuid()}";
+        await Page.FillAsync("#name", candidateName);
+        await Page.FillAsync("#email", "pipeline@track.com");
+        var tempPath = Path.Combine(Path.GetTempPath(), "resume.pdf");
+        await File.WriteAllBytesAsync(tempPath, new byte[] { 0x25, 0x50, 0x44, 0x46 });
+        await Page.SetInputFilesAsync("#resume", tempPath);
+        await Page.ClickAsync("button[type='submit']");
+
+        // Admin login
+        await Page.GotoAsync($"{BaseUrl}/login");
+        await Page.FillAsync("#email", "admin@microats.com");
+        await Page.FillAsync("#password", "AdminPassword123!");
+        await Page.ClickAsync("button[type='submit']");
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/dashboard|/admin/requisitions"));
+
+        // Navigate to Pipeline
+        await Page.ClickAsync("a:has-text('Pipeline')");
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/admin/pipeline"));
+
+        // Find candidate in Applied lane
+        var appliedLane = Page.Locator("#appliedList");
+        var candidateCard = appliedLane.Locator(".card").Filter(new() { HasText = candidateName });
+        await Expect(candidateCard).ToBeVisibleAsync();
+
+        // Drag to Interview lane
+        var interviewLane = Page.Locator("#interviewList");
+        await candidateCard.DragToAsync(interviewLane);
+
+        // Verify it moved
+        await Expect(appliedLane.Locator(".card").Filter(new() { HasText = candidateName })).ToHaveCountAsync(0);
+        await Expect(interviewLane.Locator(".card").Filter(new() { HasText = candidateName })).ToHaveCountAsync(1);
+
+        File.Delete(tempPath);
+    }
+
+    [Fact]
+    public async Task AC05_ArchiveCandidate()
+    {
+        string jobTitle = $"Archive Job {Guid.NewGuid()}";
+        await CreatePublishedJob(jobTitle);
+
+        // Apply
+        await Page.GotoAsync($"{BaseUrl}/jobs");
+        await Page.Locator(".job-card").Filter(new() { HasText = jobTitle }).Locator(".btn-link").ClickAsync();
+        await Page.ClickAsync("a:has-text('Apply Now')");
+        string candidateName = $"Archive User {Guid.NewGuid()}";
+        await Page.FillAsync("#name", candidateName);
+        await Page.FillAsync("#email", "archive@track.com");
+        var tempPath = Path.Combine(Path.GetTempPath(), "resume.pdf");
+        await File.WriteAllBytesAsync(tempPath, new byte[] { 0x25, 0x50, 0x44, 0x46 });
+        await Page.SetInputFilesAsync("#resume", tempPath);
+        await Page.ClickAsync("button[type='submit']");
+
+        // Admin login
+        await Page.GotoAsync($"{BaseUrl}/login");
+        await Page.FillAsync("#email", "admin@microats.com");
+        await Page.FillAsync("#password", "AdminPassword123!");
+        await Page.ClickAsync("button[type='submit']");
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/dashboard|/admin/requisitions"));
+
+        // Navigate to Pipeline
+        await Page.ClickAsync("a:has-text('Pipeline')");
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/admin/pipeline"));
+
+        var appliedLane = Page.Locator("#appliedList");
+        var candidateCard = appliedLane.Locator(".card").Filter(new() { HasText = candidateName });
+        await Expect(candidateCard).ToBeVisibleAsync();
+
+        var archiveZone = Page.Locator(".archive-zone");
+
+        // Handle prompt
+        void HandleDialog(object? sender, IDialog dialog) => dialog.AcceptAsync("1"); // 1 for Hired
+        Page.Dialog += HandleDialog;
+        try 
+        { 
+            await candidateCard.DragToAsync(archiveZone); 
+            // Wait a moment for backend
+            await Page.WaitForTimeoutAsync(500);
+        } 
+        finally 
+        { 
+            Page.Dialog -= HandleDialog; 
+        }
+
+        // Verify removed from active pipeline
+        await Expect(appliedLane.Locator(".card").Filter(new() { HasText = candidateName })).ToHaveCountAsync(0);
+
+        // Check archived board
+        await Page.ClickAsync("a.btn-link:has-text('View Archived Pipeline')");
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/admin/pipeline/archived"));
+
+        var hiredLane = Page.Locator(".lane").Filter(new() { HasText = "Hired" });
+        await Expect(hiredLane.Locator(".card").Filter(new() { HasText = candidateName })).ToHaveCountAsync(1);
+
+        File.Delete(tempPath);
+    }
 }

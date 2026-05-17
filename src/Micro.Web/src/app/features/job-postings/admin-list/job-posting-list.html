@@ -1,42 +1,58 @@
-<div class="job-posting-container">
-  <h2>Job Postings</h2>
+<div class="p-8 bg-hex-pattern min-h-screen">
+  <div class="flex justify-between items-end mb-10">
+    <div>
+      <h1 class="text-4xl font-bold text-ink tracking-tight mb-2">Job Postings</h1>
+      <p class="text-ink-light font-medium">Active listings visible on the public job board.</p>
+    </div>
+  </div>
 
-  <table class="job-table">
-    <thead>
-      <tr>
-        <th>Title</th>
-        <th>Department</th>
-        <th>Status</th>
-        <th>Created At</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (job of jobPostings(); track job.id) {
-        <tr>
-          <td>{{ job.title }}</td>
-          <td>{{ job.requisition?.department }}</td>
-          <td>
-            <span class="status-badge" [class]="getStatusLabel(job.status).toLowerCase()">
-              {{ getStatusLabel(job.status) }}
-            </span>
-          </td>
-          <td>{{ job.createdAt | date:'short' }}</td>
-          <td>
-            <div class="actions">
-              <a [routerLink]="['/admin/jobs/edit', job.id]" class="action-link">Edit</a>
-              <a [routerLink]="['/admin/candidates']" [queryParams]="{ jobPostingId: job.id }" class="action-link">Applications</a>
-              @if (job.status === Status.Published) {
-                <button (click)="closeJob(job.id)" class="action-btn close">Close</button>
-              }
-            </div>
-          </td>
+  <div class="card-honeycomb !p-0 overflow-hidden">
+    <table class="w-full text-left border-collapse">
+      <thead>
+        <tr class="bg-surface-alt border-b border-slate-200">
+          <th class="px-6 py-4 text-xs font-bold text-ink uppercase tracking-widest">Job Title</th>
+          <th class="px-6 py-4 text-xs font-bold text-ink uppercase tracking-widest">Department</th>
+          <th class="px-6 py-4 text-xs font-bold text-ink uppercase tracking-widest">Status</th>
+          <th class="px-6 py-4 text-xs font-bold text-ink uppercase tracking-widest">Created At</th>
+          <th class="px-6 py-4 text-xs font-bold text-ink uppercase tracking-widest text-right">Actions</th>
         </tr>
-      } @empty {
-        <tr>
-          <td colspan="5" class="empty-state">No job postings found. Finalize a requisition to create one.</td>
-        </tr>
-      }
-    </tbody>
-  </table>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        @for (job of jobPostings(); track job.id) {
+          <tr class="hover:bg-honeycomb-50/30 transition-colors">
+            <td class="px-6 py-4">
+              <div class="font-bold text-ink">{{ job.title }}</div>
+              <div class="text-[10px] text-slate-400 font-mono">ID: {{ job.id.slice(0,8) }}</div>
+            </td>
+            <td class="px-6 py-4 text-ink-light">{{ job.requisition?.department }}</td>
+            <td class="px-6 py-4">
+              <span class="badge-status"
+                [class.bg-green-100]="job.status === Status.Published"
+                [class.text-green-800]="job.status === Status.Published"
+                [class.bg-slate-100]="job.status === Status.Closed"
+                [class.text-slate-600]="job.status === Status.Closed">
+                {{ getStatusLabel(job.status) }}
+              </span>
+            </td>
+            <td class="px-6 py-4 text-sm text-slate-400">{{ job.createdAt | date:'MMM d, yyyy' }}</td>
+            <td class="px-6 py-4 text-right">
+              <div class="flex justify-end gap-4">
+                <a [routerLink]="['/admin/jobs/edit', job.id]" class="text-honeycomb-600 hover:text-honeycomb-700 font-bold text-xs uppercase tracking-widest no-underline">Edit</a>
+                <a [routerLink]="['/admin/candidates']" [queryParams]="{ jobPostingId: job.id }" class="text-ink-light hover:text-ink font-bold text-xs uppercase tracking-widest no-underline">Applications</a>
+                @if (job.status === Status.Published) {
+                  <button (click)="closeJob(job.id)" class="text-slate-400 hover:text-red-600 font-bold text-xs uppercase tracking-widest">Close</button>
+                }
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="5" class="px-6 py-20 text-center">
+              <div class="text-slate-400 font-medium">No job postings found. Finalize a requisition to create one.</div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
 </div>

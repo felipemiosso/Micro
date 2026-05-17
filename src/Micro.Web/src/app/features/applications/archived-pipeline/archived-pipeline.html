@@ -1,0 +1,64 @@
+<div class="p-6 h-full flex flex-col">
+  <div class="flex justify-between items-center mb-8">
+    <div>
+      <h1 class="text-3xl font-black text-ink tracking-tight">Archived Applications</h1>
+      <p class="text-ink-light/60 text-sm mt-1 uppercase tracking-widest font-bold">Historical Outcomes</p>
+    </div>
+    <div class="flex items-center gap-4">
+      <a routerLink="/admin/pipeline" class="btn-primary text-sm">Back to Active Board</a>
+      <select 
+        [ngModel]="selectedJobId()" 
+        (ngModelChange)="selectedJobId.set($event); loadApplications()"
+        class="input-honeycomb w-64">
+        <option value="">All Job Postings</option>
+        <option *ngFor="let job of jobPostings()" [value]="job.id">{{ job.title }}</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="flex gap-6 flex-1 overflow-x-auto pb-6">
+    <!-- Hired Lane -->
+    <div class="lane-honeycomb border-green-500 bg-green-50/30">
+      <div class="flex justify-between items-center border-b border-green-100 pb-2 mb-2">
+        <span class="font-bold text-green-900 uppercase tracking-wider text-sm">Hired</span>
+        <span class="badge-honeycomb bg-green-200 text-green-900">{{ hired().length }}</span>
+      </div>
+      <div class="flex-1 overflow-y-auto pr-2">
+        <app-application-card *ngFor="let app of hired()" [application]="app"></app-application-card>
+      </div>
+    </div>
+
+    <!-- Rejected Lane -->
+    <div class="lane-honeycomb border-red-500 bg-red-50/30">
+      <div class="flex justify-between items-center border-b border-red-100 pb-2 mb-2">
+        <span class="font-bold text-red-900 uppercase tracking-wider text-sm">Rejected</span>
+        <span class="badge-honeycomb bg-red-200 text-red-900">{{ rejected().length }}</span>
+      </div>
+      <div class="flex-1 overflow-y-auto pr-2">
+        <app-application-card *ngFor="let app of rejected()" [application]="app"></app-application-card>
+      </div>
+    </div>
+
+    <!-- Declined Lane -->
+    <div class="lane-honeycomb border-orange-500 bg-orange-50/30">
+      <div class="flex justify-between items-center border-b border-orange-100 pb-2 mb-2">
+        <span class="font-bold text-orange-900 uppercase tracking-wider text-sm">Declined</span>
+        <span class="badge-honeycomb bg-orange-200 text-orange-900">{{ declined().length }}</span>
+      </div>
+      <div class="flex-1 overflow-y-auto pr-2">
+        <app-application-card *ngFor="let app of declined()" [application]="app"></app-application-card>
+      </div>
+    </div>
+
+    <!-- Withdrawn Lane -->
+    <div class="lane-honeycomb border-gray-500 bg-gray-50/30">
+      <div class="flex justify-between items-center border-b border-gray-100 pb-2 mb-2">
+        <span class="font-bold text-gray-900 uppercase tracking-wider text-sm">Withdrawn</span>
+        <span class="badge-honeycomb bg-gray-200 text-gray-900">{{ withdrawn().length }}</span>
+      </div>
+      <div class="flex-1 overflow-y-auto pr-2">
+        <app-application-card *ngFor="let app of withdrawn()" [application]="app"></app-application-card>
+      </div>
+    </div>
+  </div>
+</div>

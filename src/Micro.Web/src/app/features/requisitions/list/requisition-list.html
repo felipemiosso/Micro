@@ -1,50 +1,68 @@
-<div class="requisition-container">
-  <div class="list-actions">
-    <button class="btn btn-primary" routerLink="/admin/requisitions/new">New Requisition</button>
+<div class="p-8 bg-hex-pattern min-h-screen">
+  <div class="flex justify-between items-end mb-10">
+    <div>
+      <h1 class="text-4xl font-bold text-ink tracking-tight mb-2">Requisitions</h1>
+      <p class="text-ink-light font-medium">Internal requests for new headcounts and positions.</p>
+    </div>
+    <button class="btn-primary" routerLink="/admin/requisitions/new">+ New Requisition</button>
   </div>
 
-  <table class="requisition-table">
-    <thead>
-      <tr>
-        <th>Title</th>
-        <th>Department</th>
-        <th>Openings</th>
-        <th>Status</th>
-        <th>Created By</th>
-        <th>Created At</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (req of requisitions(); track req.id) {
-        <tr>
-          <td>{{ req.title }}</td>
-          <td>{{ req.department }}</td>
-          <td>{{ req.openings }}</td>
-          <td>
-            <span class="status-badge" [class]="getStatusLabel(req.status).toLowerCase()">
-              {{ getStatusLabel(req.status) }}
-            </span>
-          </td>
-          <td>{{ req.createdBy }}</td>
-          <td>{{ req.createdAt | date:'short' }}</td>
-          <td>
-            <div class="actions">
-              @if (req.status === Status.Draft) {
-                <a [routerLink]="['/admin/requisitions/edit', req.id]" class="action-link">Edit</a>
-                <button (click)="finalize(req.id)" class="action-btn finalize" title="Publish">Publish</button>
+  <div class="card-honeycomb !p-0 overflow-hidden">
+    <table class="w-full text-left border-collapse">
+      <thead>
+        <tr class="bg-surface-alt border-b border-slate-200">
+          <th class="px-6 py-4 text-xs font-bold text-ink uppercase tracking-widest">Title</th>
+          <th class="px-6 py-4 text-xs font-bold text-ink uppercase tracking-widest">Department</th>
+          <th class="px-6 py-4 text-xs font-bold text-ink uppercase tracking-widest">Openings</th>
+          <th class="px-6 py-4 text-xs font-bold text-ink uppercase tracking-widest">Status</th>
+          <th class="px-6 py-4 text-xs font-bold text-ink uppercase tracking-widest">Created By</th>
+          <th class="px-6 py-4 text-xs font-bold text-ink uppercase tracking-widest">Date</th>
+          <th class="px-6 py-4 text-xs font-bold text-ink uppercase tracking-widest text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        @for (req of requisitions(); track req.id) {
+          <tr class="hover:bg-honeycomb-50/30 transition-colors">
+            <td class="px-6 py-4 font-bold text-ink">{{ req.title }}</td>
+            <td class="px-6 py-4 text-ink-light">{{ req.department }}</td>
+            <td class="px-6 py-4">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-700">
+                {{ req.openings }}
+              </span>
+            </td>
+            <td class="px-6 py-4">
+              <span class="badge-status" 
+                [class.bg-amber-100]="req.status === Status.Draft"
+                [class.text-amber-800]="req.status === Status.Draft"
+                [class.bg-green-100]="req.status === Status.Finalized"
+                [class.text-green-800]="req.status === Status.Finalized"
+                [class.bg-slate-100]="req.status === Status.Closed"
+                [class.text-slate-600]="req.status === Status.Closed">
+                {{ getStatusLabel(req.status) }}
+              </span>
+            </td>
+            <td class="px-6 py-4 text-sm text-slate-500">{{ req.createdBy }}</td>
+            <td class="px-6 py-4 text-sm text-slate-400">{{ req.createdAt | date:'MMM d, yyyy' }}</td>
+            <td class="px-6 py-4 text-right">
+              <div class="flex justify-end gap-3">
+                @if (req.status === Status.Draft) {
+                  <a [routerLink]="['/admin/requisitions/edit', req.id]" class="text-honeycomb-600 hover:text-honeycomb-700 font-bold text-xs uppercase tracking-widest no-underline">Edit</a>
+                  <button (click)="finalize(req.id)" class="text-green-600 hover:text-green-700 font-bold text-xs uppercase tracking-widest" title="Publish">Publish</button>
+                  }
+                  @if (req.status !== Status.Closed) {
+                  <button (click)="close(req.id)" class="text-slate-400 hover:text-red-600 font-bold text-xs uppercase tracking-widest">Close</button>
                 }
-                @if (req.status !== Status.Closed) {
-                <button (click)="close(req.id)" class="action-btn close">Close</button>
-              }
-            </div>
-          </td>
-        </tr>
-      } @empty {
-        <tr>
-          <td colspan="7" class="empty-state">No requisitions found.</td>
-        </tr>
-      }
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="7" class="px-6 py-20 text-center">
+              <div class="text-slate-400 font-medium">No requisitions found. Start by creating one.</div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
 </div>

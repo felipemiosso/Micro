@@ -1,59 +1,76 @@
-<div class="admin-container">
-  <header class="admin-header">
-    <div class="header-content">
-      <h1>Candidates</h1>
-      <p class="subtitle">
+<div class="p-8 bg-hex-pattern min-h-screen">
+  <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-10">
+    <div>
+      <h1 class="text-4xl font-bold text-ink tracking-tight mb-2">Candidates</h1>
+      <p class="text-ink-light font-medium">
         @if (jobPostingId()) {
-          Filtering by job posting
+          Filtering applications for <span class="text-honeycomb-600 font-bold">Specific Job</span>
         } @else {
-          All applications
+          Showing all active applications across the system.
         }
       </p>
     </div>
-    <div class="header-search">
-      <input type="text" id="searchQuery" [(ngModel)]="searchQuery" (keyup.enter)="onSearch()" placeholder="Search by name or email..." class="form-control">
-      <button (click)="onSearch()" class="btn btn-secondary">Search</button>
+    <div class="flex items-center gap-3 w-full md:w-auto">
+      <div class="relative flex-1 md:w-80">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
+        <input type="text" id="searchQuery" [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" (keyup.enter)="onSearch()" placeholder="Search candidates..." class="input-honeycomb !pl-10">
+      </div>
+      <button (click)="onSearch()" class="btn-primary !py-2.5">Search</button>
     </div>
-  </header>
+  </div>
 
   @if (loading()) {
-    <div class="loading">Loading applications...</div>
+    <div class="flex flex-col items-center justify-center py-20 text-slate-400 font-bold uppercase tracking-widest text-sm gap-4">
+      <div class="w-8 h-8 border-4 border-honeycomb-200 border-t-honeycomb-500 rounded-full animate-spin"></div>
+      Loading candidates...
+    </div>
   } @else {
-    <div class="table-container">
-      <table class="application-table">
+    <div class="card-honeycomb !p-0 overflow-hidden">
+      <table class="w-full text-left border-collapse">
         <thead>
-          <tr>
-            <th>Candidate</th>
-            <th>Job Posting</th>
-            <th>Applied At</th>
-            <th>Status</th>
-            <th>Actions</th>
+          <tr class="bg-surface-alt border-b border-slate-200">
+            <th class="px-6 py-4 text-xs font-bold text-ink uppercase tracking-widest">Candidate</th>
+            <th class="px-6 py-4 text-xs font-bold text-ink uppercase tracking-widest">Job Posting</th>
+            <th class="px-6 py-4 text-xs font-bold text-ink uppercase tracking-widest">Applied Date</th>
+            <th class="px-6 py-4 text-xs font-bold text-ink uppercase tracking-widest">Status</th>
+            <th class="px-6 py-4 text-xs font-bold text-ink uppercase tracking-widest text-right">Actions</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody class="divide-y divide-slate-100">
           @for (app of applications(); track app.id) {
-            <tr>
-              <td>
-                <div class="candidate-info">
-                  <span class="name">{{ app.candidateName }}</span>
-                  <span class="email">{{ app.candidateEmail }}</span>
+            <tr class="hover:bg-honeycomb-50/30 transition-colors">
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-full bg-honeycomb-100 flex items-center justify-center text-honeycomb-700 font-bold text-sm">
+                    {{ app.candidateName.charAt(0) }}
+                  </div>
+                  <div>
+                    <div class="font-bold text-ink">{{ app.candidateName }}</div>
+                    <div class="text-xs text-slate-400">{{ app.candidateEmail }}</div>
+                  </div>
                 </div>
               </td>
-              <td>{{ app.jobTitle }}</td>
-              <td>{{ app.appliedAt | date:'short' }}</td>
-              <td>
-                <span class="status-badge status-{{ app.status }}">
+              <td class="px-6 py-4">
+                <div class="text-sm font-medium text-ink-light">{{ app.jobTitle }}</div>
+              </td>
+              <td class="px-6 py-4 text-sm text-slate-400">{{ app.appliedAt | date:'MMM d, yyyy' }}</td>
+              <td class="px-6 py-4">
+                <span class="badge-status bg-slate-100 text-slate-600">
                   {{ getStatusLabel(app.status) }}
                 </span>
               </td>
-              <td class="actions">
-                <a [routerLink]="['/admin/candidates', app.id]" class="action-link">View Details</a>
-                <button (click)="downloadResume(app.id, app.candidateName)" class="btn-link">Resume</button>
+              <td class="px-6 py-4 text-right">
+                <div class="flex justify-end gap-4">
+                  <a [routerLink]="['/admin/candidates', app.id]" class="text-honeycomb-600 hover:text-honeycomb-700 font-bold text-xs uppercase tracking-widest no-underline">View Details</a>
+                  <button (click)="downloadResume(app.id, app.candidateName)" class="text-ink-light hover:text-ink font-bold text-xs uppercase tracking-widest">Resume</button>
+                </div>
               </td>
             </tr>
           } @empty {
             <tr>
-              <td colspan="5" class="empty-state">No applications found.</td>
+              <td colspan="5" class="px-6 py-20 text-center">
+                <div class="text-slate-400 font-medium">No candidates found matching your criteria.</div>
+              </td>
             </tr>
           }
         </tbody>

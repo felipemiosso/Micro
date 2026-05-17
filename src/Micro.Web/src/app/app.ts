@@ -12,9 +12,14 @@ export class App {
   protected readonly title = signal('Micro.Web');
   public authService = inject(AuthService);
   private router = inject(Router);
+  public userMenuOpen = signal(false);
 
   logout() {
     this.authService.logout();
     this.router.navigate(['/login']);
+  }
+
+  toggleUserMenu() {
+    this.userMenuOpen.update(v => !v);
   }
 }

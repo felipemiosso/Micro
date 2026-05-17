@@ -1,11 +1,61 @@
 @if (authService.isAuthenticated()) {
   <nav class="nav-container">
-    <a routerLink="/" class="brand">Micro ATS</a>
+    <a routerLink="/" class="brand">Micro <span>ATS</span></a>
     <div class="nav-links">
       <a routerLink="/admin/requisitions">Requisitions</a>
       <a routerLink="/admin/jobs">Jobs</a>
       <a routerLink="/admin/candidates">Candidates</a>
-      <button class="btn-logout" (click)="logout()">Logout</button>
+      <a routerLink="/admin/pipeline">Pipeline</a>
+      
+      <!-- User Profile Dropdown -->
+      <div class="relative ml-4 flex items-center">
+        <button 
+          (click)="toggleUserMenu()"
+          class="flex items-center gap-3 py-1 px-2 hover:bg-white/5 rounded-full transition-all border border-transparent hover:border-honeycomb-500/30">
+          <div class="w-8 h-8 rounded-full bg-honeycomb-500 flex items-center justify-center text-[10px] font-black text-black uppercase border border-honeycomb-400 shrink-0">
+            @if (authService.user(); as user) {
+              @if (user.photoUrl) {
+                <img [src]="user.photoUrl" class="w-full h-full rounded-full object-cover">
+              } @else {
+                {{ user.fullName.charAt(0) }}
+              }
+            }
+          </div>
+          <span class="text-sm font-bold text-slate-200 hidden md:block">
+            {{ authService.user()?.fullName?.split(' ')?.at(0) }}
+          </span>
+          <span class="text-slate-500 text-[10px] transform transition-transform" [class.rotate-180]="userMenuOpen()">▼</span>
+        </button>
+
+        <!-- Dropdown Menu -->
+        @if (userMenuOpen()) {
+          <div class="absolute right-0 top-full pt-2 z-[100]">
+            <div class="w-56 bg-white border border-slate-200 rounded-xl shadow-xl py-2 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+              <div class="px-4 py-3 border-b border-slate-50 mb-1 bg-surface-alt/50">
+                <div class="text-xs font-bold text-ink truncate">{{ authService.user()?.fullName }}</div>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="text-[9px] font-black text-honeycomb-600 uppercase tracking-tighter border border-honeycomb-200 bg-honeycomb-50 px-1.5 rounded">Administrator</span>
+                  <span class="text-[10px] font-medium text-slate-400 truncate max-w-[100px]">{{ authService.user()?.email }}</span>
+                </div>
+              </div>
+              
+              <a routerLink="/admin/profile" (click)="userMenuOpen.set(false)" class="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-honeycomb-50 hover:text-honeycomb-700 transition-colors no-underline">
+                <span class="text-sm opacity-70">👤</span> My Profile
+              </a>
+              
+              <button class="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-honeycomb-50 hover:text-honeycomb-700 transition-colors text-left">
+                <span class="text-sm opacity-70">⚙️</span> Settings
+              </button>
+              
+              <div class="h-px bg-slate-50 my-1"></div>
+              
+              <button (click)="logout(); userMenuOpen.set(false)" class="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors text-left">
+                <span class="text-sm opacity-70">🚪</span> Logout
+              </button>
+            </div>
+          </div>
+        }
+      </div>
     </div>
   </nav>
 }

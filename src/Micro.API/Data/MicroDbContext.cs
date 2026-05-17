@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Micro.API.Data;
 
-public class MicroDbContext : IdentityDbContext
+public class MicroDbContext : IdentityDbContext<AppUser>
 {
     public MicroDbContext(DbContextOptions<MicroDbContext> options) : base(options) { }
 

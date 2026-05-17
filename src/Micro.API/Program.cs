@@ -1,5 +1,6 @@
 using System.Text;
 using Micro.API.Data;
+using Micro.API.Data.Models;
 using Micro.API.Endpoints;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -20,7 +21,7 @@ builder.Services.AddDbContext<MicroDbContext>(options =>
     options.UseNpgsql(connectionString);
 });
 
-builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
+builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
     {
         options.Password.RequireDigit = true;
         options.Password.RequiredLength = 8;
@@ -76,6 +77,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapAuthEndpoints();
+app.MapUserProfileEndpoints();
 app.MapHealthCheckEndpoints();
 app.MapRequisitionEndpoints();
 app.MapJobPostingEndpoints();

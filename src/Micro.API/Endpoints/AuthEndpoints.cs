@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Micro.API.Data.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -13,7 +14,7 @@ public static class AuthEndpoints
     {
         var group = app.MapGroup("/api/auth");
 
-        group.MapPost("/login", async (LoginRequest request, UserManager<IdentityUser> userManager, IConfiguration configuration) =>
+        group.MapPost("/login", async (LoginRequest request, UserManager<AppUser> userManager, IConfiguration configuration) =>
         {
             var user = await userManager.FindByEmailAsync(request.Email);
             if (user == null || !await userManager.CheckPasswordAsync(user, request.Password))
@@ -26,14 +27,15 @@ public static class AuthEndpoints
         });
     }
 
-    private static string GenerateJwtToken(IdentityUser user, IConfiguration configuration)
+    private static string GenerateJwtToken(AppUser user, IConfiguration configuration)
     {
         var claims = new[]
         {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Email!),
+            new Claim(JwtRegisteredClaimNames.Sub, user.Id),
+            new Claim(JwtRegisteredClaimNames.Email, user.Email!),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(ClaimTypes.NameIdentifier, user.Id),
-            new Claim(ClaimTypes.Name, user.Email!)
+            new Claim(ClaimTypes.Name, user.FullName ?? user.Email!)
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]!));
