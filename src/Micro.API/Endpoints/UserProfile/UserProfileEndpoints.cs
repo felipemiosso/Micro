@@ -47,7 +47,18 @@ public static class UserProfileEndpoints
                 user.PhotoUrl = authUser.PhotoUrl ?? user.PhotoUrl;
             }
 
-            await dbContext.SaveChangesAsync();
+            try 
+            {
+                await dbContext.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                // If insert failed due to race condition, the user now exists.
+                // We don't need to do anything as the winner of the race created the user.
+                // We re-fetch to ensure we return the correct state.
+                dbContext.Entry(user).State = EntityState.Detached;
+                user = await dbContext.Users.FirstAsync(u => u.Id == authUser.Id);
+            }
 
             return Results.Ok(new UserProfileResponse(
                 user.Id,

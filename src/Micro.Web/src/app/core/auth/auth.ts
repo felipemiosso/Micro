@@ -2,14 +2,14 @@ import { Injectable, signal, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { tap, of, catchError, from, filter, take, firstValueFrom } from 'rxjs';
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, User, getIdToken } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, User, getIdToken, connectAuthEmulator } from 'firebase/auth';
 
 // Firebase configuration - Replace with your own config
 const firebaseConfig = {
   apiKey: "AIzaSyAsUYRSb6bz6MdMARNVS7YnEniiYzFGfT8",
-  authDomain: "microats-89345.firebaseapp.com",
-  projectId: "microats-89345",
-  storageBucket: "microats-89345.firebasestorage.app",
+  authDomain: "demo-micro-ats.firebaseapp.com",
+  projectId: "demo-micro-ats",
+  storageBucket: "demo-micro-ats.firebasestorage.app",
   messagingSenderId: "630052761440",
   appId: "1:630052761440:web:84e3d15ecfd95b0cf5f805",
   measurementId: "G-GK96Y1ET8L"
@@ -18,6 +18,10 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+
+if (window.location.hostname === 'localhost') {
+  connectAuthEmulator(auth, 'http://localhost:9099');
+}
 
 export interface UserProfile {
   id: string;
@@ -40,12 +44,8 @@ export class AuthService {
   private _token = signal<string | null>(localStorage.getItem(this.tokenKey));
 
   constructor() {
-    console.log('AuthService initializing...');
-    
     // Listen for auth state changes
     onAuthStateChanged(auth, async (firebaseUser: User | null) => {
-      console.log('Firebase auth state changed:', firebaseUser?.email);
-      
       if (firebaseUser) {
         const token = await getIdToken(firebaseUser);
         localStorage.setItem(this.tokenKey, token);
@@ -65,21 +65,16 @@ export class AuthService {
   }
 
   login(credentials: any) {
-    console.log('Login attempt for:', credentials.email);
     return from(signInWithEmailAndPassword(auth, credentials.email, credentials.password)).pipe(
-      tap(() => console.log('Firebase login success')),
       catchError(error => {
-        console.error('Firebase login failed', error);
         throw error;
       })
     );
   }
 
   syncProfile() {
-    console.log('Syncing profile with backend...');
     return this.http.post<UserProfile>(this.profileUrl, {}).pipe(
       tap(profile => {
-        console.log('Profile synced successfully:', profile.fullName);
         this.user.set(profile);
       }),
       catchError(err => {
@@ -90,7 +85,6 @@ export class AuthService {
   }
 
   logout() {
-    console.log('Logging out');
     return from(signOut(auth));
   }
 

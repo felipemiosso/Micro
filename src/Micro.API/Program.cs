@@ -15,12 +15,15 @@ var builder = WebApplication.CreateBuilder(args);
 // Add infrastructure services
 builder.Host.AddSerilog();
 builder.Services.AddDatabase(builder.Configuration);
-builder.Services.AddAuth(builder.Configuration);
+builder.Services.AddAuth(builder.Configuration, builder.Environment);
 builder.Services.AddSwagger();
 
 var app = builder.Build();
 
 app.UseSerilogRequestLogging();
+
+app.UseFirebaseEmulatorAuth(builder.Configuration, builder.Environment);
+
 app.UseSwagger();
 
 app.UseHttpsRedirection();

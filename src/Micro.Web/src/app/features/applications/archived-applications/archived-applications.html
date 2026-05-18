@@ -21,46 +21,54 @@
 
   <div class="flex gap-8 flex-1 overflow-x-auto pb-6">
     <!-- Hired Lane -->
-    <div class="lane-honeycomb !border-green-500 bg-green-50/20">
+    <div class="lane-honeycomb lane !border-green-500 bg-green-50/20">
       <div class="flex justify-between items-center mb-4 px-1">
         <span class="font-bold text-green-900 uppercase tracking-widest text-xs">Hired</span>
         <span class="badge-honeycomb bg-green-200 text-green-900 border-green-300">{{ hired().length }}</span>
       </div>
       <div class="flex-1 min-h-[200px]">
-        <app-application-card *ngFor="let app of hired()" [application]="app"></app-application-card>
+        @for (app of hired(); track app.id) {
+          <app-application-card [application]="app"></app-application-card>
+        }
       </div>
     </div>
 
     <!-- Rejected Lane -->
-    <div class="lane-honeycomb !border-red-500 bg-red-50/20">
+    <div class="lane-honeycomb lane !border-red-500 bg-red-50/20">
       <div class="flex justify-between items-center mb-4 px-1">
         <span class="font-bold text-red-900 uppercase tracking-widest text-xs">Rejected</span>
         <span class="badge-honeycomb bg-red-200 text-red-900 border-red-300">{{ rejected().length }}</span>
       </div>
       <div class="flex-1 min-h-[200px]">
-        <app-application-card *ngFor="let app of rejected()" [application]="app"></app-application-card>
+        @for (app of rejected(); track app.id) {
+          <app-application-card [application]="app"></app-application-card>
+        }
       </div>
     </div>
 
     <!-- Declined Lane -->
-    <div class="lane-honeycomb !border-orange-500 bg-orange-50/20">
+    <div class="lane-honeycomb lane !border-orange-500 bg-orange-50/20">
       <div class="flex justify-between items-center mb-4 px-1">
         <span class="font-bold text-orange-900 uppercase tracking-widest text-xs">Declined</span>
         <span class="badge-honeycomb bg-orange-200 text-orange-900 border-orange-300">{{ declined().length }}</span>
       </div>
       <div class="flex-1 min-h-[200px]">
-        <app-application-card *ngFor="let app of declined()" [application]="app"></app-application-card>
+        @for (app of declined(); track app.id) {
+          <app-application-card [application]="app"></app-application-card>
+        }
       </div>
     </div>
 
     <!-- Withdrawn Lane -->
-    <div class="lane-honeycomb !border-slate-500 bg-slate-50/20">
+    <div class="lane-honeycomb lane !border-slate-500 bg-slate-50/20">
       <div class="flex justify-between items-center mb-4 px-1">
         <span class="font-bold text-slate-900 uppercase tracking-widest text-xs">Withdrawn</span>
         <span class="badge-honeycomb bg-slate-200 text-slate-900 border-slate-300">{{ withdrawn().length }}</span>
       </div>
       <div class="flex-1 min-h-[200px]">
-        <app-application-card *ngFor="let app of withdrawn()" [application]="app"></app-application-card>
+        @for (app of withdrawn(); track app.id) {
+          <app-application-card [application]="app"></app-application-card>
+        }
       </div>
     </div>
   </div>

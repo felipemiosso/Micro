@@ -18,5 +18,12 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         await Fixture.ResetDatabaseAsync();
     }
 
+    protected async Task AuthenticateAsync(string? email = null, string password = "password123", Dictionary<string, object>? roles = null)
+    {
+        email ??= $"test-{Guid.NewGuid()}@microats.com";
+        var token = await Fixture.Auth.CreateUserAndGetTokenAsync(email, password, roles);
+        Client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+    }
+
     public virtual Task DisposeAsync() => Task.CompletedTask;
 }

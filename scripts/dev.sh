@@ -2,6 +2,7 @@
 
 API_PORT=5249
 WEB_PORT=4200
+FIREBASE_PORT=9099
 
 stop_port() {
   local port=$1
@@ -14,9 +15,10 @@ stop_port() {
 
 cleanup() {
   echo -e "\nStopping environment..."
-  kill $API_PID $WEB_PID 2>/dev/null
+  kill $API_PID $WEB_PID $FIREBASE_PID 2>/dev/null
   stop_port $API_PORT
   stop_port $WEB_PORT
+  stop_port $FIREBASE_PORT
   exit
 }
 
@@ -25,6 +27,11 @@ trap cleanup SIGINT SIGTERM
 # Cleanup before start
 stop_port $API_PORT
 stop_port $WEB_PORT
+stop_port $FIREBASE_PORT
+
+echo "Starting Firebase Emulator..."
+firebase emulators:start --only auth &
+FIREBASE_PID=$!
 
 echo "Starting Backend (Micro.API)..."
 dotnet run --project src/Micro.API --urls=http://localhost:$API_PORT &

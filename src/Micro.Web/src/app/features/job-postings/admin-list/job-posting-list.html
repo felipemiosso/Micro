@@ -7,7 +7,7 @@
   </div>
 
   <div class="card-honeycomb !p-0 overflow-hidden">
-    <table class="w-full text-left border-collapse">
+    <table class="job-table w-full text-left border-collapse">
       <thead>
         <tr class="bg-surface-alt border-b border-slate-200">
           <th class="px-6 py-4 text-xs font-bold text-ink uppercase tracking-widest">Job Title</th>
@@ -26,7 +26,7 @@
             </td>
             <td class="px-6 py-4 text-ink-light">{{ job.requisition?.department }}</td>
             <td class="px-6 py-4">
-              <span class="badge-status"
+              <span class="status-badge badge-status"
                 [class.bg-green-100]="job.status === Status.Published"
                 [class.text-green-800]="job.status === Status.Published"
                 [class.bg-slate-100]="job.status === Status.Closed"
@@ -37,14 +37,14 @@
             <td class="px-6 py-4 text-sm text-slate-400">{{ job.createdAt | date:'MMM d, yyyy' }}</td>
             <td class="px-6 py-4 text-right">
               <div class="flex justify-end gap-1">
-                <a mat-icon-button [routerLink]="['/admin/jobs/edit', job.id]" color="primary" matTooltip="Edit Job">
+                <a mat-icon-button [routerLink]="['/admin/jobs/edit', job.id]" color="primary" matTooltip="Edit Job" class="action-link">
                   <mat-icon>edit</mat-icon>
                 </a>
-                <a mat-icon-button [routerLink]="['/admin/candidates']" [queryParams]="{ jobPostingId: job.id }" matTooltip="View Applications">
+                <a mat-icon-button [routerLink]="['/admin/candidates']" [queryParams]="{ jobPostingId: job.id }" matTooltip="View Applications" class="action-link">
                   <mat-icon>people</mat-icon>
                 </a>
                 @if (job.status === Status.Published) {
-                  <button mat-icon-button (click)="closeJob(job.id)" class="!text-red-500" matTooltip="Close Job">
+                  <button mat-icon-button (click)="closeJob(job.id)" class="action-btn close !text-red-500" matTooltip="Close Job">
                     <mat-icon>close</mat-icon>
                   </button>
                 }

@@ -14,14 +14,9 @@ public class ApplicationTests : IntegrationTestBase
     {
     }
 
-    private void Authenticate()
-    {
-        Client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "test-token");
-    }
-
     private async Task<Guid> CreatePublishedJob()
     {
-        Authenticate();
+        await AuthenticateAsync();
         var createRequest = new CreateRequisitionRequest("Tester", "QA", 1);
         var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
         var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();
@@ -53,7 +48,7 @@ public class ApplicationTests : IntegrationTestBase
         // Assert
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
-        Authenticate();
+        await AuthenticateAsync();
         var adminResponse = await Client.GetAsync($"/api/admin/applications?jobPostingId={jobId}");
         var applications = await adminResponse.Content.ReadFromJsonAsync<List<System.Text.Json.JsonElement>>();
         Assert.Single(applications!);
@@ -113,6 +108,7 @@ public class ApplicationTests : IntegrationTestBase
     {
         // Arrange
         var jobId = await CreatePublishedJob();
+        await AuthenticateAsync();
         await Client.PostAsync($"/api/admin/jobs/{jobId}/close", null);
         
         using var content = new MultipartFormDataContent();
@@ -182,7 +178,7 @@ public class ApplicationTests : IntegrationTestBase
         var appInfo = await createResponse.Content.ReadFromJsonAsync<dynamic>();
         Guid appId = appInfo!.GetProperty("id").GetGuid();
 
-        Authenticate();
+        await AuthenticateAsync();
 
         // Act
         var response = await Client.GetAsync($"/api/admin/applications/{appId}/resume");
@@ -207,7 +203,7 @@ public class ApplicationTests : IntegrationTestBase
         var appInfo = await createResponse.Content.ReadFromJsonAsync<dynamic>();
         Guid appId = appInfo!.GetProperty("id").GetGuid();
 
-        Authenticate();
+        await AuthenticateAsync();
 
         // Act
         var updateRequest = new UpdateStatusRequest(ApplicationStatus.Interview, ArchivalResolution.None);
@@ -234,7 +230,7 @@ public class ApplicationTests : IntegrationTestBase
         var appInfo = await createResponse.Content.ReadFromJsonAsync<dynamic>();
         Guid appId = appInfo!.GetProperty("id").GetGuid();
 
-        Authenticate();
+        await AuthenticateAsync();
 
         // Act - Move to Archive without resolution
         var updateRequest = new UpdateStatusRequest(ApplicationStatus.Archive, ArchivalResolution.None);
@@ -257,7 +253,7 @@ public class ApplicationTests : IntegrationTestBase
         var appInfo = await createResponse.Content.ReadFromJsonAsync<dynamic>();
         Guid appId = appInfo!.GetProperty("id").GetGuid();
 
-        Authenticate();
+        await AuthenticateAsync();
 
         // Act
         var feedbackRequest = new AddFeedbackRequest("Great candidate!", 5);

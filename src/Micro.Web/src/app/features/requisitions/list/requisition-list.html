@@ -11,7 +11,7 @@
   </div>
 
   <div class="card-honeycomb !p-0 overflow-hidden">
-    <table class="w-full text-left border-collapse">
+    <table class="requisition-table w-full text-left border-collapse">
       <thead>
         <tr class="bg-surface-alt border-b border-slate-200">
           <th class="px-6 py-4 text-xs font-bold text-ink uppercase tracking-widest">Title</th>
@@ -34,7 +34,7 @@
               </span>
             </td>
             <td class="px-6 py-4">
-              <span class="badge-status" 
+              <span class="status-badge badge-status" 
                 [class.bg-amber-100]="req.status === Status.Draft"
                 [class.text-amber-800]="req.status === Status.Draft"
                 [class.bg-green-100]="req.status === Status.Finalized"
@@ -49,15 +49,15 @@
             <td class="px-6 py-4 text-right">
               <div class="flex justify-end gap-1">
                 @if (req.status === Status.Draft) {
-                  <a mat-icon-button [routerLink]="['/admin/requisitions/edit', req.id]" color="primary" matTooltip="Edit">
+                  <a mat-icon-button [routerLink]="['/admin/requisitions/edit', req.id]" color="primary" matTooltip="Edit" class="action-link">
                     <mat-icon>edit</mat-icon>
                   </a>
-                  <button mat-icon-button (click)="finalize(req.id)" class="!text-green-600" matTooltip="Publish">
+                  <button mat-icon-button (click)="finalize(req.id)" class="action-btn finalize !text-green-600" matTooltip="Publish">
                     <mat-icon>publish</mat-icon>
                   </button>
                   }
                   @if (req.status !== Status.Closed) {
-                  <button mat-icon-button (click)="close(req.id)" class="!text-red-500" matTooltip="Close Requisition">
+                  <button mat-icon-button (click)="close(req.id)" class="action-btn close !text-red-500" matTooltip="Close Requisition">
                     <mat-icon>close</mat-icon>
                   </button>
                 }

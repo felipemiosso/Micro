@@ -13,16 +13,12 @@ public class RequisitionTests : IntegrationTestBase
     {
     }
 
-    private void Authenticate()
-    {
-        Client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "test-token");
-    }
-
     [Fact]
     public async Task Create_WithValidData_ReturnsCreated()
     {
         // Arrange
-        Authenticate();
+        var email = $"test-{Guid.NewGuid()}@microats.com";
+        await AuthenticateAsync(email);
         var request = new CreateRequisitionRequest("Dev", "IT", 2);
 
         // Act
@@ -33,14 +29,14 @@ public class RequisitionTests : IntegrationTestBase
         var requisition = await response.Content.ReadFromJsonAsync<Requisition>();
         Assert.NotNull(requisition);
         Assert.Equal("Dev", requisition.Title);
-        Assert.Equal("test@microats.com", requisition.CreatedBy);
+        Assert.Equal(email, requisition.CreatedBy);
     }
 
     [Fact]
     public async Task Update_DraftRequisition_ReturnsNoContent()
     {
         // Arrange
-        Authenticate();
+        await AuthenticateAsync();
         var createRequest = new CreateRequisitionRequest("Dev", "IT", 2);
         var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
         var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();
@@ -57,7 +53,7 @@ public class RequisitionTests : IntegrationTestBase
     public async Task Finalize_DraftRequisition_ChangesStatus()
     {
         // Arrange
-        Authenticate();
+        await AuthenticateAsync();
         var createRequest = new CreateRequisitionRequest("Dev", "IT", 2);
         var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
         var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();
@@ -77,7 +73,7 @@ public class RequisitionTests : IntegrationTestBase
     public async Task Update_FinalizedRequisition_ReturnsBadRequest()
     {
         // Arrange
-        Authenticate();
+        await AuthenticateAsync();
         var createRequest = new CreateRequisitionRequest("Dev", "IT", 2);
         var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
         var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();
@@ -95,7 +91,7 @@ public class RequisitionTests : IntegrationTestBase
     public async Task Close_ExistingRequisition_ChangesStatus()
     {
         // Arrange
-        Authenticate();
+        await AuthenticateAsync();
         var createRequest = new CreateRequisitionRequest("To Close", "IT", 1);
         var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
         var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();
@@ -116,7 +112,7 @@ public class RequisitionTests : IntegrationTestBase
     public async Task Close_NonExistentRequisition_ReturnsNotFound()
     {
         // Arrange
-        Authenticate();
+        await AuthenticateAsync();
         var nonExistentId = Guid.NewGuid();
 
         // Act

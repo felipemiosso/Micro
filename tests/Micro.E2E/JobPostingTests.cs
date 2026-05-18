@@ -11,9 +11,11 @@ public class JobPostingTests : PageTest
 
     private async Task LoginAsAdmin()
     {
+        string email = $"admin-{Guid.NewGuid()}@microats.com";
+        await AuthSeedHelper.SeedAdminUserAsync(email);
         await Page.GotoAsync($"{BaseUrl}/login");
-        await Page.FillAsync("#email", "admin@microats.com");
-        await Page.FillAsync("#password", "AdminPassword123!");
+        await Page.FillAsync("#email", email);
+        await Page.FillAsync("#password", AuthSeedHelper.AdminPassword);
         await Page.ClickAsync("button[type='submit']");
         await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/dashboard|/admin/requisitions"));
     }

@@ -5,12 +5,33 @@ namespace Micro.API.Infrastructure.Auth;
 
 public static class AuthExtensions
 {
-    public static void AddAuth(this IServiceCollection services, IConfiguration configuration)
+    public static void AddAuth(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
     {
         var projectId = configuration["Firebase:ProjectId"];
-        
-        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options =>
+        var useEmulator = configuration.GetValue<bool>("Firebase:UseEmulator") && !environment.IsProduction();
+
+        var authBuilder = services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme);
+
+        if (useEmulator)
+        {
+            authBuilder.AddJwtBearer(options =>
+            {
+                options.RequireHttpsMetadata = false;
+                options.MapInboundClaims = false;
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = $"https://securetoken.google.com/{projectId}",
+                    ValidateAudience = false,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = false,
+                    RequireSignedTokens = false
+                };
+            });
+        }
+        else
+                    {
+            authBuilder.AddJwtBearer(options =>
             {
                 options.Authority = $"https://securetoken.google.com/{projectId}";
                 options.TokenValidationParameters = new TokenValidationParameters
@@ -19,9 +40,11 @@ public static class AuthExtensions
                     ValidIssuer = $"https://securetoken.google.com/{projectId}",
                     ValidateAudience = true,
                     ValidAudience = projectId,
-                    ValidateLifetime = true
+                    ValidateLifetime = true,
+                    RequireSignedTokens = true
                 };
             });
+        }
 
         services.AddAuthorization(options =>
         {

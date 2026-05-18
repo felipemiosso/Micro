@@ -1,6 +1,9 @@
 using Micro.API.Data.Models;
 using Micro.API.Data.Seed;
 using Microsoft.EntityFrameworkCore;
+using FirebaseAdmin;
+using FirebaseAdmin.Auth;
+using Google.Apis.Auth.OAuth2;
 
 namespace Micro.API.Data;
 
@@ -9,7 +12,14 @@ public static class DbInitializer
     public static async Task SeedData(IServiceProvider serviceProvider)
     {
         var dbContext = serviceProvider.GetRequiredService<MicroDbContext>();
+        var config = serviceProvider.GetRequiredService<IConfiguration>();
         
+        // Seed Firebase Emulator if enabled
+        if (config.GetValue<bool>("Firebase:UseEmulator"))
+        {
+            await SeedFirebaseEmulator(config);
+        }
+
         // Always ensure the test user exists
         await SeedUser(serviceProvider);
 
@@ -66,6 +76,46 @@ public static class DbInitializer
                 FullName = "Test User",
             });
             await dbContext.SaveChangesAsync();
+        }
+    }
+
+    private static async Task SeedFirebaseEmulator(IConfiguration config)
+    {
+        var projectId = config["Firebase:ProjectId"] ?? "demo-micro-ats";
+        Environment.SetEnvironmentVariable("FIREBASE_AUTH_EMULATOR_HOST", "localhost:9099");
+        
+        if (FirebaseApp.DefaultInstance == null)
+        {
+            FirebaseApp.Create(new AppOptions
+            {
+                ProjectId = projectId,
+                Credential = GoogleCredential.FromAccessToken("mock-token")
+            });
+        }
+
+        try
+        {
+            await FirebaseAuth.DefaultInstance.CreateUserAsync(new UserRecordArgs
+            {
+                Email = "admin@microats.com",
+                Password = "AdminPassword123!",
+                EmailVerified = true,
+                DisplayName = "Admin User"
+            });
+
+            var user = await FirebaseAuth.DefaultInstance.GetUserByEmailAsync("admin@microats.com");
+            await FirebaseAuth.DefaultInstance.SetCustomUserClaimsAsync(user.Uid, new Dictionary<string, object>
+            {
+                { "role", "Admin" }
+            });
+        }
+        catch (FirebaseAuthException ex) when (ex.AuthErrorCode == AuthErrorCode.EmailAlreadyExists)
+        {
+            // Already seeded
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Warning: Failed to seed Firebase Emulator: {ex.Message}");
         }
     }
 }

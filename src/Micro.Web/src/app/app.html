@@ -23,7 +23,7 @@
       <div class="ml-4 flex items-center">
         <button 
           [matMenuTriggerFor]="userMenu"
-          class="flex items-center gap-3 py-1 px-2 hover:bg-white/5 rounded-full transition-all border border-transparent hover:border-honeycomb-500/30">
+          class="user-menu-trigger flex items-center gap-3 py-1 px-2 hover:bg-white/5 rounded-full transition-all border border-transparent hover:border-honeycomb-500/30">
           <div class="w-8 h-8 rounded-full bg-honeycomb-500 flex items-center justify-center text-[10px] font-black text-black uppercase border border-honeycomb-400 shrink-0">
             @if (authService.user(); as user) {
               @if (user.photoUrl) {
@@ -60,7 +60,7 @@
           
           <mat-divider></mat-divider>
           
-          <button mat-menu-item (click)="logout()" class="!text-red-500">
+          <button mat-menu-item (click)="logout()" class="btn-logout !text-red-500">
             <mat-icon class="!text-red-500">logout</mat-icon>
             <span class="text-xs font-bold">Logout</span>
           </button>

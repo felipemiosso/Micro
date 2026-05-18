@@ -8,7 +8,7 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
       @for (job of jobs(); track job.id) {
-        <div class="card-honeycomb group flex flex-col justify-between hover:-translate-y-1 transition-transform">
+        <div class="job-card card-honeycomb group flex flex-col justify-between hover:-translate-y-1 transition-transform">
           <div>
             <div class="flex justify-between items-start mb-6">
               <span class="badge-honeycomb">{{ job.department }}</span>
@@ -21,7 +21,7 @@
           </div>
           <div class="flex justify-between items-center pt-6 border-t border-slate-100">
             <span class="text-xs font-medium text-slate-400">Posted {{ job.createdAt | date:'longDate' }}</span>
-            <a [routerLink]="['/jobs', job.id]" class="btn-primary text-sm no-underline">Apply Now</a>
+            <a [routerLink]="['/jobs', job.id]" class="btn-link btn-primary text-sm no-underline">Apply Now</a>
           </div>
         </div>
       } @empty {

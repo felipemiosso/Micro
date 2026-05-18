@@ -14,16 +14,11 @@ public class JobPostingTests : IntegrationTestBase
     {
     }
 
-    private void Authenticate()
-    {
-        Client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "test-token");
-    }
-
     [Fact]
     public async Task FinalizeRequisition_CreatesJobPosting()
     {
         // Arrange
-        Authenticate();
+        await AuthenticateAsync();
         var createRequest = new CreateRequisitionRequest("Engineer", "IT", 1);
         var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
         var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();
@@ -41,7 +36,7 @@ public class JobPostingTests : IntegrationTestBase
     public async Task CloseRequisition_ClosesJobPosting()
     {
         // Arrange
-        Authenticate();
+        await AuthenticateAsync();
         var createRequest = new CreateRequisitionRequest("Closer", "IT", 1);
         var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
         var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();
@@ -60,7 +55,7 @@ public class JobPostingTests : IntegrationTestBase
     public async Task UpdateJobPosting_ReturnsNoContent()
     {
         // Arrange
-        Authenticate();
+        await AuthenticateAsync();
         var createRequest = new CreateRequisitionRequest("To Update", "IT", 1);
         var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
         var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();

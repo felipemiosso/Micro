@@ -16,80 +16,159 @@
           <span class="text-slate-400 text-xs font-medium">Since {{ c.createdAt | date:'mediumDate' }}</span>
         </div>
         <h1>{{ c.fullName }}</h1>
-        <p class="subtitle">{{ c.email }} • {{ c.phone || 'No phone provided' }}</p>
+        <p class="subtitle"><span class="truncate-text">{{ c.email }}</span> • {{ c.phone || 'No phone provided' }}</p>
       </div>
     </header>
 
-    <div class="space-y-8">
-      <section class="applications-history">
-        <h2 class="flex items-center gap-2 text-xl font-bold text-ink mb-6">
-          <mat-icon class="text-honeycomb-500">assignment</mat-icon>
-          Applications History
-        </h2>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div class="lg:col-span-2 space-y-8">
+        <section class="applications-history">
+          <h2 class="flex items-center gap-2 text-xl font-bold text-ink mb-6">
+            <mat-icon class="text-honeycomb-500">assignment</mat-icon>
+            Applications History
+          </h2>
 
-        <div class="space-y-4">
-          @for (app of c.applications; track app.id) {
-            <div class="card-honeycomb !p-0 overflow-hidden">
-              <!-- Application Header -->
-              <div class="bg-surface-alt px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-                <div>
-                  <div class="text-sm font-bold text-ink">{{ app.jobTitle }}</div>
-                  <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Applied on {{ app.appliedAt | date:'mediumDate' }}</div>
+          <div class="space-y-4">
+            @for (app of c.applications; track app.id) {
+              <div class="card-honeycomb !p-0 overflow-hidden">
+                <!-- Application Header -->
+                <div class="bg-surface-alt px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                  <div>
+                    <div class="text-sm font-bold text-ink">{{ app.jobTitle }}</div>
+                    <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Applied on {{ app.appliedAt | date:'mediumDate' }}</div>
+                  </div>
+                  <div class="flex items-center gap-4">
+                    <span class="status-badge badge-status" 
+                      [class.bg-amber-100]="app.status === ApplicationStatus.Applied"
+                      [class.text-amber-800]="app.status === ApplicationStatus.Applied"
+                      [class.bg-blue-100]="app.status === ApplicationStatus.Interview"
+                      [class.text-blue-800]="app.status === ApplicationStatus.Interview"
+                      [class.bg-green-100]="app.status === ApplicationStatus.Offer"
+                      [class.text-green-800]="app.status === ApplicationStatus.Offer"
+                      [class.bg-slate-100]="app.status === ApplicationStatus.Archive"
+                      [class.text-slate-600]="app.status === ApplicationStatus.Archive">
+                      {{ getStatusLabel(app.status) }}
+                      @if (app.status === ApplicationStatus.Archive) {
+                        : {{ getResolutionLabel(app.archivalResolution) }}
+                      }
+                    </span>
+                    <button (click)="downloadResume(app.id, c.fullName)" class="btn-secondary !py-1 !px-3 text-xs flex items-center gap-1">
+                      <mat-icon class="!text-[14px] !w-[14px] !h-[14px]">download</mat-icon>
+                      Resume
+                    </button>
+                  </div>
                 </div>
-                <div class="flex items-center gap-4">
-                  <span class="badge-status" 
-                    [class.bg-amber-100]="app.status === ApplicationStatus.Applied"
-                    [class.text-amber-800]="app.status === ApplicationStatus.Applied"
-                    [class.bg-blue-100]="app.status === ApplicationStatus.Interview"
-                    [class.text-blue-800]="app.status === ApplicationStatus.Interview"
-                    [class.bg-green-100]="app.status === ApplicationStatus.Offer"
-                    [class.text-green-800]="app.status === ApplicationStatus.Offer"
-                    [class.bg-slate-100]="app.status === ApplicationStatus.Archive"
-                    [class.text-slate-600]="app.status === ApplicationStatus.Archive">
-                    {{ getStatusLabel(app.status) }}
-                    @if (app.status === ApplicationStatus.Archive) {
-                      : {{ getResolutionLabel(app.archivalResolution) }}
-                    }
-                  </span>
-                  <button (click)="downloadResume(app.id, c.fullName)" class="btn-secondary !py-1 !px-3 text-xs flex items-center gap-1">
-                    <mat-icon class="!text-[14px] !w-[14px] !h-[14px]">download</mat-icon>
-                    Resume
-                  </button>
-                </div>
-              </div>
 
-              <!-- Feedback Section for this application -->
-              <div class="p-6">
-                <div class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                  <mat-icon class="!text-[16px] !w-[16px] !h-[16px]">rate_review</mat-icon>
-                  Application Feedback
-                </div>
-                
-                <div class="space-y-3">
-                  @for (f of app.feedbacks; track f.id) {
-                    <div class="bg-slate-50 rounded-lg p-3 border border-slate-100">
-                      <div class="flex justify-between items-center mb-1">
-                        <span class="text-amber-600 font-bold text-xs">★ {{ f.score }} / 5</span>
-                        <span class="text-[10px] text-slate-400">{{ f.createdAt | date:'short' }}</span>
+                <div class="grid grid-cols-1 md:grid-cols-2">
+                  <!-- Management Logic -->
+                  <div class="p-6 border-r border-slate-100">
+                    <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Pipeline Management</h3>
+                    
+                    <div class="current-status status-{{app.status}}">
+                      Current Stage: <strong>{{ getStatusLabel(app.status) }}</strong>
+                    </div>
+
+                    <div class="status-buttons">
+                      <button 
+                        [disabled]="app.status !== ApplicationStatus.Applied"
+                        (click)="updateStatus(app.id, ApplicationStatus.Interview)">
+                        Move to <strong>Interview</strong>
+                      </button>
+                      <button 
+                        [disabled]="app.status !== ApplicationStatus.Interview"
+                        (click)="updateStatus(app.id, ApplicationStatus.Offer)">
+                        Move to <strong>Offer</strong>
+                      </button>
+                      <button 
+                        class="btn-archive"
+                        [disabled]="app.status === ApplicationStatus.Archive"
+                        (click)="updateStatus(app.id, ApplicationStatus.Archive)">
+                        Archive Candidate
+                      </button>
+                    </div>
+
+                    <mat-divider class="!my-6"></mat-divider>
+
+                    <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Add Feedback</h3>
+                    <div class="feedback-form">
+                      <div class="form-group">
+                        <textarea 
+                          id="notes"
+                          [(ngModel)]="feedbackNotes" 
+                          placeholder="Record interview notes or assessment..."></textarea>
                       </div>
-                      <p class="text-sm text-slate-600 italic">"{{ f.notes }}"</p>
+                      <div class="form-row">
+                        <div class="form-group !mb-0">
+                          <label class="text-[10px] font-bold uppercase text-slate-400">Rating</label>
+                          <select id="score" [(ngModel)]="feedbackScore" class="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-sm font-bold">
+                            <option [value]="1">1 - Poor</option>
+                            <option [value]="2">2 - Fair</option>
+                            <option [value]="3">3 - Good</option>
+                            <option [value]="4">4 - Very Good</option>
+                            <option [value]="5">5 - Exceptional</option>
+                          </select>
+                        </div>
+                        <button (click)="addFeedback(app.id)" class="btn-primary !py-2 !px-4 text-xs">Add Feedback</button>
+                      </div>
                     </div>
-                  } @empty {
-                    <div class="text-sm text-slate-400 text-center py-4 bg-slate-50/50 rounded-lg border border-dashed border-slate-200">
-                      No feedback recorded for this application.
+                  </div>
+
+                  <!-- Feedback History -->
+                  <div class="p-6 bg-slate-50/30">
+                    <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                      <mat-icon class="!text-[16px] !w-[16px] !h-[16px]">rate_review</mat-icon>
+                      Application Feedback
+                    </h2>
+                    
+                    <div class="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                      @for (f of app.feedbacks; track f.id) {
+                        <div class="bg-white rounded-lg p-3 border border-slate-100 shadow-sm feedback-item">
+                          <div class="flex justify-between items-center mb-1">
+                            <span class="text-amber-600 font-bold text-xs score-badge">★ {{ f.score }} / 5</span>
+                            <span class="text-[10px] text-slate-400 date">{{ f.createdAt | date:'short' }}</span>
+                          </div>
+                          <p class="text-sm text-slate-600 italic notes">"{{ f.notes }}"</p>
+                        </div>
+                      } @empty {
+                        <div class="text-sm text-slate-400 text-center py-10 bg-white/50 rounded-lg border border-dashed border-slate-200">
+                          No feedback recorded yet.
+                        </div>
+                      }
                     </div>
-                  }
+                  </div>
                 </div>
               </div>
+            }
+          </div>
+        </section>
+      </div>
+
+      <!-- Side Stats or Info -->
+      <div class="space-y-6">
+        <div class="card-honeycomb">
+          <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Contact Info</h3>
+          <div class="space-y-4">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-slate-400">
+                <mat-icon class="!text-lg">email</mat-icon>
+              </div>
+              <div class="min-w-0">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Email Address</div>
+                <div class="text-sm font-medium text-ink truncate">{{ c.email }}</div>
+              </div>
             </div>
-          } @empty {
-            <div class="text-center py-20 bg-white rounded-2xl border-2 border-dashed border-slate-200">
-              <mat-icon class="!w-12 !h-12 text-[48px] text-slate-200 mb-4">history_edu</mat-icon>
-              <div class="text-slate-400 font-bold">No applications found for this candidate.</div>
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-slate-400">
+                <mat-icon class="!text-lg">phone</mat-icon>
+              </div>
+              <div class="min-w-0">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Phone Number</div>
+                <div class="text-sm font-medium text-ink">{{ c.phone || 'Not provided' }}</div>
+              </div>
             </div>
-          }
+          </div>
         </div>
-      </section>
+      </div>
     </div>
   }
 </div>

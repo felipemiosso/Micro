@@ -16,6 +16,7 @@ public class TestDatabaseFixture : IAsyncLifetime
     public WebApplicationFactory<Program> Factory { get; }
     public string ConnectionString { get; private set; } = string.Empty;
     public Respawner Respawner { get; private set; } = null!;
+    public AuthTestHelper Auth { get; private set; } = null!;
 
     public TestDatabaseFixture()
     {
@@ -28,15 +29,15 @@ public class TestDatabaseFixture : IAsyncLifetime
                 {
                     ["ConnectionStrings:DefaultConnection"] = "Host=localhost;Database=MicroATS_Tests;Username=postgres;Password=postgres",
                     ["Serilog:MinimumLevel:Override:Microsoft.EntityFrameworkCore.Database.Connection"] = "Fatal",
-                    ["Firebase:ProjectId"] = "test-project"
+                    ["Firebase:ProjectId"] = "demo-micro-ats",
+                    ["Firebase:UseEmulator"] = "true",
+                    ["Firebase:EmulatorHost"] = "localhost:9099"
                 });
             });
 
             builder.ConfigureTestServices(services =>
             {
-                services.AddAuthentication(defaultScheme: "Test")
-                    .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(
-                        "Test", options => { });
+                // No longer overriding auth with TestAuthHandler
             });
         });
     }
@@ -46,6 +47,12 @@ public class TestDatabaseFixture : IAsyncLifetime
         using var scope = Factory.Services.CreateScope();
         var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
         ConnectionString = config.GetConnectionString("DefaultConnection")!;
+
+        var projectId = config["Firebase:ProjectId"] ?? "test-project";
+        var emulatorHost = config["Firebase:EmulatorHost"] ?? "localhost:9099";
+        
+        // Initialize AuthTestHelper
+        Auth = new AuthTestHelper(projectId, emulatorHost);
 
         var dbContext = scope.ServiceProvider.GetRequiredService<MicroDbContext>();
         

@@ -11,9 +11,13 @@ public class RegressionTests : PageTest
 
     private async Task Login()
     {
+        // Seed user in Firebase Emulator
+        string email = $"admin-{Guid.NewGuid()}@microats.com";
+        await AuthSeedHelper.SeedAdminUserAsync(email);
+
         await Page.GotoAsync($"{BaseUrl}/login");
-        await Page.FillAsync("#email", "admin@microats.com");
-        await Page.FillAsync("#password", "AdminPassword123!");
+        await Page.FillAsync("#email", email);
+        await Page.FillAsync("#password", AuthSeedHelper.AdminPassword);
         await Page.ClickAsync("button[type='submit']");
         await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/dashboard|/admin/requisitions"));
     }
@@ -82,8 +86,8 @@ public class RegressionTests : PageTest
         var applicationCard = Page.Locator(".card-honeycomb").First;
         await Expect(applicationCard.Locator(".badge-status")).ToBeVisibleAsync();
         
-        // Verify it says "Application Stage" or similar inside card context
-        await Expect(applicationCard.Locator("div:has-text('Application Feedback')")).ToBeVisibleAsync();
+        // Verify it says "Application Feedback" or similar inside card context
+        await Expect(applicationCard.Locator("h2:has-text('Application Feedback')")).ToBeVisibleAsync();
     }
 
     [Fact]

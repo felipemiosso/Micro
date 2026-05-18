@@ -3,6 +3,7 @@
 # Configuration
 API_PORT=5249
 WEB_PORT=4200
+FIREBASE_PORT=9099
 PROJECT_ROOT=$(pwd)
 
 # Helper function to stop a process by port
@@ -23,12 +24,28 @@ stop_port() {
   fi
 }
 
+# Firebase Emulator
+start_firebase() {
+  echo "Starting Firebase Emulator..."
+  stop_port $FIREBASE_PORT
+  firebase emulators:start --only auth --project demo-micro-ats &
+  FIREBASE_PID=$!
+  sleep 5
+}
+
+stop_firebase() {
+  echo "Stopping Firebase Emulator..."
+  kill $FIREBASE_PID 2>/dev/null
+  stop_port $FIREBASE_PORT
+}
+
 # Cleanup function for E2E
 cleanup_e2e() {
   echo -e "\nStopping E2E environment..."
   kill $API_PID $WEB_PID 2>/dev/null
   stop_port $API_PORT
   stop_port $WEB_PORT
+  stop_firebase
 }
 
 # Unit Tests (Angular + .NET if any)
@@ -45,8 +62,17 @@ run_unit() {
 
 # Integration Tests (.NET Endpoints)
 run_integration() {
+  local test_filter=$1
   echo "Running Integration Tests..."
-  dotnet test tests/Micro.Tests/Micro.Tests.csproj
+  start_firebase
+  if [ ! -z "$test_filter" ]; then
+    dotnet test tests/Micro.Tests/Micro.Tests.csproj --filter "$test_filter"
+  else
+    dotnet test tests/Micro.Tests/Micro.Tests.csproj
+  fi
+  local exit_code=$?
+  stop_firebase
+  return $exit_code
 }
 
 # E2E Tests (Playwright)
@@ -55,6 +81,7 @@ run_e2e() {
   echo "Preparing E2E Environment..."
   stop_port $API_PORT
   stop_port $WEB_PORT
+  start_firebase
 
   echo "Starting Backend (Micro.API)..."
   export ASPNETCORE_ENVIRONMENT=Testing
@@ -109,7 +136,7 @@ case $MODE in
     run_unit
     ;;
   "integration")
-    run_integration
+    run_integration "$FILTER"
     ;;
   "e2e")
     run_e2e "$FILTER"
