@@ -85,4 +85,32 @@ public class RegressionTests : PageTest
         // Verify it says "Application Stage" or similar inside card context
         await Expect(applicationCard.Locator("div:has-text('Application Feedback')")).ToBeVisibleAsync();
     }
+
+    [Fact]
+    public async Task BUG_Header_HiddenForPublicUsers()
+    {
+        // Go to home page (unauthenticated)
+        await Page.GotoAsync($"{BaseUrl}/jobs");
+
+        // Verify brand logo is present
+        await Expect(Page.Locator(".brand")).ToBeVisibleAsync();
+
+        // Verify admin links are NOT present
+        await Expect(Page.Locator("a:has-text('Requisitions')")).ToHaveCountAsync(0);
+        await Expect(Page.Locator("a:has-text('Applications')")).ToHaveCountAsync(0);
+        await Expect(Page.Locator("button[matMenuTriggerFor]")).ToHaveCountAsync(0);
+    }
+
+    [Fact]
+    public async Task BUG_Login_RedirectsIfAuthenticated()
+    {
+        // Login
+        await Login();
+
+        // Attempt to go to /login manually
+        await Page.GotoAsync($"{BaseUrl}/login");
+
+        // Verify redirection to dashboard
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/dashboard|/admin/requisitions"));
+    }
 }

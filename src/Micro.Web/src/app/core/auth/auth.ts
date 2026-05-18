@@ -1,6 +1,6 @@
 import { Injectable, signal, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { tap, of, catchError, from } from 'rxjs';
+import { tap, of, catchError, from, filter, take, firstValueFrom } from 'rxjs';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, User, getIdToken } from 'firebase/auth';
 
@@ -36,10 +36,11 @@ export class AuthService {
   
   user = signal<UserProfile | null>(null);
   isAuthenticated = signal<boolean>(false);
+  isInitialized = signal<boolean>(false); // Track if Firebase auth state was resolved at least once
   private _token = signal<string | null>(localStorage.getItem(this.tokenKey));
 
   constructor() {
-    console.log('AuthService initialized');
+    console.log('AuthService initializing...');
     
     // Listen for auth state changes
     onAuthStateChanged(auth, async (firebaseUser: User | null) => {
@@ -50,12 +51,15 @@ export class AuthService {
         localStorage.setItem(this.tokenKey, token);
         this._token.set(token);
         this.isAuthenticated.set(true);
-        this.syncProfile().subscribe();
+        this.syncProfile().subscribe({
+          complete: () => this.isInitialized.set(true)
+        });
       } else {
         localStorage.removeItem(this.tokenKey);
         this._token.set(null);
         this.isAuthenticated.set(false);
         this.user.set(null);
+        this.isInitialized.set(true);
       }
     });
   }

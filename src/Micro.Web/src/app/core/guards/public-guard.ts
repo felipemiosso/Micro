@@ -4,21 +4,19 @@ import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../auth/auth';
 import { filter, map, take } from 'rxjs';
 
-export const authGuard: CanActivateFn = (route, state) => {
+export const publicGuard: CanActivateFn = (route, state) => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
-  // Use toObservable to wait for initialized signal to become true
   return toObservable(authService.isInitialized).pipe(
     filter((initialized): initialized is boolean => !!initialized),
     take(1),
     map(() => {
       if (authService.isAuthenticated()) {
-        return true;
+        router.navigate(['/dashboard']);
+        return false;
       }
-      
-      router.navigate(['/login']);
-      return false;
+      return true;
     })
   );
 };
