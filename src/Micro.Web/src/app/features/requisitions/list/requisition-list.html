@@ -4,7 +4,10 @@
       <h1 class="text-4xl font-bold text-ink tracking-tight mb-2">Requisitions</h1>
       <p class="text-ink-light font-medium">Internal requests for new headcounts and positions.</p>
     </div>
-    <button class="btn-primary" routerLink="/admin/requisitions/new">+ New Requisition</button>
+    <button mat-flat-button color="primary" class="!rounded-lg" routerLink="/admin/requisitions/new">
+      <mat-icon>add</mat-icon>
+      New Requisition
+    </button>
   </div>
 
   <div class="card-honeycomb !p-0 overflow-hidden">
@@ -44,13 +47,19 @@
             <td class="px-6 py-4 text-sm text-slate-500">{{ req.createdBy }}</td>
             <td class="px-6 py-4 text-sm text-slate-400">{{ req.createdAt | date:'MMM d, yyyy' }}</td>
             <td class="px-6 py-4 text-right">
-              <div class="flex justify-end gap-3">
+              <div class="flex justify-end gap-1">
                 @if (req.status === Status.Draft) {
-                  <a [routerLink]="['/admin/requisitions/edit', req.id]" class="text-honeycomb-600 hover:text-honeycomb-700 font-bold text-xs uppercase tracking-widest no-underline">Edit</a>
-                  <button (click)="finalize(req.id)" class="text-green-600 hover:text-green-700 font-bold text-xs uppercase tracking-widest" title="Publish">Publish</button>
+                  <a mat-icon-button [routerLink]="['/admin/requisitions/edit', req.id]" color="primary" matTooltip="Edit">
+                    <mat-icon>edit</mat-icon>
+                  </a>
+                  <button mat-icon-button (click)="finalize(req.id)" class="!text-green-600" matTooltip="Publish">
+                    <mat-icon>publish</mat-icon>
+                  </button>
                   }
                   @if (req.status !== Status.Closed) {
-                  <button (click)="close(req.id)" class="text-slate-400 hover:text-red-600 font-bold text-xs uppercase tracking-widest">Close</button>
+                  <button mat-icon-button (click)="close(req.id)" class="!text-red-500" matTooltip="Close Requisition">
+                    <mat-icon>close</mat-icon>
+                  </button>
                 }
               </div>
             </td>

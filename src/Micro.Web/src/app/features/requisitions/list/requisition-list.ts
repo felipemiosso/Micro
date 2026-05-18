@@ -2,16 +2,21 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { RequisitionService, Requisition, RequisitionStatus } from '../requisition.service';
+import { NotificationService } from '../../../core/ui/notification.service';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 @Component({
   selector: 'app-requisition-list',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, MatIconModule, MatButtonModule, MatTooltipModule],
   templateUrl: './requisition-list.html',
   styleUrls: ['./requisition-list.css'],
 })
 export class RequisitionListComponent implements OnInit {
   private requisitionService = inject(RequisitionService);
+  private notification = inject(NotificationService);
   requisitions = signal<Requisition[]>([]);
   Status = RequisitionStatus;
 
@@ -27,7 +32,7 @@ export class RequisitionListComponent implements OnInit {
       },
       error: (err) => {
         console.error('Failed to load requisitions', err);
-        alert('Failed to load requisitions. Please check if you are logged in.');
+        this.notification.error('Failed to load requisitions. Please check if you are logged in.');
       }
     });
   }

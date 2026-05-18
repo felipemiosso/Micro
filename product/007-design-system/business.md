@@ -1,12 +1,12 @@
 # Honeycomb Design System — Business Specification
 
 ### Overview
-The Honeycomb Design System establishes the visual and structural language for the Micro ATS. It aims for a "Clean, Professional, and Sharp" aesthetic, utilizing a color palette inspired by honeycombs: deep ambers, bright golds, and sophisticated blacks. The system ensures consistency across all modules, from requisition management to the candidate pipeline.
+The Honeycomb Design System establishes the visual and structural language for the Micro ATS. It aims for a "Clean, Professional, and Sharp" aesthetic, utilizing a color palette inspired by honeycombs: deep ambers, bright golds, and sophisticated blacks. The system ensures consistency across all modules, from requisition management to the candidate applications board.
 
 ### Design Principles
 - **Clarity over Clutter**: Focus on whitespace and high-contrast typography.
 - **Structured Hierarchy**: Use honeycomb-inspired geometry (sharp edges, hex-accents) where appropriate to denote structure.
-- **Responsive & Dynamic**: Full support for varying screen sizes, ensuring the "Pipeline" and "Board" views remain functional on smaller displays.
+- **Responsive & Dynamic**: Full support for varying screen sizes, ensuring the "Applications" and "Board" views remain functional on smaller displays.
 
 ### Color Palette (The Honeycomb)
 - **Primary (Gold/Amber)**: Used for primary actions, success states, and key highlights.

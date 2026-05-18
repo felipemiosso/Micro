@@ -1,0 +1,234 @@
+using Micro.API.Data;
+using Micro.API.Data.Models;
+using Micro.API.Infrastructure.Auth;
+using Microsoft.EntityFrameworkCore;
+
+namespace Micro.API.Endpoints.Application;
+
+public static class ApplicationEndpoints
+{
+    public static void MapApplicationEndpoints(this IEndpointRouteBuilder app)
+    {
+        // Public endpoint
+        app.MapPost("/api/public/jobs/{jobPostingId:guid}/apply", ApplyToJob)
+            .AllowAnonymous()
+            .DisableAntiforgery();
+
+        // Admin endpoints
+        var adminGroup = app.MapGroup("/api/admin/applications");
+        adminGroup.MapGet("/", GetAdminApplications);
+        adminGroup.MapGet("/{id:guid}", GetApplicationDetail);
+        adminGroup.MapGet("/{id:guid}/resume", GetApplicationResume);
+        adminGroup.MapPut("/{id:guid}/status", UpdateApplicationStatus);
+        adminGroup.MapPost("/{id:guid}/feedback", AddFeedback);
+    }
+
+    private static async Task<IResult> ApplyToJob(
+        Guid jobPostingId,
+        HttpContext context,
+        MicroDbContext db,
+        IWebHostEnvironment env)
+    {
+        var job = await db.JobPostings.FindAsync(jobPostingId);
+        if (job is null || job.Status != JobPostingStatus.Published)
+        {
+            return Results.NotFound("Job posting not found or is no longer accepting applications.");
+        }
+
+        if (!context.Request.HasFormContentType)
+        {
+            return Results.BadRequest("Invalid content type. Expected multipart/form-data.");
+        }
+
+        var form = await context.Request.ReadFormAsync();
+        var name = form["name"].ToString();
+        var email = form["email"].ToString();
+        var phone = form["phone"].ToString();
+        var resumeFile = form.Files.GetFile("resume");
+
+        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(email) || resumeFile is null)
+        {
+            return Results.BadRequest("Name, email, and resume are required.");
+        }
+
+        if (resumeFile.Length > 5 * 1024 * 1024)
+        {
+            return Results.BadRequest("File too large. Max 5MB allowed.");
+        }
+
+        if (Path.GetExtension(resumeFile.FileName).ToLower() != ".pdf")
+        {
+            return Results.BadRequest("Only PDF files are allowed.");
+        }
+
+        // Duplicate check
+        var exists = await db.Applications.AnyAsync(a => a.JobPostingId == jobPostingId && a.CandidateEmail == email);
+        if (exists)
+        {
+            return Results.Conflict("You have already applied for this position.");
+        }
+
+        // Save file
+        var uploadsPath = Path.Combine(env.ContentRootPath, "Storage", "Resumes");
+        if (!Directory.Exists(uploadsPath)) Directory.CreateDirectory(uploadsPath);
+
+        var fileName = $"{Guid.NewGuid()}.pdf";
+        var filePath = Path.Combine(uploadsPath, fileName);
+
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await resumeFile.CopyToAsync(stream);
+        }
+
+        var application = new Micro.API.Data.Models.Application
+        {
+            Id = Guid.NewGuid(),
+            JobPostingId = jobPostingId,
+            CandidateName = name,
+            CandidateEmail = email,
+            CandidatePhone = string.IsNullOrWhiteSpace(phone) ? null : phone,
+            ResumePath = filePath,
+            AppliedAt = DateTime.UtcNow,
+            Status = ApplicationStatus.Applied
+        };
+
+        db.Applications.Add(application);
+        await db.SaveChangesAsync();
+
+        return Results.Created($"/api/admin/applications/{application.Id}", new { application.Id });
+    }
+
+    private static async Task<IResult> GetAdminApplications(
+        Guid? jobPostingId,
+        string? search,
+        MicroDbContext db)
+    {
+        var query = db.Applications.Include(a => a.JobPosting).AsQueryable();
+        
+        if (jobPostingId.HasValue)
+        {
+            query = query.Where(a => a.JobPostingId == jobPostingId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.ToLower();
+            query = query.Where(a => a.CandidateName.ToLower().Contains(s) || a.CandidateEmail.ToLower().Contains(s));
+        }
+
+        var applications = await query
+            .OrderByDescending(a => a.AppliedAt)
+            .Select(a => new {
+                a.Id,
+                a.JobPostingId,
+                JobTitle = a.JobPosting.Title,
+                a.CandidateName,
+                a.CandidateEmail,
+                a.CandidatePhone,
+                a.Status,
+                a.ArchivalResolution,
+                a.AppliedAt
+            })
+            .ToListAsync();
+
+        return Results.Ok(applications);
+    }
+
+    private static async Task<IResult> GetApplicationResume(Guid id, MicroDbContext db)
+    {
+        var application = await db.Applications.FindAsync(id);
+        if (application is null) return Results.NotFound();
+
+        if (!File.Exists(application.ResumePath))
+        {
+            return Results.NotFound("Resume file not found on server.");
+        }
+
+        var bytes = await File.ReadAllBytesAsync(application.ResumePath);
+        return Results.File(bytes, "application/pdf", $"{application.CandidateName}_Resume.pdf");
+    }
+
+    private static async Task<IResult> GetApplicationDetail(Guid id, MicroDbContext db)
+    {
+        var application = await db.Applications
+            .Include(a => a.JobPosting)
+            .Include(a => a.Feedbacks.OrderByDescending(f => f.CreatedAt))
+            .Where(a => a.Id == id)
+            .Select(a => new {
+                a.Id,
+                a.JobPostingId,
+                JobTitle = a.JobPosting.Title,
+                a.CandidateName,
+                a.CandidateEmail,
+                a.CandidatePhone,
+                a.Status,
+                a.ArchivalResolution,
+                a.AppliedAt,
+                Feedbacks = a.Feedbacks.Select(f => new {
+                    f.Id,
+                    f.Notes,
+                    f.Score,
+                    f.CreatedAt
+                })
+            })
+            .FirstOrDefaultAsync();
+
+        return application is null ? Results.NotFound() : Results.Ok(application);
+    }
+
+    private static async Task<IResult> UpdateApplicationStatus(
+        Guid id,
+        UpdateStatusRequest request,
+        MicroDbContext db)
+    {
+        var application = await db.Applications.FindAsync(id);
+        if (application is null) return Results.NotFound();
+
+        if (request.Status == ApplicationStatus.Archive && request.Resolution == ArchivalResolution.None)
+        {
+            return Results.BadRequest("Archival resolution is required when moving to Archive status.");
+        }
+
+        application.Status = request.Status;
+        application.ArchivalResolution = request.Resolution;
+        application.UpdatedAt = DateTime.UtcNow;
+
+        await db.SaveChangesAsync();
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> AddFeedback(
+        Guid id,
+        AddFeedbackRequest request,
+        AuthUser authUser,
+        MicroDbContext db)
+    {
+        var application = await db.Applications.FindAsync(id);
+        if (application is null) return Results.NotFound();
+
+        if (string.IsNullOrWhiteSpace(request.Notes))
+        {
+            return Results.BadRequest("Notes are required.");
+        }
+
+        if (request.Score < 1 || request.Score > 5)
+        {
+            return Results.BadRequest("Score must be between 1 and 5.");
+        }
+
+        var feedback = new Micro.API.Data.Models.Feedback
+        {
+            Id = Guid.NewGuid(),
+            ApplicationId = id,
+            AdminId = authUser.Id,
+            Notes = request.Notes,
+            Score = request.Score,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        db.Feedbacks.Add(feedback);
+        await db.SaveChangesAsync();
+
+        return Results.Created($"/api/admin/applications/{id}/feedback", new { feedback.Id });
+    }
+}

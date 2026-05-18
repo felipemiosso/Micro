@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using Micro.API.Data.Models;
-using Micro.API.Endpoints;
+using Micro.API.Endpoints.Requisition;
 using Xunit;
 
 namespace Micro.Tests.Endpoints;
@@ -23,7 +23,7 @@ public class RequisitionTests : IntegrationTestBase
     {
         // Arrange
         Authenticate();
-        var request = new RequisitionEndpoints.CreateRequisitionRequest("Dev", "IT", 2);
+        var request = new CreateRequisitionRequest("Dev", "IT", 2);
 
         // Act
         var response = await Client.PostAsJsonAsync("/api/requisitions", request);
@@ -41,10 +41,10 @@ public class RequisitionTests : IntegrationTestBase
     {
         // Arrange
         Authenticate();
-        var createRequest = new RequisitionEndpoints.CreateRequisitionRequest("Dev", "IT", 2);
+        var createRequest = new CreateRequisitionRequest("Dev", "IT", 2);
         var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
         var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();
-        var updateRequest = new RequisitionEndpoints.UpdateRequisitionRequest("Senior Dev", "IT", 1);
+        var updateRequest = new UpdateRequisitionRequest("Senior Dev", "IT", 1);
 
         // Act
         var response = await Client.PutAsJsonAsync($"/api/requisitions/{requisition!.Id}", updateRequest);
@@ -58,7 +58,7 @@ public class RequisitionTests : IntegrationTestBase
     {
         // Arrange
         Authenticate();
-        var createRequest = new RequisitionEndpoints.CreateRequisitionRequest("Dev", "IT", 2);
+        var createRequest = new CreateRequisitionRequest("Dev", "IT", 2);
         var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
         var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();
 
@@ -78,13 +78,13 @@ public class RequisitionTests : IntegrationTestBase
     {
         // Arrange
         Authenticate();
-        var createRequest = new RequisitionEndpoints.CreateRequisitionRequest("Dev", "IT", 2);
+        var createRequest = new CreateRequisitionRequest("Dev", "IT", 2);
         var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
         var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();
         await Client.PostAsync($"/api/requisitions/{requisition!.Id}/finalize", null);
 
         // Act
-        var updateRequest = new RequisitionEndpoints.UpdateRequisitionRequest("Senior Dev", "IT", 1);
+        var updateRequest = new UpdateRequisitionRequest("Senior Dev", "IT", 1);
         var response = await Client.PutAsJsonAsync($"/api/requisitions/{requisition!.Id}", updateRequest);
 
         // Assert
@@ -96,7 +96,7 @@ public class RequisitionTests : IntegrationTestBase
     {
         // Arrange
         Authenticate();
-        var createRequest = new RequisitionEndpoints.CreateRequisitionRequest("To Close", "IT", 1);
+        var createRequest = new CreateRequisitionRequest("To Close", "IT", 1);
         var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
         var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();
 

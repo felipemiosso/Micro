@@ -51,12 +51,12 @@ export const routes: Routes = [
         loadComponent: () => import('./features/applications/list/application-list').then(m => m.ApplicationListComponent)
       },
       {
-        path: 'pipeline',
-        loadComponent: () => import('./features/applications/pipeline-board/pipeline-board').then(m => m.PipelineBoardComponent)
+        path: 'applications',
+        loadComponent: () => import('./features/applications/applications-board/applications-board').then(m => m.ApplicationsBoardComponent)
       },
       {
-        path: 'pipeline/archived',
-        loadComponent: () => import('./features/applications/archived-pipeline/archived-pipeline').then(m => m.ArchivedPipelineComponent)
+        path: 'applications/archived',
+        loadComponent: () => import('./features/applications/archived-applications/archived-applications').then(m => m.ArchivedApplicationsComponent)
       },
       {
         path: 'candidates/:id',

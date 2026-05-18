@@ -3,10 +3,12 @@ import { Application } from '../application.service';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
+import { MatIconModule } from '@angular/material/icon';
+
 @Component({
   selector: 'app-application-card',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, MatIconModule],
   templateUrl: './application-card.html',
   styleUrl: './application-card.css',
 })

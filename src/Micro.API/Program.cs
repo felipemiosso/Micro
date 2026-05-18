@@ -1,78 +1,40 @@
-using Micro.API.Data;
-using Micro.API.Endpoints;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using Scalar.AspNetCore;
+using Micro.API.Endpoints.Application;
+using Micro.API.Endpoints.HealthCheck;
+using Micro.API.Endpoints.JobPosting;
+using Micro.API.Endpoints.Requisition;
+using Micro.API.Endpoints.UserProfile;
+using Micro.API.Infrastructure.Auth;
+using Micro.API.Infrastructure.Database;
+using Micro.API.Infrastructure.Logging;
+using Micro.API.Infrastructure.OpenApi;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Host.UseSerilog((context, configuration) =>
-    configuration.ReadFrom.Configuration(context.Configuration));
-
-builder.Services.AddDbContext<MicroDbContext>(options =>
-{
-    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    Log.Information("Using connection string: {ConnectionString}", connectionString);
-    options.UseNpgsql(connectionString);
-});
-
-var projectId = builder.Configuration["Firebase:ProjectId"];
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.Authority = $"https://securetoken.google.com/{projectId}";
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidIssuer = $"https://securetoken.google.com/{projectId}",
-            ValidateAudience = true,
-            ValidAudience = projectId,
-            ValidateLifetime = true
-        };
-    });
-
-builder.Services.AddAuthorization();
-
-builder.Services.ConfigureHttpJsonOptions(options => {
-    options.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
-});
-
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+// Add infrastructure services
+builder.Host.AddSerilog();
+builder.Services.AddDatabase(builder.Configuration);
+builder.Services.AddAuth(builder.Configuration);
+builder.Services.AddSwagger();
 
 var app = builder.Build();
 
 app.UseSerilogRequestLogging();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-    app.MapScalarApiReference("/swagger");
-}
+app.UseSwagger();
 
 app.UseHttpsRedirection();
-
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Map endpoints
 app.MapUserProfileEndpoints();
-app.MapHealthCheckEndpoints();
+app.MapHealthCheckEndpoints().AllowAnonymous();
 app.MapRequisitionEndpoints();
 app.MapJobPostingEndpoints();
 app.MapApplicationEndpoints();
 
-if (!app.Environment.IsEnvironment("Testing"))
-{
-    using (var scope = app.Services.CreateScope())
-    {
-        var dbContext = scope.ServiceProvider.GetRequiredService<MicroDbContext>();
-        await dbContext.Database.MigrateAsync();
-        await DbInitializer.SeedUser(scope.ServiceProvider);
-    }
-}
+// Initialize database
+await app.ApplyMigrationsAndSeed();
 
 app.Run();
 

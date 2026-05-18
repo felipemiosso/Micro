@@ -4,25 +4,37 @@
   } @else if (application(); as app) {
     <header class="detail-header">
       <div class="header-main">
-        <a routerLink="/admin/candidates" class="back-link">← Back to Candidates</a>
+        <a routerLink="/admin/candidates" class="flex items-center gap-1 text-honeycomb-600 hover:text-honeycomb-700 font-bold text-xs uppercase tracking-widest no-underline mb-4">
+          <mat-icon class="!text-[18px] !w-[18px] !h-[18px]">arrow_back</mat-icon>
+          Back to Candidates
+        </a>
         <h1>{{ app.candidateName }}</h1>
         <p class="subtitle">{{ app.jobTitle }} • Applied {{ app.appliedAt | date:'mediumDate' }}</p>
       </div>
       <div class="header-actions">
-        <button (click)="downloadResume()" class="btn btn-secondary">Download Resume</button>
+        <button (click)="downloadResume()" class="btn btn-secondary flex items-center gap-2">
+          <mat-icon>download</mat-icon>
+          Download Resume
+        </button>
       </div>
     </header>
 
     <div class="detail-grid">
       <aside class="sidebar">
         <section class="info-section">
-          <h3>Contact Information</h3>
-          <p><strong>Email:</strong> {{ app.candidateEmail }}</p>
-          <p><strong>Phone:</strong> {{ app.candidatePhone || 'Not provided' }}</p>
+          <h3 class="flex items-center gap-2">
+            <mat-icon class="!text-[18px] !w-[18px] !h-[18px]">contact_mail</mat-icon>
+            Contact Information
+          </h3>
+          <p class="info-row"><strong>Email:</strong> <span class="truncate-text" [title]="app.candidateEmail">{{ app.candidateEmail }}</span></p>
+          <p class="info-row"><strong>Phone:</strong> {{ app.candidatePhone || 'Not provided' }}</p>
         </section>
 
         <section class="stage-section">
-          <h3>Hiring Stage</h3>
+          <h3 class="flex items-center gap-2">
+            <mat-icon class="!text-[18px] !w-[18px] !h-[18px]">trending_up</mat-icon>
+            Hiring Stage
+          </h3>
           <div class="current-status status-{{ app.status }}">
             {{ getStatusLabel(app.status) }}
             @if (app.status === ApplicationStatus.Archive) {
@@ -30,18 +42,33 @@
             }
           </div>
           
-          <div class="status-buttons">
-            <button (click)="updateStatus(ApplicationStatus.Applied)" [disabled]="app.status === ApplicationStatus.Applied">Applied</button>
-            <button (click)="updateStatus(ApplicationStatus.Interview)" [disabled]="app.status === ApplicationStatus.Interview">Interview</button>
-            <button (click)="updateStatus(ApplicationStatus.Offer)" [disabled]="app.status === ApplicationStatus.Offer">Offer</button>
-            <button (click)="updateStatus(ApplicationStatus.Archive)" class="btn-archive" [disabled]="app.status === ApplicationStatus.Archive">Archive</button>
+          <div class="status-buttons flex flex-wrap gap-2">
+            <button (click)="updateStatus(ApplicationStatus.Applied)" [disabled]="app.status === ApplicationStatus.Applied" class="btn flex items-center gap-2">
+              <mat-icon class="!text-[16px] !w-[16px] !h-[16px]">how_to_reg</mat-icon>
+              Applied
+            </button>
+            <button (click)="updateStatus(ApplicationStatus.Interview)" [disabled]="app.status === ApplicationStatus.Interview" class="btn flex items-center gap-2">
+              <mat-icon class="!text-[16px] !w-[16px] !h-[16px]">groups</mat-icon>
+              Interview
+            </button>
+            <button (click)="updateStatus(ApplicationStatus.Offer)" [disabled]="app.status === ApplicationStatus.Offer" class="btn flex items-center gap-2">
+              <mat-icon class="!text-[16px] !w-[16px] !h-[16px]">task_alt</mat-icon>
+              Offer
+            </button>
+            <button (click)="updateStatus(ApplicationStatus.Archive)" class="btn-archive flex items-center gap-2" [disabled]="app.status === ApplicationStatus.Archive">
+              <mat-icon class="!text-[16px] !w-[16px] !h-[16px]">archive</mat-icon>
+              Archive
+            </button>
           </div>
         </section>
       </aside>
 
       <main class="content">
         <section class="feedback-section">
-          <h3>Evaluation Feedback</h3>
+          <h3 class="flex items-center gap-2">
+            <mat-icon class="!text-[18px] !w-[18px] !h-[18px]">rate_review</mat-icon>
+            Evaluation Feedback
+          </h3>
           
           <form (ngSubmit)="submitFeedback()" class="feedback-form">
             <div class="form-group">
@@ -84,8 +111,8 @@
   }
 
   @if (showArchivalModal()) {
-    <div class="modal-overlay">
-      <div class="modal">
+    <div class="modal-overlay" (click)="showArchivalModal.set(false)">
+      <div class="modal" (click)="$event.stopPropagation()">
         <h2>Archive Candidate</h2>
         <p>Please select a resolution for this application:</p>
         <div class="form-group">

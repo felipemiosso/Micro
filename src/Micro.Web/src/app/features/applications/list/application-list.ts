@@ -3,15 +3,19 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApplicationService, Application, ApplicationStatus } from '../application.service';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 @Component({
   selector: 'app-application-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule, MatIconModule, MatButtonModule, MatTooltipModule],
   templateUrl: './application-list.html',
   styleUrls: ['./application-list.css'],
 })
 export class ApplicationListComponent implements OnInit {
+
   private applicationService = inject(ApplicationService);
   private route = inject(ActivatedRoute);
 

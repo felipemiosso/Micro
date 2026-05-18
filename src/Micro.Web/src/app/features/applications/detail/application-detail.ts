@@ -2,16 +2,20 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { ApplicationService, ApplicationDetail, ApplicationStatus, ArchivalResolution } from '../application.service';
+import { ApplicationService, Application, ApplicationStatus, ArchivalResolution, ApplicationDetail } from '../application.service';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 @Component({
   selector: 'app-application-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule, MatIconModule, MatButtonModule, MatTooltipModule],
   templateUrl: './application-detail.html',
   styleUrls: ['./application-detail.css'],
 })
 export class ApplicationDetailComponent implements OnInit {
+
   private applicationService = inject(ApplicationService);
   private route = inject(ActivatedRoute);
 

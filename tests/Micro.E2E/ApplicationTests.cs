@@ -165,18 +165,18 @@ public class ApplicationTests : PageTest
     }
 
     [Fact]
-    public async Task AC04_PipelineDragAndDrop()
+    public async Task AC04_ApplicationsDragAndDrop()
     {
-        string jobTitle = $"Pipeline Job {Guid.NewGuid()}";
+        string jobTitle = $"Applications Job {Guid.NewGuid()}";
         await CreatePublishedJob(jobTitle);
 
         // Apply
         await Page.GotoAsync($"{BaseUrl}/jobs");
         await Page.Locator(".job-card").Filter(new() { HasText = jobTitle }).Locator(".btn-link").ClickAsync();
         await Page.ClickAsync("a:has-text('Apply Now')");
-        string candidateName = $"Pipeline User {Guid.NewGuid()}";
+        string candidateName = $"Applications User {Guid.NewGuid()}";
         await Page.FillAsync("#name", candidateName);
-        await Page.FillAsync("#email", "pipeline@track.com");
+        await Page.FillAsync("#email", "applications@track.com");
         var tempPath = Path.Combine(Path.GetTempPath(), "resume.pdf");
         await File.WriteAllBytesAsync(tempPath, new byte[] { 0x25, 0x50, 0x44, 0x46 });
         await Page.SetInputFilesAsync("#resume", tempPath);
@@ -189,9 +189,9 @@ public class ApplicationTests : PageTest
         await Page.ClickAsync("button[type='submit']");
         await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/dashboard|/admin/requisitions"));
 
-        // Navigate to Pipeline
-        await Page.ClickAsync("a:has-text('Pipeline')");
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/admin/pipeline"));
+        // Navigate to Applications
+        await Page.ClickAsync("a:has-text('Applications')");
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/admin/applications"));
 
         // Find candidate in Applied lane
         var appliedLane = Page.Locator("#appliedList");
@@ -234,9 +234,9 @@ public class ApplicationTests : PageTest
         await Page.ClickAsync("button[type='submit']");
         await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/dashboard|/admin/requisitions"));
 
-        // Navigate to Pipeline
-        await Page.ClickAsync("a:has-text('Pipeline')");
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/admin/pipeline"));
+        // Navigate to Applications
+        await Page.ClickAsync("a:has-text('Applications')");
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/admin/applications"));
 
         var appliedLane = Page.Locator("#appliedList");
         var candidateCard = appliedLane.Locator(".card").Filter(new() { HasText = candidateName });
@@ -262,8 +262,8 @@ public class ApplicationTests : PageTest
         await Expect(appliedLane.Locator(".card").Filter(new() { HasText = candidateName })).ToHaveCountAsync(0);
 
         // Check archived board
-        await Page.ClickAsync("a.btn-link:has-text('View Archived Pipeline')");
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/admin/pipeline/archived"));
+        await Page.ClickAsync("a.btn-link:has-text('View Archived Applications')");
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/admin/applications/archived"));
 
         var hiredLane = Page.Locator(".lane").Filter(new() { HasText = "Hired" });
         await Expect(hiredLane.Locator(".card").Filter(new() { HasText = candidateName })).ToHaveCountAsync(1);

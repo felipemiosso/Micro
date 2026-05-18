@@ -1,7 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
 using Micro.API.Data.Models;
-using Micro.API.Endpoints;
+using Micro.API.Endpoints.Application;
+using Micro.API.Endpoints.JobPosting;
+using Micro.API.Endpoints.Requisition;
 
 namespace Micro.Tests.Endpoints;
 
@@ -20,13 +22,13 @@ public class ApplicationTests : IntegrationTestBase
     private async Task<Guid> CreatePublishedJob()
     {
         Authenticate();
-        var createRequest = new RequisitionEndpoints.CreateRequisitionRequest("Tester", "QA", 1);
+        var createRequest = new CreateRequisitionRequest("Tester", "QA", 1);
         var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
         var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();
         await Client.PostAsync($"/api/requisitions/{requisition!.Id}/finalize", null);
         
         var adminJobsResponse = await Client.GetAsync("/api/admin/jobs");
-        var adminJobs = await adminJobsResponse.Content.ReadFromJsonAsync<List<JobPosting>>();
+        var adminJobs = await adminJobsResponse.Content.ReadFromJsonAsync<List<Micro.API.Data.Models.JobPosting>>();
         return adminJobs!.First(j => j.RequisitionId == requisition.Id).Id;
     }
 
@@ -204,7 +206,7 @@ public class ApplicationTests : IntegrationTestBase
         Authenticate();
 
         // Act
-        var updateRequest = new ApplicationEndpoints.UpdateStatusRequest(ApplicationStatus.Interview, ArchivalResolution.None);
+        var updateRequest = new UpdateStatusRequest(ApplicationStatus.Interview, ArchivalResolution.None);
         var response = await Client.PutAsJsonAsync($"/api/admin/applications/{appId}/status", updateRequest);
 
         // Assert
@@ -231,7 +233,7 @@ public class ApplicationTests : IntegrationTestBase
         Authenticate();
 
         // Act - Move to Archive without resolution
-        var updateRequest = new ApplicationEndpoints.UpdateStatusRequest(ApplicationStatus.Archive, ArchivalResolution.None);
+        var updateRequest = new UpdateStatusRequest(ApplicationStatus.Archive, ArchivalResolution.None);
         var response = await Client.PutAsJsonAsync($"/api/admin/applications/{appId}/status", updateRequest);
 
         // Assert
@@ -254,7 +256,7 @@ public class ApplicationTests : IntegrationTestBase
         Authenticate();
 
         // Act
-        var feedbackRequest = new ApplicationEndpoints.AddFeedbackRequest("Great candidate!", 5);
+        var feedbackRequest = new AddFeedbackRequest("Great candidate!", 5);
         var response = await Client.PostAsJsonAsync($"/api/admin/applications/{appId}/feedback", feedbackRequest);
 
         // Assert

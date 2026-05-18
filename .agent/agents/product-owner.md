@@ -131,8 +131,8 @@ There are several discrete types of memory that you can store in your memory sys
     <when_to_save>When you learn about resources in external systems and their purpose. For example, that bugs are tracked in a specific project in Linear or that feedback can be found in a specific Slack channel.</when_to_save>
     <how_to_use>When the user references an external system or information that may be in an external system.</how_to_use>
     <examples>
-    user: check the Linear project "INGEST" if you want context on these tickets, that's where we track all pipeline bugs
-    assistant: [saves reference memory: pipeline bugs are tracked in Linear project "INGEST"]
+    user: check the Linear project "INGEST" if you want context on these tickets, that's where we track all applications board bugs
+    assistant: [saves reference memory: applications board bugs are tracked in Linear project "INGEST"]
 
     user: the Grafana board at grafana.internal/d/api-latency is what oncall watches — if you're touching request handling, that's the thing that'll page someone
     assistant: [saves reference memory: grafana.internal/d/api-latency is the oncall latency dashboard — check it when editing request-path code]

@@ -44,18 +44,25 @@ src/Micro.API/
     Models/       — domain models (EF entities and config-bound models)
     Migrations/   — EF Core migrations
     Configuration/— EF Core entity type configurations
-    AppDbContext.cs
+    MicroDbContext.cs
   Endpoints/      — one file per endpoint group
   Infrastructure/ — cross-cutting concerns (auth, extensions, identity wrappers)
+    Auth/         — AuthUser.cs (BindAsync identity), AuthExtensions.cs
+    Database/     — DatabaseExtensions.cs (migrations, seeding)
+    Logging/      — LogExtensions.cs (Serilog)
+    OpenApi/      — SwaggerExtensions.cs (OpenAPI/Scalar)
 ```
 
 Rules:
-- No service layer, no repository pattern — use `AppDbContext` directly in endpoints
+- No service layer, no repository pattern — use `MicroDbContext` directly in endpoints
 - Minimal indirection: prefer inline logic over extra classes
-- `Infrastructure/` is for framework plumbing (auth handlers, option extensions, identity helpers), not business logic
+- `Infrastructure/` is for framework plumbing:
+    - **Identity:** Use the `AuthUser` record with `BindAsync` for all authenticated endpoints to extract user identity from claims.
+    - **Extensions:** Keep configuration logic in specialized extension classes within `Infrastructure/` subfolders.
 - All Entity Framework model configurations must be in separated files implementing `IEntityTypeConfiguration<T>` inside the `Data/Configuration` folder. Do not configure models directly in `OnModelCreating`.
 
 ## Frontend Rules
 
+- **Design System:** All UI development MUST follow the standards defined in `product/design-system.md`. Use the provided Tailwind utility classes for consistency.
 - **Angular Signals:** Use Angular Signals (`signal`, `computed`, `effect`) for all component state and data flow. Avoid manual change detection (`ChangeDetectorRef.detectChanges()`) and raw property assignments for reactive data.
 - **Standalone Components:** All new components must be standalone.

@@ -1,7 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
 using Micro.API.Data.Models;
-using Micro.API.Endpoints;
+using Micro.API.Endpoints.JobPosting;
+using Micro.API.Endpoints.Requisition;
 using Xunit;
 
 namespace Micro.Tests.Endpoints;
@@ -23,7 +24,7 @@ public class JobPostingTests : IntegrationTestBase
     {
         // Arrange
         Authenticate();
-        var createRequest = new RequisitionEndpoints.CreateRequisitionRequest("Engineer", "IT", 1);
+        var createRequest = new CreateRequisitionRequest("Engineer", "IT", 1);
         var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
         var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();
 
@@ -32,7 +33,7 @@ public class JobPostingTests : IntegrationTestBase
 
         // Assert
         var jobsResponse = await Client.GetAsync("/api/jobs");
-        var jobs = await jobsResponse.Content.ReadFromJsonAsync<List<JobPostingEndpoints.PublicJobResponse>>();
+        var jobs = await jobsResponse.Content.ReadFromJsonAsync<List<PublicJobResponse>>();
         Assert.Contains(jobs!, j => j.Title == "Engineer");
     }
 
@@ -41,7 +42,7 @@ public class JobPostingTests : IntegrationTestBase
     {
         // Arrange
         Authenticate();
-        var createRequest = new RequisitionEndpoints.CreateRequisitionRequest("Closer", "IT", 1);
+        var createRequest = new CreateRequisitionRequest("Closer", "IT", 1);
         var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
         var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();
         await Client.PostAsync($"/api/requisitions/{requisition!.Id}/finalize", null);
@@ -51,7 +52,7 @@ public class JobPostingTests : IntegrationTestBase
 
         // Assert
         var jobsResponse = await Client.GetAsync("/api/jobs");
-        var jobs = await jobsResponse.Content.ReadFromJsonAsync<List<JobPostingEndpoints.PublicJobResponse>>();
+        var jobs = await jobsResponse.Content.ReadFromJsonAsync<List<PublicJobResponse>>();
         Assert.DoesNotContain(jobs!, j => j.Title == "Closer");
     }
 
@@ -60,16 +61,16 @@ public class JobPostingTests : IntegrationTestBase
     {
         // Arrange
         Authenticate();
-        var createRequest = new RequisitionEndpoints.CreateRequisitionRequest("To Update", "IT", 1);
+        var createRequest = new CreateRequisitionRequest("To Update", "IT", 1);
         var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
         var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();
         await Client.PostAsync($"/api/requisitions/{requisition!.Id}/finalize", null);
         
         var adminJobsResponse = await Client.GetAsync("/api/admin/jobs");
-        var adminJobs = await adminJobsResponse.Content.ReadFromJsonAsync<List<JobPosting>>();
+        var adminJobs = await adminJobsResponse.Content.ReadFromJsonAsync<List<Micro.API.Data.Models.JobPosting>>();
         var job = adminJobs!.First(j => j.RequisitionId == requisition.Id);
 
-        var updateRequest = new JobPostingEndpoints.UpdateJobPostingRequest("New Title", "New Desc", "New Req");
+        var updateRequest = new UpdateJobPostingRequest("New Title", "New Desc", "New Req");
 
         // Act
         var response = await Client.PutAsJsonAsync($"/api/admin/jobs/{job.Id}", updateRequest);
@@ -78,7 +79,7 @@ public class JobPostingTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
         
         var publicJobResponse = await Client.GetAsync($"/api/jobs/{job.Id}");
-        var updatedJob = await publicJobResponse.Content.ReadFromJsonAsync<JobPostingEndpoints.PublicJobDetailResponse>();
+        var updatedJob = await publicJobResponse.Content.ReadFromJsonAsync<PublicJobDetailResponse>();
         Assert.Equal("New Title", updatedJob!.Title);
     }
 }

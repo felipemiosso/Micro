@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { JobPostingService } from '../job-posting.service';
+import { NotificationService } from '../../../core/ui/notification.service';
 
 @Component({
   selector: 'app-job-posting-edit',
@@ -16,6 +17,7 @@ export class JobPostingEditComponent implements OnInit {
   private jobPostingService = inject(JobPostingService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private notification = inject(NotificationService);
 
   form = this.fb.group({
     title: ['', [Validators.required]],
@@ -34,11 +36,13 @@ export class JobPostingEditComponent implements OnInit {
           if (job) {
             this.form.patchValue(job);
           } else {
+            this.notification.error('Job posting not found.');
             this.router.navigate(['/admin/jobs']);
           }
         },
         error: (err) => {
           console.error('Failed to load job postings', err);
+          this.notification.error('Failed to load job posting details.');
           this.router.navigate(['/admin/jobs']);
         }
       });
@@ -54,11 +58,12 @@ export class JobPostingEditComponent implements OnInit {
     const data = this.form.getRawValue();
     this.jobPostingService.updateJob(this.jobId!, data as any).subscribe({
       next: () => {
+        this.notification.success('Job posting updated successfully.');
         this.router.navigate(['/admin/jobs']);
       },
       error: (err) => {
         console.error('Failed to save job posting', err);
-        alert('Failed to save job posting. Please try again.');
+        this.notification.error('Failed to save job posting. Please try again.');
       }
     });
   }
