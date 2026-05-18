@@ -5,7 +5,7 @@ namespace Micro.API.Data.Seed;
 
 public static class RequisitionSeeder
 {
-    public static (List<Requisition>, List<JobPosting>) Generate(List<AppUser> users, int count = 10)
+    public static (List<Requisition>, List<JobPosting>) Generate(List<User> users, int count = 10)
     {
         var requisitions = new List<Requisition>();
         var jobPostings = new List<JobPosting>();

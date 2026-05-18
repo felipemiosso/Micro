@@ -5,7 +5,7 @@ namespace Micro.API.Data.Seed;
 
 public static class FeedbackSeeder
 {
-    public static List<Feedback> Generate(List<Application> applications, List<AppUser> users, int count = 20)
+    public static List<Feedback> Generate(List<Application> applications, List<User> users, int count = 20)
     {
         var userIds = users.Select(u => u.Id).ToList();
         

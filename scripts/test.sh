@@ -51,6 +51,7 @@ run_integration() {
 
 # E2E Tests (Playwright)
 run_e2e() {
+  local test_filter=$1
   echo "Preparing E2E Environment..."
   stop_port $API_PORT
   stop_port $WEB_PORT
@@ -87,7 +88,12 @@ run_e2e() {
   done
 
   echo "Running E2E tests..."
-  dotnet test tests/Micro.E2E/Micro.E2E.csproj
+  if [ -n "$test_filter" ]; then
+    echo "Filter: $test_filter"
+    dotnet test tests/Micro.E2E/Micro.E2E.csproj --filter "FullyQualifiedName~$test_filter"
+  else
+    dotnet test tests/Micro.E2E/Micro.E2E.csproj
+  fi
   local exit_code=$?
 
   cleanup_e2e
@@ -96,6 +102,7 @@ run_e2e() {
 
 # Main Logic
 MODE=$1
+FILTER=$2
 
 case $MODE in
   "unit")
@@ -105,7 +112,7 @@ case $MODE in
     run_integration
     ;;
   "e2e")
-    run_e2e
+    run_e2e "$FILTER"
     ;;
   "all")
     run_unit

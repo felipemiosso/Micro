@@ -59,7 +59,7 @@ public static class DbInitializer
         
         if (!exists)
         {
-            dbContext.Users.Add(new AppUser
+            dbContext.Users.Add(new User
             {
                 Id = testUserId,
                 Email = "test@microats.com",

@@ -11,9 +11,9 @@ Migration from ASP.NET Core Identity to Firebase Authentication for improved sec
 - **Audience**: `<project-id>`
 
 ## Database Schema
-The `AppUser` table is retained for application-specific profile data but no longer inherits from `IdentityUser`.
+The `User` table is retained for application-specific profile data but no longer inherits from `IdentityUser`.
 
-### AppUser Entity
+### User Entity
 | Property | Type | Description |
 | :--- | :--- | :--- |
 | Id | string (PK) | Firebase UID |
@@ -24,8 +24,8 @@ The `AppUser` table is retained for application-specific profile data but no lon
 ## API Changes
 - **AuthEndpoints**: Removed. Registration and Login are handled client-side via Firebase SDK.
 - **UserProfileEndpoints**: 
-  - `GET /api/profile`: Returns the `AppUser` record for the authenticated user.
-  - Automatically creates a local `AppUser` record if the Firebase UID is authenticated but not yet in the database.
+  - `GET /api/profile`: Returns the `User` record for the authenticated user.
+  - Automatically creates a local `User` record if the Firebase UID is authenticated but not yet in the database.
 
 ## Security
 - All admin endpoints require an `Authorization: Bearer <token>` header.

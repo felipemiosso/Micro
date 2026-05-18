@@ -3,13 +3,13 @@
 ## Schema Changes
 We need to extend the default `IdentityUser` to include personal information.
 
-### AppUser Entity
+### User Entity
 Inherits from `IdentityUser`.
 - `FullName` (string): User's display name.
 - `PhotoUrl` (string, nullable): URL to user's profile picture.
 
 ### Data Migrations
-- Update `MicroDbContext` to use `AppUser` instead of `IdentityUser`.
+- Update `MicroDbContext` to use `User` instead of `IdentityUser`.
 - Create migration to add `FullName` and `PhotoUrl` to `AspNetUsers` table.
 - Update `DbInitializer` to set `FullName = "System Admin"` for the seed user.
 
@@ -27,6 +27,6 @@ Inherits from `IdentityUser`.
 ```
 
 ## Implementation Notes
-- Use `UserManager<AppUser>` in endpoints.
+- Use `UserManager<User>` in endpoints.
 - Map `/api/profile` using `RequireAuthorization()`.
 - Extract user ID from `ClaimsPrincipal`.
