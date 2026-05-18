@@ -8,6 +8,7 @@ public class MicroDbContext : DbContext
     public MicroDbContext(DbContextOptions<MicroDbContext> options) : base(options) { }
 
     public DbSet<AppUser> Users { get; set; }
+    public DbSet<Candidate> Candidates { get; set; }
     public DbSet<Requisition> Requisitions { get; set; }
     public DbSet<JobPosting> JobPostings { get; set; }
     public DbSet<Application> Applications { get; set; }

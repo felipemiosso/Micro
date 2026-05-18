@@ -61,8 +61,30 @@ public static class ApplicationEndpoints
             return Results.BadRequest("Only PDF files are allowed.");
         }
 
-        // Duplicate check
-        var exists = await db.Applications.AnyAsync(a => a.JobPostingId == jobPostingId && a.CandidateEmail == email);
+        // Candidate check/creation
+        var candidate = await db.Candidates.FirstOrDefaultAsync(c => c.Email == email);
+        if (candidate is null)
+        {
+            candidate = new Data.Models.Candidate
+            {
+                Id = Guid.NewGuid(),
+                FullName = name,
+                Email = email,
+                Phone = string.IsNullOrWhiteSpace(phone) ? null : phone,
+                CreatedAt = DateTime.UtcNow
+            };
+            db.Candidates.Add(candidate);
+        }
+        else
+        {
+            // Linking existing candidate - for now we allow different names as per user preference, 
+            // but we might want to update the name if it's different or just leave it. 
+            // User said: "its fine to have different names. Later we are going to allow candidate to create an account."
+            // So we just use the existing candidate record.
+        }
+
+        // Duplicate application check
+        var exists = await db.Applications.AnyAsync(a => a.JobPostingId == jobPostingId && a.CandidateId == candidate.Id);
         if (exists)
         {
             return Results.Conflict("You have already applied for this position.");
@@ -84,9 +106,7 @@ public static class ApplicationEndpoints
         {
             Id = Guid.NewGuid(),
             JobPostingId = jobPostingId,
-            CandidateName = name,
-            CandidateEmail = email,
-            CandidatePhone = string.IsNullOrWhiteSpace(phone) ? null : phone,
+            CandidateId = candidate.Id,
             ResumePath = filePath,
             AppliedAt = DateTime.UtcNow,
             Status = ApplicationStatus.Applied
@@ -103,7 +123,10 @@ public static class ApplicationEndpoints
         string? search,
         MicroDbContext db)
     {
-        var query = db.Applications.Include(a => a.JobPosting).AsQueryable();
+        var query = db.Applications
+            .Include(a => a.JobPosting)
+            .Include(a => a.Candidate)
+            .AsQueryable();
         
         if (jobPostingId.HasValue)
         {
@@ -113,7 +136,7 @@ public static class ApplicationEndpoints
         if (!string.IsNullOrWhiteSpace(search))
         {
             var s = search.ToLower();
-            query = query.Where(a => a.CandidateName.ToLower().Contains(s) || a.CandidateEmail.ToLower().Contains(s));
+            query = query.Where(a => a.Candidate.FullName.ToLower().Contains(s) || a.Candidate.Email.ToLower().Contains(s));
         }
 
         var applications = await query
@@ -121,10 +144,11 @@ public static class ApplicationEndpoints
             .Select(a => new {
                 a.Id,
                 a.JobPostingId,
+                a.CandidateId,
                 JobTitle = a.JobPosting.Title,
-                a.CandidateName,
-                a.CandidateEmail,
-                a.CandidatePhone,
+                CandidateName = a.Candidate.FullName,
+                CandidateEmail = a.Candidate.Email,
+                CandidatePhone = a.Candidate.Phone,
                 a.Status,
                 a.ArchivalResolution,
                 a.AppliedAt
@@ -136,7 +160,7 @@ public static class ApplicationEndpoints
 
     private static async Task<IResult> GetApplicationResume(Guid id, MicroDbContext db)
     {
-        var application = await db.Applications.FindAsync(id);
+        var application = await db.Applications.Include(a => a.Candidate).FirstOrDefaultAsync(a => a.Id == id);
         if (application is null) return Results.NotFound();
 
         if (!File.Exists(application.ResumePath))
@@ -145,22 +169,23 @@ public static class ApplicationEndpoints
         }
 
         var bytes = await File.ReadAllBytesAsync(application.ResumePath);
-        return Results.File(bytes, "application/pdf", $"{application.CandidateName}_Resume.pdf");
+        return Results.File(bytes, "application/pdf", $"{application.Candidate.FullName}_Resume.pdf");
     }
 
     private static async Task<IResult> GetApplicationDetail(Guid id, MicroDbContext db)
     {
         var application = await db.Applications
             .Include(a => a.JobPosting)
+            .Include(a => a.Candidate)
             .Include(a => a.Feedbacks.OrderByDescending(f => f.CreatedAt))
             .Where(a => a.Id == id)
             .Select(a => new {
                 a.Id,
                 a.JobPostingId,
                 JobTitle = a.JobPosting.Title,
-                a.CandidateName,
-                a.CandidateEmail,
-                a.CandidatePhone,
+                CandidateName = a.Candidate.FullName,
+                CandidateEmail = a.Candidate.Email,
+                CandidatePhone = a.Candidate.Phone,
                 a.Status,
                 a.ArchivalResolution,
                 a.AppliedAt,

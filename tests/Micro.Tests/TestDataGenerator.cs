@@ -33,13 +33,22 @@ public static class TestDataGenerator
             .Generate();
     }
 
-    public static Application CreateApplication(Guid jobPostingId)
+    public static Candidate CreateCandidate()
+    {
+        return new Faker<Candidate>()
+            .RuleFor(c => c.Id, f => f.Random.Guid())
+            .RuleFor(c => c.FullName, f => f.Name.FullName())
+            .RuleFor(c => c.Email, (f, c) => f.Internet.Email(c.FullName))
+            .RuleFor(c => c.CreatedAt, DateTime.UtcNow)
+            .Generate();
+    }
+
+    public static Application CreateApplication(Guid jobPostingId, Guid candidateId)
     {
         return new Faker<Application>()
             .RuleFor(a => a.Id, f => f.Random.Guid())
             .RuleFor(a => a.JobPostingId, jobPostingId)
-            .RuleFor(a => a.CandidateName, f => f.Name.FullName())
-            .RuleFor(a => a.CandidateEmail, (f, a) => f.Internet.Email(a.CandidateName))
+            .RuleFor(a => a.CandidateId, candidateId)
             .RuleFor(a => a.ResumePath, "test/path/resume.pdf")
             .RuleFor(a => a.Status, ApplicationStatus.Applied)
             .RuleFor(a => a.AppliedAt, DateTime.UtcNow)

@@ -61,8 +61,8 @@
               </td>
               <td class="px-6 py-4 text-right">
                 <div class="flex justify-end gap-1">
-                  <a mat-icon-button [routerLink]="['/admin/candidates', app.id]" color="primary" matTooltip="View Details">
-                    <mat-icon>visibility</mat-icon>
+                  <a mat-icon-button [routerLink]="['/admin/candidates', app.candidateId]" color="primary" matTooltip="View Profile">
+                    <mat-icon>person</mat-icon>
                   </a>
                   <button mat-icon-button (click)="downloadResume(app.id, app.candidateName)" color="accent" matTooltip="Download Resume">
                     <mat-icon>description</mat-icon>

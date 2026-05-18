@@ -1,16 +1,15 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
-import { FormsModule } from '@angular/forms';
-import { ApplicationService, Application, ApplicationStatus, ArchivalResolution, ApplicationDetail } from '../application.service';
+import { ApplicationService, CandidateDetail, ApplicationStatus, ArchivalResolution } from '../application.service';
 import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 @Component({
   selector: 'app-application-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, MatIconModule, MatButtonModule, MatTooltipModule],
+  imports: [CommonModule, RouterModule, MatIconModule, MatDividerModule, MatTooltipModule],
   templateUrl: './application-detail.html',
   styleUrls: ['./application-detail.css'],
 })
@@ -19,17 +18,8 @@ export class ApplicationDetailComponent implements OnInit {
   private applicationService = inject(ApplicationService);
   private route = inject(ActivatedRoute);
 
-  application = signal<ApplicationDetail | null>(null);
+  candidate = signal<CandidateDetail | null>(null);
   loading = signal(true);
-  
-  // Feedback form
-  newNotes = signal('');
-  newScore = signal(5);
-  submittingFeedback = signal(false);
-
-  // Status management
-  showArchivalModal = signal(false);
-  selectedResolution = signal<ArchivalResolution>(ArchivalResolution.Rejected);
 
   ApplicationStatus = ApplicationStatus;
   ArchivalResolution = ArchivalResolution;
@@ -37,78 +27,22 @@ export class ApplicationDetailComponent implements OnInit {
   ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
-      this.loadApplication(id);
+      this.loadCandidate(id);
     }
   }
 
-  loadApplication(id: string) {
+  loadCandidate(id: string) {
     this.loading.set(true);
-    this.applicationService.getApplication(id).subscribe({
+    this.applicationService.getCandidate(id).subscribe({
       next: (data) => {
-        this.application.set(data);
+        this.candidate.set(data);
         this.loading.set(false);
       },
       error: (err) => {
-        console.error('Failed to load application', err);
+        console.error('Failed to load candidate', err);
         this.loading.set(false);
       }
     });
-  }
-
-  updateStatus(status: ApplicationStatus) {
-    if (status === ApplicationStatus.Archive) {
-      this.showArchivalModal.set(true);
-      return;
-    }
-
-    const id = this.application()?.id;
-    if (id) {
-      this.applicationService.updateStatus(id, status).subscribe(() => {
-        this.loadApplication(id);
-      });
-    }
-  }
-
-  confirmArchive() {
-    const id = this.application()?.id;
-    if (id) {
-      this.applicationService.updateStatus(id, ApplicationStatus.Archive, this.selectedResolution()).subscribe(() => {
-        this.showArchivalModal.set(false);
-        this.loadApplication(id);
-      });
-    }
-  }
-
-  submitFeedback() {
-    const id = this.application()?.id;
-    if (id && this.newNotes().trim()) {
-      this.submittingFeedback.set(true);
-      this.applicationService.addFeedback(id, this.newNotes(), this.newScore()).subscribe({
-        next: () => {
-          this.newNotes.set('');
-          this.newScore.set(5);
-          this.submittingFeedback.set(false);
-          this.loadApplication(id);
-        },
-        error: () => this.submittingFeedback.set(false)
-      });
-    }
-  }
-
-  downloadResume() {
-    const app = this.application();
-    if (app) {
-      this.applicationService.downloadResume(app.id).subscribe({
-        next: (blob) => {
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `${app.candidateName}_Resume.pdf`;
-          a.click();
-          window.URL.revokeObjectURL(url);
-        }
-      });
-    }
   }
 
   getStatusLabel(status: ApplicationStatus): string {
@@ -129,5 +63,18 @@ export class ApplicationDetailComponent implements OnInit {
       case ArchivalResolution.Withdrawn: return 'Withdrawn';
       default: return '';
     }
+  }
+
+  downloadResume(appId: string, candidateName: string) {
+    this.applicationService.downloadResume(appId).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${candidateName}_Resume.pdf`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      }
+    });
   }
 }

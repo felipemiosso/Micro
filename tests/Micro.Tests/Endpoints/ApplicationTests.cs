@@ -55,8 +55,12 @@ public class ApplicationTests : IntegrationTestBase
 
         Authenticate();
         var adminResponse = await Client.GetAsync($"/api/admin/applications?jobPostingId={jobId}");
-        var applications = await adminResponse.Content.ReadFromJsonAsync<List<dynamic>>();
+        var applications = await adminResponse.Content.ReadFromJsonAsync<List<System.Text.Json.JsonElement>>();
         Assert.Single(applications!);
+        
+        // Regression test: Ensure CandidateId is present and valid
+        var candidateId = applications![0].GetProperty("candidateId").GetGuid();
+        Assert.NotEqual(Guid.Empty, candidateId);
     }
 
     [Fact]

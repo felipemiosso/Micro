@@ -24,11 +24,34 @@ export interface Feedback {
   createdAt: string;
 }
 
+export interface Candidate {
+  id: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  createdAt: string;
+}
+
+export interface CandidateApplication {
+  id: string;
+  jobPostingId: string;
+  jobTitle: string;
+  status: ApplicationStatus;
+  archivalResolution: ArchivalResolution;
+  appliedAt: string;
+  feedbacks: Feedback[];
+}
+
+export interface CandidateDetail extends Candidate {
+  applications: CandidateApplication[];
+}
+
 export interface Application {
   id: string;
   jobPostingId: string;
   jobTitle: string;
-  candidateName: string;
+  candidateId: string;
+  candidateName: string; 
   candidateEmail: string;
   candidatePhone?: string;
   status: ApplicationStatus;
@@ -37,7 +60,6 @@ export interface Application {
 }
 
 export interface ApplicationDetail extends Application {
-  archivalResolution: ArchivalResolution;
   feedbacks: Feedback[];
 }
 
@@ -48,6 +70,7 @@ export class ApplicationService {
   private http = inject(HttpClient);
   private publicApiUrl = '/api/public/jobs';
   private adminApiUrl = '/api/admin/applications';
+  private candidateApiUrl = '/api/admin/candidates';
 
   // Public APIs
   apply(jobId: string, formData: FormData): Observable<{ id: string }> {
@@ -67,6 +90,11 @@ export class ApplicationService {
 
   getApplication(id: string): Observable<ApplicationDetail> {
     return this.http.get<ApplicationDetail>(`${this.adminApiUrl}/${id}`);
+  }
+
+  // Candidate Profile
+  getCandidate(id: string): Observable<CandidateDetail> {
+    return this.http.get<CandidateDetail>(`${this.candidateApiUrl}/${id}`);
   }
 
   updateStatus(id: string, status: ApplicationStatus, resolution: ArchivalResolution = ArchivalResolution.None): Observable<void> {

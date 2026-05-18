@@ -13,15 +13,12 @@ public class ApplicationConfiguration : IEntityTypeConfiguration<Application>
             .HasForeignKey(a => a.JobPostingId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.Property(a => a.CandidateName)
-            .IsRequired()
-            .HasMaxLength(200);
+        builder.HasOne(a => a.Candidate)
+            .WithMany(c => c.Applications)
+            .HasForeignKey(a => a.CandidateId)
+            .OnDelete(DeleteBehavior.Cascade);
 
-        builder.Property(a => a.CandidateEmail)
-            .IsRequired()
-            .HasMaxLength(200);
-
-        builder.HasIndex(a => new { a.JobPostingId, a.CandidateEmail })
+        builder.HasIndex(a => new { a.JobPostingId, a.CandidateId })
             .IsUnique();
 
         builder.HasIndex(a => a.Status);

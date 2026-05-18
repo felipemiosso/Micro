@@ -5,15 +5,20 @@ namespace Micro.API.Data.Seed;
 
 public static class ApplicationSeeder
 {
-    public static List<Application> Generate(List<JobPosting> jobPostings, int countPerJob = 5)
+    public static (List<Candidate> Candidates, List<Application> Applications) Generate(List<JobPosting> jobPostings, int countPerJob = 5)
     {
+        var candidates = new List<Candidate>();
         var applications = new List<Application>();
+
+        var candidateFaker = new Faker<Candidate>()
+            .RuleFor(c => c.Id, f => f.Random.Guid())
+            .RuleFor(c => c.FullName, f => f.Name.FullName())
+            .RuleFor(c => c.Email, (f, c) => f.Internet.Email(c.FullName))
+            .RuleFor(c => c.Phone, f => f.Phone.PhoneNumber())
+            .RuleFor(c => c.CreatedAt, f => f.Date.Past(1).ToUniversalTime());
 
         var appFaker = new Faker<Application>()
             .RuleFor(a => a.Id, f => f.Random.Guid())
-            .RuleFor(a => a.CandidateName, f => f.Name.FullName())
-            .RuleFor(a => a.CandidateEmail, (f, a) => f.Internet.Email(a.CandidateName))
-            .RuleFor(a => a.CandidatePhone, f => f.Phone.PhoneNumber())
             .RuleFor(a => a.ResumePath, f => "/storage/resumes/fake-resume.pdf")
             .RuleFor(a => a.Status, f => f.PickRandom<ApplicationStatus>())
             .RuleFor(a => a.AppliedAt, f => f.Date.Recent(60).ToUniversalTime())
@@ -24,14 +29,18 @@ public static class ApplicationSeeder
 
         foreach (var job in jobPostings)
         {
-            var jobApps = appFaker.Generate(countPerJob);
-            foreach (var app in jobApps)
+            for (int i = 0; i < countPerJob; i++)
             {
+                var candidate = candidateFaker.Generate();
+                candidates.Add(candidate);
+
+                var app = appFaker.Generate();
                 app.JobPostingId = job.Id;
+                app.CandidateId = candidate.Id;
+                applications.Add(app);
             }
-            applications.AddRange(jobApps);
         }
 
-        return applications;
+        return (candidates, applications);
     }
 }

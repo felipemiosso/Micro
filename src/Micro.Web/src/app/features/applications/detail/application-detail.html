@@ -1,133 +1,95 @@
 <div class="detail-container">
   @if (loading()) {
-    <div class="loading">Loading candidate details...</div>
-  } @else if (application(); as app) {
+    <div class="flex flex-col items-center justify-center py-20 text-slate-400 font-bold uppercase tracking-widest text-sm gap-4">
+      <div class="w-8 h-8 border-4 border-honeycomb-200 border-t-honeycomb-500 rounded-full animate-spin"></div>
+      Loading candidate profile...
+    </div>
+  } @else if (candidate(); as c) {
     <header class="detail-header">
       <div class="header-main">
         <a routerLink="/admin/candidates" class="flex items-center gap-1 text-honeycomb-600 hover:text-honeycomb-700 font-bold text-xs uppercase tracking-widest no-underline mb-4">
           <mat-icon class="!text-[18px] !w-[18px] !h-[18px]">arrow_back</mat-icon>
           Back to Candidates
         </a>
-        <h1>{{ app.candidateName }}</h1>
-        <p class="subtitle">{{ app.jobTitle }} • Applied {{ app.appliedAt | date:'mediumDate' }}</p>
-      </div>
-      <div class="header-actions">
-        <button (click)="downloadResume()" class="btn btn-secondary flex items-center gap-2">
-          <mat-icon>download</mat-icon>
-          Download Resume
-        </button>
+        <div class="flex items-center gap-3 mb-1">
+          <span class="bg-slate-100 text-slate-600 text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-tighter border border-slate-200">Candidate Profile</span>
+          <span class="text-slate-400 text-xs font-medium">Since {{ c.createdAt | date:'mediumDate' }}</span>
+        </div>
+        <h1>{{ c.fullName }}</h1>
+        <p class="subtitle">{{ c.email }} • {{ c.phone || 'No phone provided' }}</p>
       </div>
     </header>
 
-    <div class="detail-grid">
-      <aside class="sidebar">
-        <section class="info-section">
-          <h3 class="flex items-center gap-2">
-            <mat-icon class="!text-[18px] !w-[18px] !h-[18px]">contact_mail</mat-icon>
-            Contact Information
-          </h3>
-          <p class="info-row"><strong>Email:</strong> <span class="truncate-text" [title]="app.candidateEmail">{{ app.candidateEmail }}</span></p>
-          <p class="info-row"><strong>Phone:</strong> {{ app.candidatePhone || 'Not provided' }}</p>
-        </section>
+    <div class="space-y-8">
+      <section class="applications-history">
+        <h2 class="flex items-center gap-2 text-xl font-bold text-ink mb-6">
+          <mat-icon class="text-honeycomb-500">assignment</mat-icon>
+          Applications History
+        </h2>
 
-        <section class="stage-section">
-          <h3 class="flex items-center gap-2">
-            <mat-icon class="!text-[18px] !w-[18px] !h-[18px]">trending_up</mat-icon>
-            Hiring Stage
-          </h3>
-          <div class="current-status status-{{ app.status }}">
-            {{ getStatusLabel(app.status) }}
-            @if (app.status === ApplicationStatus.Archive) {
-              : {{ getResolutionLabel(app.archivalResolution) }}
-            }
-          </div>
-          
-          <div class="status-buttons flex flex-wrap gap-2">
-            <button (click)="updateStatus(ApplicationStatus.Applied)" [disabled]="app.status === ApplicationStatus.Applied" class="btn flex items-center gap-2">
-              <mat-icon class="!text-[16px] !w-[16px] !h-[16px]">how_to_reg</mat-icon>
-              Applied
-            </button>
-            <button (click)="updateStatus(ApplicationStatus.Interview)" [disabled]="app.status === ApplicationStatus.Interview" class="btn flex items-center gap-2">
-              <mat-icon class="!text-[16px] !w-[16px] !h-[16px]">groups</mat-icon>
-              Interview
-            </button>
-            <button (click)="updateStatus(ApplicationStatus.Offer)" [disabled]="app.status === ApplicationStatus.Offer" class="btn flex items-center gap-2">
-              <mat-icon class="!text-[16px] !w-[16px] !h-[16px]">task_alt</mat-icon>
-              Offer
-            </button>
-            <button (click)="updateStatus(ApplicationStatus.Archive)" class="btn-archive flex items-center gap-2" [disabled]="app.status === ApplicationStatus.Archive">
-              <mat-icon class="!text-[16px] !w-[16px] !h-[16px]">archive</mat-icon>
-              Archive
-            </button>
-          </div>
-        </section>
-      </aside>
-
-      <main class="content">
-        <section class="feedback-section">
-          <h3 class="flex items-center gap-2">
-            <mat-icon class="!text-[18px] !w-[18px] !h-[18px]">rate_review</mat-icon>
-            Evaluation Feedback
-          </h3>
-          
-          <form (ngSubmit)="submitFeedback()" class="feedback-form">
-            <div class="form-group">
-              <label for="notes">Notes</label>
-              <textarea id="notes" [ngModel]="newNotes()" (ngModelChange)="newNotes.set($event)" name="notes" placeholder="Enter evaluation notes..." required></textarea>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="score">Score (1-5)</label>
-                <select id="score" [ngModel]="newScore()" (ngModelChange)="newScore.set($event)" name="score">
-                  <option value="1">1 - Poor</option>
-                  <option value="2">2 - Fair</option>
-                  <option value="3">3 - Good</option>
-                  <option value="4">4 - Very Good</option>
-                  <option value="5">5 - Excellent</option>
-                </select>
-              </div>
-              <button type="submit" class="btn btn-primary" [disabled]="!newNotes().trim() || submittingFeedback()">
-                {{ submittingFeedback() ? 'Saving...' : 'Add Feedback' }}
-              </button>
-            </div>
-          </form>
-
-          <div class="feedback-list">
-            @for (f of app.feedbacks; track f.id) {
-              <div class="feedback-item">
-                <div class="feedback-header">
-                  <span class="score-badge">★ {{ f.score }}</span>
-                  <span class="date">{{ f.createdAt | date:'short' }}</span>
+        <div class="space-y-4">
+          @for (app of c.applications; track app.id) {
+            <div class="card-honeycomb !p-0 overflow-hidden">
+              <!-- Application Header -->
+              <div class="bg-surface-alt px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                <div>
+                  <div class="text-sm font-bold text-ink">{{ app.jobTitle }}</div>
+                  <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Applied on {{ app.appliedAt | date:'mediumDate' }}</div>
                 </div>
-                <p class="notes">{{ f.notes }}</p>
+                <div class="flex items-center gap-4">
+                  <span class="badge-status" 
+                    [class.bg-amber-100]="app.status === ApplicationStatus.Applied"
+                    [class.text-amber-800]="app.status === ApplicationStatus.Applied"
+                    [class.bg-blue-100]="app.status === ApplicationStatus.Interview"
+                    [class.text-blue-800]="app.status === ApplicationStatus.Interview"
+                    [class.bg-green-100]="app.status === ApplicationStatus.Offer"
+                    [class.text-green-800]="app.status === ApplicationStatus.Offer"
+                    [class.bg-slate-100]="app.status === ApplicationStatus.Archive"
+                    [class.text-slate-600]="app.status === ApplicationStatus.Archive">
+                    {{ getStatusLabel(app.status) }}
+                    @if (app.status === ApplicationStatus.Archive) {
+                      : {{ getResolutionLabel(app.archivalResolution) }}
+                    }
+                  </span>
+                  <button (click)="downloadResume(app.id, c.fullName)" class="btn-secondary !py-1 !px-3 text-xs flex items-center gap-1">
+                    <mat-icon class="!text-[14px] !w-[14px] !h-[14px]">download</mat-icon>
+                    Resume
+                  </button>
+                </div>
               </div>
-            } @empty {
-              <p class="empty-state">No feedback recorded yet.</p>
-            }
-          </div>
-        </section>
-      </main>
-    </div>
-  }
 
-  @if (showArchivalModal()) {
-    <div class="modal-overlay" (click)="showArchivalModal.set(false)">
-      <div class="modal" (click)="$event.stopPropagation()">
-        <h2>Archive Candidate</h2>
-        <p>Please select a resolution for this application:</p>
-        <div class="form-group">
-          <select [ngModel]="selectedResolution()" (ngModelChange)="selectedResolution.set($event)">
-            <option [ngValue]="ArchivalResolution.Hired">Hired</option>
-            <option [ngValue]="ArchivalResolution.Rejected">Rejected</option>
-            <option [ngValue]="ArchivalResolution.Declined">Declined</option>
-            <option [ngValue]="ArchivalResolution.Withdrawn">Withdrawn</option>
-          </select>
+              <!-- Feedback Section for this application -->
+              <div class="p-6">
+                <div class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <mat-icon class="!text-[16px] !w-[16px] !h-[16px]">rate_review</mat-icon>
+                  Application Feedback
+                </div>
+                
+                <div class="space-y-3">
+                  @for (f of app.feedbacks; track f.id) {
+                    <div class="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                      <div class="flex justify-between items-center mb-1">
+                        <span class="text-amber-600 font-bold text-xs">★ {{ f.score }} / 5</span>
+                        <span class="text-[10px] text-slate-400">{{ f.createdAt | date:'short' }}</span>
+                      </div>
+                      <p class="text-sm text-slate-600 italic">"{{ f.notes }}"</p>
+                    </div>
+                  } @empty {
+                    <div class="text-sm text-slate-400 text-center py-4 bg-slate-50/50 rounded-lg border border-dashed border-slate-200">
+                      No feedback recorded for this application.
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          } @empty {
+            <div class="text-center py-20 bg-white rounded-2xl border-2 border-dashed border-slate-200">
+              <mat-icon class="!w-12 !h-12 text-[48px] text-slate-200 mb-4">history_edu</mat-icon>
+              <div class="text-slate-400 font-bold">No applications found for this candidate.</div>
+            </div>
+          }
         </div>
-        <div class="modal-actions">
-          <button (click)="showArchivalModal.set(false)" class="btn btn-secondary">Cancel</button>
-          <button (click)="confirmArchive()" class="btn btn-primary">Archive</button>
-        </div>
-      </div>
+      </section>
     </div>
   }
 </div>

@@ -39,8 +39,9 @@ public static class DbInitializer
         dbContext.JobPostings.AddRange(jobPostings);
         await dbContext.SaveChangesAsync();
 
-        // 3. Seed Applications
-        var applications = ApplicationSeeder.Generate(jobPostings, 10);
+        // 3. Seed Candidates and Applications
+        var (candidates, applications) = ApplicationSeeder.Generate(jobPostings, 10);
+        dbContext.Candidates.AddRange(candidates);
         dbContext.Applications.AddRange(applications);
         await dbContext.SaveChangesAsync();
 
