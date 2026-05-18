@@ -13,15 +13,32 @@ stop_port() {
     local pid=$(netstat -ano | grep LISTENING | grep ":$port " | awk '{print $5}' | head -n 1)
     if [ ! -z "$pid" ]; then
       echo "Stopping process on port $port (PID: $pid)..."
-      taskkill //F //PID $pid
+      taskkill //F //PID $pid 2>/dev/null
     fi
   else
     local pid=$(lsof -t -i:$port)
     if [ ! -z "$pid" ]; then
       echo "Stopping process on port $port (PID: $pid)..."
-      kill -9 $pid
+      kill -9 $pid 2>/dev/null
     fi
   fi
+}
+
+# Optimized wait function
+wait_for_url() {
+  local url=$1
+  local name=$2
+  local timeout=${3:-60}
+  echo "Waiting for $name at $url..."
+  for i in $(seq 1 $timeout); do
+    if curl -s "$url" > /dev/null; then
+      echo "$name is ready."
+      return 0
+    fi
+    sleep 1
+  done
+  echo "$name timed out."
+  return 1
 }
 
 # Firebase Emulator
@@ -30,7 +47,7 @@ start_firebase() {
   stop_port $FIREBASE_PORT
   firebase emulators:start --only auth --project demo-micro-ats &
   FIREBASE_PID=$!
-  sleep 5
+  wait_for_url "http://localhost:$FIREBASE_PORT" "Firebase" 15
 }
 
 stop_firebase() {
@@ -48,19 +65,14 @@ cleanup_e2e() {
   stop_firebase
 }
 
-# Unit Tests (Angular + .NET if any)
+# Unit Tests
 run_unit() {
   echo "Running Unit Tests..."
-  # Frontend Unit Tests (using Vitest as seen in package.json)
   echo "--- Frontend Unit Tests ---"
   cmd //c "npm.cmd test --prefix src/Micro.Web -- --run"
-  
-  # Backend Unit Tests (Currently none separated from integration, but placeholder)
-  echo "--- Backend Unit Tests ---"
-  echo "No dedicated backend unit test project found."
 }
 
-# Integration Tests (.NET Endpoints)
+# Integration Tests
 run_integration() {
   local test_filter=$1
   echo "Running Integration Tests..."
@@ -75,44 +87,28 @@ run_integration() {
   return $exit_code
 }
 
-# E2E Tests (Playwright)
+# E2E Tests
 run_e2e() {
   local test_filter=$1
   echo "Preparing E2E Environment..."
   stop_port $API_PORT
   stop_port $WEB_PORT
+  
   start_firebase
 
-  echo "Starting Backend (Micro.API)..."
+  echo "Starting Services..."
+  # Start Backend
   export ASPNETCORE_ENVIRONMENT=Testing
   dotnet run --project src/Micro.API --urls=http://localhost:$API_PORT --no-launch-profile --environment Testing &
   API_PID=$!
 
-  echo "Starting Frontend (Micro.Web)..."
+  # Start Frontend (Dev server handles proxying)
   cmd //c "npm.cmd start --prefix src/Micro.Web -- --port $WEB_PORT" &
   WEB_PID=$!
 
-  echo "Waiting for Backend (Health Check)..."
-  sleep 10
-  for i in {1..30}; do
-    if curl -s http://localhost:$API_PORT/health > /dev/null; then
-      echo "Backend is alive."
-      break
-    fi
-    echo "Retrying backend check ($i/30)..."
-    sleep 2
-  done
-
-  echo "Waiting for Frontend..."
-  sleep 15
-  for i in {1..30}; do
-    if curl -s http://localhost:$WEB_PORT > /dev/null; then
-      echo "Frontend is ready."
-      break
-    fi
-    echo "Retrying frontend check ($i/30)..."
-    sleep 2
-  done
+  # Parallel Wait
+  wait_for_url "http://localhost:$API_PORT/health" "API" 45 || { cleanup_e2e; return 1; }
+  wait_for_url "http://localhost:$WEB_PORT" "Web" 60 || { cleanup_e2e; return 1; }
 
   echo "Running E2E tests..."
   if [ -n "$test_filter" ]; then
