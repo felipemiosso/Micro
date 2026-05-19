@@ -1,31 +1,39 @@
-<div class="job-detail-container">
-  @if (job(); as data) {
-    <header class="job-header">
-      <a routerLink="/jobs" class="back-link">← Back to Openings</a>
-      <h1>{{ data.title }}</h1>
-      <div class="job-meta">
-        <span class="meta-item">{{ data.department }}</span>
-        <span class="meta-separator">•</span>
-        <span class="meta-item">Posted {{ data.createdAt | date:'longDate' }}</span>
+<div class="min-h-screen bg-hex-pattern py-20 px-6 flex justify-center items-start">
+  <div class="w-full max-w-4xl bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden">
+    @if (job(); as data) {
+      <div class="bg-ink-dark px-10 py-12 text-white relative">
+        <a routerLink="/jobs" class="text-honeycomb-400 hover:text-honeycomb-300 transition-colors text-xs font-bold uppercase tracking-widest no-underline flex items-center gap-2 mb-6">
+          <span>←</span> Back to Openings
+        </a>
+        <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-4">{{ data.title }}</h1>
+        <div class="flex items-center gap-3">
+          <span class="bg-white/10 text-white px-3 py-1 rounded-md text-xs font-bold uppercase tracking-widest">{{ data.department }}</span>
+          <span class="text-slate-400 text-sm font-medium">Posted {{ data.createdAt | date:'mediumDate' }}</span>
+        </div>
       </div>
-    </header>
 
-    <div class="job-content">
-      <section class="job-section">
-        <h2>About the Role</h2>
-        <div class="formatted-text">{{ data.description }}</div>
-      </section>
+      <div class="p-10 md:p-12 flex flex-col gap-10">
+        <section>
+          <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">About the Role</h2>
+          <div class="text-slate-600 leading-relaxed whitespace-pre-wrap">{{ data.description }}</div>
+        </section>
 
-      <section class="job-section">
-        <h2>Requirements</h2>
-        <div class="formatted-text">{{ data.requirements }}</div>
-      </section>
+        <section>
+          <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Requirements</h2>
+          <div class="text-slate-600 leading-relaxed whitespace-pre-wrap">{{ data.requirements }}</div>
+        </section>
 
-      <div class="apply-action">
-        <a [routerLink]="['/jobs', data.id, 'apply']" class="btn btn-primary btn-large">Apply Now</a>
+        <div class="pt-8 border-t border-slate-100 flex justify-center">
+          <a [routerLink]="['/jobs', data.id, 'apply']" class="btn-primary py-4 px-12 text-lg shadow-lg shadow-honeycomb-500/30 hover:shadow-honeycomb-500/50 transition-shadow no-underline">
+            Apply Now
+          </a>
+        </div>
       </div>
-    </div>
-  } @else {
-    <div class="loading">Loading job details...</div>
-  }
+    } @else {
+      <div class="p-32 flex flex-col items-center justify-center gap-4">
+        <div class="w-12 h-12 border-4 border-honeycomb-200 border-t-honeycomb-500 rounded-full animate-spin"></div>
+        <div class="text-slate-400 font-bold uppercase tracking-widest text-sm">Loading position...</div>
+      </div>
+    }
+  </div>
 </div>

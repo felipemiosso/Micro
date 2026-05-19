@@ -39,8 +39,10 @@
           <div class="relative">
             <input type="file" id="resume" (change)="onFileChange($event)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" accept=".pdf">
             <div class="input-honeycomb flex items-center justify-between pointer-events-none">
-              <span class="text-slate-400 italic">Select your resume file...</span>
-              <span class="bg-slate-100 px-3 py-1 rounded text-[10px] font-bold text-slate-500 uppercase">Browse</span>
+              <span class="text-slate-400 italic truncate pr-4">
+                {{ applyForm.get('resume')?.value?.name || 'Select your resume file...' }}
+              </span>
+              <span class="bg-slate-100 px-3 py-1 rounded text-[10px] font-bold text-slate-500 uppercase shrink-0">Browse</span>
             </div>
           </div>
           <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Max file size: 5MB</p>
