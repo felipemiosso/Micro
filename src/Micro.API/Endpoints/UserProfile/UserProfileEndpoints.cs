@@ -52,6 +52,12 @@ public static class UserProfileEndpoints
             user.Email = authUser.Email;
             user.FullName = authUser.Name ?? user.FullName;
             user.PhotoUrl = authUser.PhotoUrl ?? user.PhotoUrl;
+            
+            // Clear pending invite flag upon successful login/sync
+            if (user.IsInvitePending)
+            {
+                user.IsInvitePending = false;
+            }
         }
 
         try 

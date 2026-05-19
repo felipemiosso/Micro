@@ -92,6 +92,11 @@ export const routes: Routes = [
         path: 'roles/new',
         canActivate: [permissionGuard('Role', 'Create')],
         loadComponent: () => import('./features/roles/form/role-editor').then(m => m.RoleEditorComponent)
+      },
+      {
+        path: 'users',
+        canActivate: [permissionGuard('User', 'View')],
+        loadComponent: () => import('./features/users/list/user-list').then(m => m.UserListComponent)
       }
     ]
   }

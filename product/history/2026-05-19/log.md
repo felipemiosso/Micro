@@ -25,3 +25,30 @@
 **User:** Now we need to fix all broken e2e. Run them one by one.
 **Gemini:** Running and fixing all E2E tests to ensure system stability after UI/logic changes. [Tool calls to run_shell_command testing script, fix RequisitionTests.cs, JobPostingTests.cs, ApplicationTests.cs]
 **Gemini:** All E2E tests passed. Verification complete. Ready.
+**User:** lets write our next feature. We need a way to invite people and assign roles to new users.
+**Gemini:** Planning User Invitations. [Tool calls to list_directory, read_file User.cs, Role.cs, write business.md, acceptance.md, backend.md, frontend.md]
+**Gemini:** Spec written in product/014-user-invitations/. Backend: Invitation entity, Endpoints. Frontend: Users dashboard, Modals. Proceed with implementation?
+**User:** firebase can send emails for free?
+**Gemini:** Firebase Auth send standard emails for free. Options: 1. Custom Token. 2. Firebase Built-in (Password Reset). Which path?
+**User:** lets go with option 2. Just out of curiosity, in the future, if we remove email/password and move to sso, what this email look like?
+**Gemini:** Explain SSO flow. For now, Option 2 chosen. I will update spec and implement. Ready?
+**User:** ready
+**Gemini:** Implementing User Invitations. [Tool calls to update specs, User.cs, UserEndpoints.cs, UserProfileEndpoints.cs, user.service.ts, user-list.ts, invite-user.ts, edit-roles.ts, app.routes.ts, app.html]
+**Gemini:** Implementation for Spec 014 is complete. Backend uses Firebase Admin SDK. Frontend has dashboard and modals.
+**User:** did you create tests for this spec?
+**Gemini:** Testing User Invitations. [Tool calls to write UserManagementTests.cs, run e2e script]
+**Gemini:** Yes! I created tests specifically for this new specification. All E2E tests passed successfully!
+**User:** move the actions of user table (edit and remove roles) to the table instead of having the 3 dots buttom to open a modal.
+**Gemini:** Flatten User Actions in Table. [Tool calls to update user-list.ts and UserManagementTests.cs]
+**Gemini:** The more_vert dropdown menu has been completely removed. Actions are now directly embedded in the table row. E2E tests passed.
+**User:** I found a small improvement to make. I want you to streamline the header of all tables. Use requisition as the reference. Size, font and styles, also, actions id "floated:right".
+**Gemini:** Standardize Table Headers. [Tool calls to update user-list.ts, role-list.ts]
+**Gemini:** Table headers have been successfully streamlined!
+**User:** the actions column text is not in the most right of the table for jobs and candidate page, also, table from candidate page has a margin-top?
+**Gemini:** Fixed Table Formatting Issues. [Tool calls to read CSS files and clear outdated generic table styles]
+**Gemini:** Found legacy CSS overriding Tailwind. Cleared them. All tables unified.
+**User:** for the user able, im only able to see menu icon when I hover over the table row.
+**Gemini:** [Tool calls to remove opacity-0 group-hover:opacity-100]
+**Gemini:** Removed the hover dependency. Icons are visible all the time now.
+**User:** use the X instead of trash icon to remove/delete users
+**Gemini:** [Tool calls to change delete_outline to close, write log.md]

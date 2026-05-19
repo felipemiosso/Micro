@@ -26,9 +26,9 @@ import { MatTooltipModule } from '@angular/material/tooltip';
         <table class="w-full text-left border-collapse role-table">
           <thead>
             <tr class="bg-surface-alt border-b border-slate-100">
-              <th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Role Name</th>
-              <th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Permissions</th>
-              <th class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Actions</th>
+              <th class="px-6 py-4 text-xs font-bold text-ink uppercase tracking-widest">Role Name</th>
+              <th class="px-6 py-4 text-xs font-bold text-ink uppercase tracking-widest">Permissions</th>
+              <th class="px-6 py-4 text-xs font-bold text-ink uppercase tracking-widest text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
