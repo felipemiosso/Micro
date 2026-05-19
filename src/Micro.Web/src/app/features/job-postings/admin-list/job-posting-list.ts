@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { JobPostingService, JobPosting, JobPostingStatus } from '../job-posting.service';
+import { AuthService } from '../../../core/auth/auth';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -15,6 +16,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 })
 export class JobPostingListComponent implements OnInit {
   private jobPostingService = inject(JobPostingService);
+  authService = inject(AuthService);
+  
   jobPostings = signal<JobPosting[]>([]);
   Status = JobPostingStatus;
 

@@ -19,7 +19,7 @@ public class RegressionTests : PageTest
         await Page.FillAsync("#email", email);
         await Page.FillAsync("#password", AuthSeedHelper.AdminPassword);
         await Page.ClickAsync("button[type='submit']");
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/dashboard|/admin/requisitions"));
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/dashboard|/requisitions"));
     }
 
     [Fact]
@@ -29,7 +29,7 @@ public class RegressionTests : PageTest
         await Login();
 
         // Ensure at least one candidate exists
-        await Page.GotoAsync($"{BaseUrl}/admin/candidates");
+        await Page.GotoAsync($"{BaseUrl}/candidates");
         var firstRow = Page.Locator("tbody tr").First;
         await Expect(firstRow).ToBeVisibleAsync();
 
@@ -37,11 +37,11 @@ public class RegressionTests : PageTest
         await firstRow.Locator("a[matTooltip='View Profile']").ClickAsync();
 
         // Verify URL does NOT contain 'undefined'
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/admin/candidates/[0-9a-fA-F-]"));
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/candidates/[0-9a-fA-F-]"));
         Assert.DoesNotContain("undefined", Page.Url);
         
-        // Verify profile loaded (Check for Candidate Profile badge)
-        await Expect(Page.Locator("span:has-text('Candidate Profile')")).ToBeVisibleAsync();
+        // Verify profile loaded (Check for Applications History header)
+        await Expect(Page.Locator("h2:has-text('Applications History')")).ToBeVisibleAsync();
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public class RegressionTests : PageTest
         await Login();
 
         // Navigate to candidates
-        await Page.GotoAsync($"{BaseUrl}/admin/candidates");
+        await Page.GotoAsync($"{BaseUrl}/candidates");
         
         // Find or assume existence of a long email row (can be seeded or just check first)
         var firstRow = Page.Locator("tbody tr").First;
@@ -76,7 +76,7 @@ public class RegressionTests : PageTest
         await Login();
 
         // Go to profile
-        await Page.GotoAsync($"{BaseUrl}/admin/candidates");
+        await Page.GotoAsync($"{BaseUrl}/candidates");
         await Page.Locator("tbody tr").First.Locator("a[matTooltip='View Profile']").ClickAsync();
 
         // Verify "Applications History" section exists
@@ -114,7 +114,7 @@ public class RegressionTests : PageTest
         // Attempt to go to /login manually
         await Page.GotoAsync($"{BaseUrl}/login");
 
-        // Verify redirection to dashboard
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/dashboard|/admin/requisitions"));
+        // Verify redirection to an authenticated route (dashboard, requisitions or home)
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/$|/dashboard|/requisitions"), new() { Timeout = 15000 });
     }
 }

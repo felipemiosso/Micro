@@ -18,9 +18,9 @@ export class JobDetailComponent implements OnInit {
   ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
-      this.jobPostingService.getJobById(id).subscribe({
-        next: (data) => this.job.set(data),
-        error: (err) => console.error('Failed to load job details', err)
+      this.jobPostingService.getJobDetail(id).subscribe({
+        next: (data: PublicJobDetailResponse) => this.job.set(data),
+        error: (err: any) => console.error('Failed to load job details', err)
       });
     }
   }

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Micro.API.Infrastructure.Auth;
@@ -30,7 +31,7 @@ public static class AuthExtensions
             });
         }
         else
-                    {
+        {
             authBuilder.AddJwtBearer(options =>
             {
                 options.Authority = $"https://securetoken.google.com/{projectId}";
@@ -50,5 +51,9 @@ public static class AuthExtensions
         {
             options.FallbackPolicy = options.DefaultPolicy;
         });
+
+        // Dynamic Permission-based Authorization
+        services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+        services.AddScoped<IAuthorizationHandler, PermissionHandler>();
     }
 }

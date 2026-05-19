@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { RequisitionService, Requisition, RequisitionStatus } from '../requisition.service';
+import { AuthService } from '../../../core/auth/auth';
 import { NotificationService } from '../../../core/ui/notification.service';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -17,6 +18,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 export class RequisitionListComponent implements OnInit {
   private requisitionService = inject(RequisitionService);
   private notification = inject(NotificationService);
+  authService = inject(AuthService);
+  
   requisitions = signal<Requisition[]>([]);
   Status = RequisitionStatus;
 
@@ -27,7 +30,6 @@ export class RequisitionListComponent implements OnInit {
   loadRequisitions() {
     this.requisitionService.getAll().subscribe({
       next: (data) => {
-        console.log('Requisitions loaded:', data);
         this.requisitions.set(data);
       },
       error: (err) => {

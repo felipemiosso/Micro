@@ -11,29 +11,34 @@ public static class RequisitionEndpoints
     {
         var group = app.MapGroup("/api/requisitions");
 
-        group.MapGet("/", GetRequisitions);
-        group.MapGet("/{id:guid}", GetRequisition);
-        group.MapPost("/", CreateRequisition);
-        group.MapPut("/{id:guid}", UpdateRequisition);
-        group.MapPost("/{id:guid}/finalize", FinalizeRequisition);
-        group.MapPost("/{id:guid}/close", CloseRequisition);
+        group.MapGet("/", GetRequisitions).RequireAuthorization("Requisition:View");
+        group.MapGet("/{id:guid}", GetRequisition).RequireAuthorization("Requisition:View");
+        group.MapPost("/", CreateRequisition).RequireAuthorization("Requisition:Create");
+        group.MapPut("/{id:guid}", UpdateRequisition).RequireAuthorization("Requisition:Edit");
+        group.MapPost("/{id:guid}/finalize", FinalizeRequisition).RequireAuthorization("Requisition:Finalize");
+        group.MapPost("/{id:guid}/close", CloseRequisition).RequireAuthorization("Requisition:Close");
     }
 
+    [ResourceAction("Requisition", "View", "List all requisitions")]
     private static async Task<IResult> GetRequisitions(MicroDbContext db)
     {
-        var requisitions = await db.Requisitions.ToListAsync();
+        var requisitions = await db.Requisitions
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync();
         return Results.Ok(requisitions);
     }
 
+    [ResourceAction("Requisition", "View", "View requisition details")]
     private static async Task<IResult> GetRequisition(Guid id, MicroDbContext db)
     {
         var requisition = await db.Requisitions.FindAsync(id);
         return requisition is null ? Results.NotFound() : Results.Ok(requisition);
     }
 
+    [ResourceAction("Requisition", "Create", "Create a new requisition")]
     private static async Task<IResult> CreateRequisition(CreateRequisitionRequest request, MicroDbContext db, AuthUser authUser)
     {
-        var requisition = new Micro.API.Data.Models.Requisition
+        var requisition = new Data.Models.Requisition
         {
             Id = Guid.NewGuid(),
             Title = request.Title,
@@ -50,11 +55,12 @@ public static class RequisitionEndpoints
         return Results.Created($"/api/requisitions/{requisition.Id}", requisition);
     }
 
+    [ResourceAction("Requisition", "Edit", "Update draft requisition")]
     private static async Task<IResult> UpdateRequisition(Guid id, UpdateRequisitionRequest request, MicroDbContext db)
     {
         var requisition = await db.Requisitions.FindAsync(id);
-        if (requisition == null) return Results.NotFound();
-        if (requisition.Status != RequisitionStatus.Draft) return Results.BadRequest("Only draft requisitions can be edited.");
+        if (requisition is null) return Results.NotFound();
+        if (requisition.Status != RequisitionStatus.Draft) return Results.BadRequest("Only draft requisitions can be updated.");
 
         requisition.Title = request.Title;
         requisition.Department = request.Department;
@@ -64,44 +70,44 @@ public static class RequisitionEndpoints
         return Results.NoContent();
     }
 
+    [ResourceAction("Requisition", "Finalize", "Finalize requisition and publish job")]
     private static async Task<IResult> FinalizeRequisition(Guid id, MicroDbContext db)
     {
         var requisition = await db.Requisitions.FindAsync(id);
-        if (requisition == null) return Results.NotFound();
+        if (requisition is null) return Results.NotFound();
         if (requisition.Status != RequisitionStatus.Draft) return Results.BadRequest("Only draft requisitions can be finalized.");
 
         requisition.Status = RequisitionStatus.Finalized;
         requisition.FinalizedAt = DateTime.UtcNow;
 
         // Automatically create a Job Posting
-        var existingPosting = await db.JobPostings.FirstOrDefaultAsync(jp => jp.RequisitionId == id);
-        if (existingPosting == null)
+        var jobPosting = new Data.Models.JobPosting
         {
-            db.JobPostings.Add(new Micro.API.Data.Models.JobPosting
-            {
-                Id = Guid.NewGuid(),
-                RequisitionId = id,
-                Title = requisition.Title,
-                Description = $"We are looking for a {requisition.Title} for our {requisition.Department} department.",
-                Status = JobPostingStatus.Published,
-                CreatedAt = DateTime.UtcNow
-            });
-        }
+            Id = Guid.NewGuid(),
+            RequisitionId = requisition.Id,
+            Title = requisition.Title,
+            Description = $"Open position for {requisition.Title} in {requisition.Department} department.",
+            Requirements = "Requirements to be defined.",
+            Status = JobPostingStatus.Published,
+            CreatedAt = DateTime.UtcNow
+        };
 
+        db.JobPostings.Add(jobPosting);
         await db.SaveChangesAsync();
+
         return Results.NoContent();
     }
 
+    [ResourceAction("Requisition", "Close", "Close requisition and job posting")]
     private static async Task<IResult> CloseRequisition(Guid id, MicroDbContext db)
     {
         var requisition = await db.Requisitions.FindAsync(id);
-        if (requisition == null) return Results.NotFound();
-        
+        if (requisition is null) return Results.NotFound();
+
         requisition.Status = RequisitionStatus.Closed;
         requisition.ClosedAt = DateTime.UtcNow;
 
-        // Automatically close the associated Job Posting
-        var posting = await db.JobPostings.FirstOrDefaultAsync(jp => jp.RequisitionId == id);
+        var posting = await db.JobPostings.FirstOrDefaultAsync(p => p.RequisitionId == id);
         if (posting != null && posting.Status == JobPostingStatus.Published)
         {
             posting.Status = JobPostingStatus.Closed;

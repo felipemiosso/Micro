@@ -34,9 +34,9 @@ export class ApplyComponent implements OnInit {
   ngOnInit() {
     this.jobId = this.route.snapshot.paramMap.get('id');
     if (this.jobId) {
-      this.jobPostingService.getJobById(this.jobId).subscribe({
-        next: (data) => this.job.set(data),
-        error: (err) => {
+      this.jobPostingService.getJobDetail(this.jobId).subscribe({
+        next: (data: PublicJobDetailResponse) => this.job.set(data),
+        error: (err: any) => {
           this.errorMessage.set('Job not found or no longer accepting applications.');
           console.error(err);
         }
@@ -80,7 +80,7 @@ export class ApplyComponent implements OnInit {
       next: () => {
         this.router.navigate(['/jobs/apply/success']);
       },
-      error: (err) => {
+      error: (err: any) => {
         this.submitting.set(false);
         if (err.status === 409) {
           this.errorMessage.set('You have already applied for this position.');

@@ -37,13 +37,13 @@ export class JobPostingEditComponent implements OnInit {
             this.form.patchValue(job);
           } else {
             this.notification.error('Job posting not found.');
-            this.router.navigate(['/admin/jobs']);
+            this.router.navigate(['/job-management']);
           }
         },
         error: (err) => {
           console.error('Failed to load job postings', err);
           this.notification.error('Failed to load job posting details.');
-          this.router.navigate(['/admin/jobs']);
+          this.router.navigate(['/job-management']);
         }
       });
     }
@@ -59,7 +59,7 @@ export class JobPostingEditComponent implements OnInit {
     this.jobPostingService.updateJob(this.jobId!, data as any).subscribe({
       next: () => {
         this.notification.success('Job posting updated successfully.');
-        this.router.navigate(['/admin/jobs']);
+        this.router.navigate(['/job-management']);
       },
       error: (err) => {
         console.error('Failed to save job posting', err);

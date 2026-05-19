@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApplicationService, Application, ApplicationStatus } from '../application.service';
+import { AuthService } from '../../../core/auth/auth';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -18,6 +19,7 @@ export class ApplicationListComponent implements OnInit {
 
   private applicationService = inject(ApplicationService);
   private route = inject(ActivatedRoute);
+  authService = inject(AuthService);
 
   applications = signal<Application[]>([]);
   jobPostingId = signal<string | null>(null);

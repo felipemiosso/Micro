@@ -20,10 +20,10 @@ public class ApplicationTests : PageTest
         await Page.FillAsync("#email", email);
         await Page.FillAsync("#password", AuthSeedHelper.AdminPassword);
         await Page.ClickAsync("button[type='submit']");
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/dashboard|/admin/requisitions"));
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/dashboard|/requisitions"));
 
         // Create Requisition
-        await Page.GotoAsync($"{BaseUrl}/admin/requisitions/new");
+        await Page.GotoAsync($"{BaseUrl}/requisitions/new");
         await Page.FillAsync("#title", title);
         await Page.FillAsync("#department", "QA");
         await Page.FillAsync("#openings", "1");
@@ -110,10 +110,10 @@ public class ApplicationTests : PageTest
         await Page.FillAsync("#email", email);
         await Page.FillAsync("#password", AuthSeedHelper.AdminPassword);
         await Page.ClickAsync("button[type='submit']");
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/dashboard|/admin/requisitions"));
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/dashboard|/requisitions"));
 
         // Go to candidates list
-        await Page.GotoAsync($"{BaseUrl}/admin/candidates");
+        await Page.GotoAsync($"{BaseUrl}/candidates");
         
         // Search
         await Page.FillAsync("#searchQuery", candidateName);
@@ -151,10 +151,10 @@ public class ApplicationTests : PageTest
         await Page.FillAsync("#email", email);
         await Page.FillAsync("#password", AuthSeedHelper.AdminPassword);
         await Page.ClickAsync("button[type='submit']");
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/dashboard|/admin/requisitions"));
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/dashboard|/requisitions"));
 
         // Navigate to detail
-        await Page.GotoAsync($"{BaseUrl}/admin/candidates");
+        await Page.GotoAsync($"{BaseUrl}/candidates");
         await Page.FillAsync("#searchQuery", candidateName);
         await Page.ClickAsync("button:has-text('Search')");
         
@@ -203,11 +203,11 @@ public class ApplicationTests : PageTest
         await Page.FillAsync("#email", email);
         await Page.FillAsync("#password", AuthSeedHelper.AdminPassword);
         await Page.ClickAsync("button[type='submit']");
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/dashboard|/admin/requisitions"));
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/dashboard|/requisitions"));
 
         // Navigate to Applications
         await Page.ClickAsync("a:has-text('Applications')");
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/admin/applications"));
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/applications"));
 
         // Find candidate in Applied lane
         var appliedLane = Page.Locator("#appliedList");
@@ -216,14 +216,14 @@ public class ApplicationTests : PageTest
 
         // Move via Detail Page (Workaround for flaky drag-and-drop in E2E)
         await candidateCard.Locator("a:has-text('Profile')").ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/admin/candidates/"));
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/candidates/"));
         
         await Page.ClickAsync("button:has-text('Move to Interview')");
         await Expect(Page.Locator(".current-status")).ToContainTextAsync("Interview");
 
         // Go back to board
         await Page.ClickAsync("a:has-text('Applications')");
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/admin/applications"));
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/applications"));
 
         // Verify it moved (wait for UI to sync)
         await Expect(Page.Locator("#appliedList").Locator(".card").Filter(new() { HasText = candidateName })).ToHaveCountAsync(0);
@@ -257,11 +257,11 @@ public class ApplicationTests : PageTest
         await Page.FillAsync("#email", email);
         await Page.FillAsync("#password", AuthSeedHelper.AdminPassword);
         await Page.ClickAsync("button[type='submit']");
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/dashboard|/admin/requisitions"));
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/dashboard|/requisitions"));
 
         // Navigate to Applications
         await Page.ClickAsync("a:has-text('Applications')");
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/admin/applications"));
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/applications"));
 
         var appliedLane = Page.Locator("#appliedList");
         var candidateCard = appliedLane.Locator(".card").Filter(new() { HasText = candidateName });
@@ -269,7 +269,7 @@ public class ApplicationTests : PageTest
 
         // Move to Archive via Detail Page
         await candidateCard.Locator("a:has-text('Profile')").ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/admin/candidates/"));
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/candidates/"));
         
         await Page.ClickAsync("button:has-text('Archive Candidate')");
 
@@ -285,8 +285,8 @@ public class ApplicationTests : PageTest
         await Expect(Page.Locator(".current-status")).ToContainTextAsync("Archive");
 
         // Check archived board
-        await Page.GotoAsync($"{BaseUrl}/admin/applications/archived");
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/admin/applications/archived"));
+        await Page.GotoAsync($"{BaseUrl}/applications/archived");
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/applications/archived"));
 
         var hiredLane = Page.Locator(".lane").Filter(new() { HasText = "Hired" });
         await Expect(hiredLane.Locator(".card").Filter(new() { HasText = candidateName })).ToHaveCountAsync(1);

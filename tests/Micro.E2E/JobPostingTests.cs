@@ -17,7 +17,7 @@ public class JobPostingTests : PageTest
         await Page.FillAsync("#email", email);
         await Page.FillAsync("#password", AuthSeedHelper.AdminPassword);
         await Page.ClickAsync("button[type='submit']");
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/dashboard|/admin/requisitions"));
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/dashboard|/requisitions"));
     }
 
     [Fact]
@@ -27,7 +27,7 @@ public class JobPostingTests : PageTest
         string title = $"Job {Guid.NewGuid()}";
 
         // Create Requisition
-        await Page.GotoAsync($"{BaseUrl}/admin/requisitions/new");
+        await Page.GotoAsync($"{BaseUrl}/requisitions/new");
         await Page.FillAsync("#title", title);
         await Page.FillAsync("#department", "Engineering");
         await Page.FillAsync("#openings", "1");
@@ -40,7 +40,7 @@ public class JobPostingTests : PageTest
         Page.Dialog += HandleDialog;
         try 
         {
-            await reqRow.Locator(".action-btn.finalize:has-text('Publish')").ClickAsync();
+            await reqRow.Locator(".action-btn.finalize").ClickAsync();
         }
         finally
         {
@@ -48,7 +48,7 @@ public class JobPostingTests : PageTest
         }
 
         // Check Job Posting
-        await Page.GotoAsync($"{BaseUrl}/admin/jobs");
+        await Page.GotoAsync($"{BaseUrl}/job-management");
         var jobRow = Page.Locator(".job-table tbody tr").Filter(new() { HasText = title });
         await Expect(jobRow).ToBeVisibleAsync();
         await Expect(jobRow.Locator(".status-badge")).ToHaveTextAsync("Published");
@@ -67,7 +67,7 @@ public class JobPostingTests : PageTest
         string newDesc = "This is a new public description.";
 
         // Pre-requisite: Finalized Requisition
-        await Page.GotoAsync($"{BaseUrl}/admin/requisitions/new");
+        await Page.GotoAsync($"{BaseUrl}/requisitions/new");
         await Page.FillAsync("#title", title);
         await Page.FillAsync("#department", "Product");
         await Page.FillAsync("#openings", "1");
@@ -79,7 +79,7 @@ public class JobPostingTests : PageTest
         try { await reqRow.Locator(".action-btn.finalize").ClickAsync(); } finally { Page.Dialog -= HandleDialog; }
 
         // Edit Job Posting
-        await Page.GotoAsync($"{BaseUrl}/admin/jobs");
+        await Page.GotoAsync($"{BaseUrl}/job-management");
         var jobRow = Page.Locator(".job-table tbody tr").Filter(new() { HasText = title });
         await Expect(jobRow).ToBeVisibleAsync(); // Ensure row is loaded
         await jobRow.Locator(".action-link:has-text('Edit')").ClickAsync();
@@ -92,7 +92,7 @@ public class JobPostingTests : PageTest
         await Page.ClickAsync("button:has-text('Save Changes')");
 
         // Wait for redirect back to admin list
-        await Expect(Page).ToHaveURLAsync($"{BaseUrl}/admin/jobs");
+        await Expect(Page).ToHaveURLAsync($"{BaseUrl}/job-management");
 
         // Verify Publicly
         await Page.GotoAsync($"{BaseUrl}/jobs");
@@ -112,7 +112,7 @@ public class JobPostingTests : PageTest
         string title = $"Closable Job {Guid.NewGuid()}";
 
         // Pre-requisite: Published Job
-        await Page.GotoAsync($"{BaseUrl}/admin/requisitions/new");
+        await Page.GotoAsync($"{BaseUrl}/requisitions/new");
         await Page.FillAsync("#title", title);
         await Page.FillAsync("#department", "Sales");
         await Page.FillAsync("#openings", "1");
@@ -125,7 +125,7 @@ public class JobPostingTests : PageTest
         try { await reqRow.Locator(".action-btn.finalize").ClickAsync(); } finally { Page.Dialog -= HandleDialog; }
 
         // Close Job Posting
-        await Page.GotoAsync($"{BaseUrl}/admin/jobs");
+        await Page.GotoAsync($"{BaseUrl}/job-management");
         var jobRow = Page.Locator(".job-table tbody tr").Filter(new() { HasText = title });
         await Expect(jobRow).ToBeVisibleAsync(); // Wait for the job to appear in the list
 

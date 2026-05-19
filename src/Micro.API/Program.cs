@@ -4,6 +4,8 @@ using Micro.API.Endpoints.JobPosting;
 using Micro.API.Endpoints.Requisition;
 using Micro.API.Endpoints.UserProfile;
 using Micro.API.Endpoints.Candidate;
+using Micro.API.Endpoints.Role;
+using Micro.API.Endpoints.User;
 using Micro.API.Infrastructure.Auth;
 using Micro.API.Infrastructure.Database;
 using Micro.API.Infrastructure.Logging;
@@ -33,6 +35,8 @@ app.UseAuthorization();
 // Map endpoints
 app.MapUserProfileEndpoints();
 app.MapCandidateEndpoints();
+app.MapRoleEndpoints();
+app.MapUserEndpoints();
 app.MapHealthCheckEndpoints().AllowAnonymous();
 app.MapRequisitionEndpoints();
 app.MapJobPostingEndpoints();

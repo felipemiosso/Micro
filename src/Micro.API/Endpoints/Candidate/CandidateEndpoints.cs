@@ -1,4 +1,5 @@
 using Micro.API.Data;
+using Micro.API.Infrastructure.Auth;
 using Microsoft.EntityFrameworkCore;
 
 namespace Micro.API.Endpoints.Candidate;
@@ -7,11 +8,12 @@ public static class CandidateEndpoints
 {
     public static void MapCandidateEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/admin/candidates").RequireAuthorization();
+        var group = app.MapGroup("/api/candidates");
 
-        group.MapGet("/{id:guid}", GetCandidateDetail);
+        group.MapGet("/{id:guid}", GetCandidateDetail).RequireAuthorization("Candidate:View");
     }
 
+    [ResourceAction("Candidate", "View", "View candidate profile and application history")]
     private static async Task<IResult> GetCandidateDetail(Guid id, MicroDbContext db)
     {
         var candidate = await db.Candidates

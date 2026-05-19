@@ -6,4 +6,7 @@ public class User
     public string Email { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
     public string? PhotoUrl { get; set; }
+
+    // Many-to-many relationship
+    public ICollection<Role> Roles { get; set; } = new List<Role>();
 }

@@ -1,10 +1,10 @@
-import { Injectable, signal, inject } from '@angular/core';
+import { Injectable, signal, inject, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { tap, of, catchError, from, filter, take, firstValueFrom } from 'rxjs';
+import { tap, of, catchError, from } from 'rxjs';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, User, getIdToken, connectAuthEmulator } from 'firebase/auth';
 
-// Firebase configuration - Replace with your own config
+// Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyAsUYRSb6bz6MdMARNVS7YnEniiYzFGfT8",
   authDomain: "demo-micro-ats.firebaseapp.com",
@@ -28,6 +28,8 @@ export interface UserProfile {
   email: string;
   fullName: string;
   photoUrl: string | null;
+  roles: string[];
+  permissions: string[];
 }
 
 @Injectable({
@@ -40,11 +42,17 @@ export class AuthService {
   
   user = signal<UserProfile | null>(null);
   isAuthenticated = signal<boolean>(false);
-  isInitialized = signal<boolean>(false); // Track if Firebase auth state was resolved at least once
+  isInitialized = signal<boolean>(false); 
   private _token = signal<string | null>(localStorage.getItem(this.tokenKey));
 
+  isAdmin = computed(() => this.user()?.roles.includes('Admin') || false);
+
+  hasPermission(resource: string, action: string): boolean {
+    const p = `${resource}:${action}`;
+    return this.user()?.permissions.includes(p) || false;
+  }
+
   constructor() {
-    // Listen for auth state changes
     onAuthStateChanged(auth, async (firebaseUser: User | null) => {
       if (firebaseUser) {
         const token = await getIdToken(firebaseUser);

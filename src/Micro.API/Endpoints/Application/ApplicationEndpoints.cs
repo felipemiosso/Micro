@@ -14,13 +14,14 @@ public static class ApplicationEndpoints
             .AllowAnonymous()
             .DisableAntiforgery();
 
-        // Admin endpoints
-        var adminGroup = app.MapGroup("/api/admin/applications");
-        adminGroup.MapGet("/", GetAdminApplications);
-        adminGroup.MapGet("/{id:guid}", GetApplicationDetail);
-        adminGroup.MapGet("/{id:guid}/resume", GetApplicationResume);
-        adminGroup.MapPut("/{id:guid}/status", UpdateApplicationStatus);
-        adminGroup.MapPost("/{id:guid}/feedback", AddFeedback);
+        // Management endpoints
+        var group = app.MapGroup("/api/applications");
+        
+        group.MapGet("/", GetAdminApplications).RequireAuthorization("Application:View");
+        group.MapGet("/{id:guid}", GetApplicationDetail).RequireAuthorization("Application:View");
+        group.MapGet("/{id:guid}/resume", GetApplicationResume).RequireAuthorization("Application:ViewResume");
+        group.MapPut("/{id:guid}/status", UpdateApplicationStatus).RequireAuthorization("Application:Edit");
+        group.MapPost("/{id:guid}/feedback", AddFeedback).RequireAuthorization("Application:Feedback");
     }
 
     private static async Task<IResult> ApplyToJob(
@@ -75,13 +76,6 @@ public static class ApplicationEndpoints
             };
             db.Candidates.Add(candidate);
         }
-        else
-        {
-            // Linking existing candidate - for now we allow different names as per user preference, 
-            // but we might want to update the name if it's different or just leave it. 
-            // User said: "its fine to have different names. Later we are going to allow candidate to create an account."
-            // So we just use the existing candidate record.
-        }
 
         // Duplicate application check
         var exists = await db.Applications.AnyAsync(a => a.JobPostingId == jobPostingId && a.CandidateId == candidate.Id);
@@ -115,9 +109,10 @@ public static class ApplicationEndpoints
         db.Applications.Add(application);
         await db.SaveChangesAsync();
 
-        return Results.Created($"/api/admin/applications/{application.Id}", new { application.Id });
+        return Results.Created($"/api/applications/{application.Id}", new { application.Id });
     }
 
+    [ResourceAction("Application", "View", "List and filter all applications")]
     private static async Task<IResult> GetAdminApplications(
         Guid? jobPostingId,
         string? search,
@@ -158,6 +153,7 @@ public static class ApplicationEndpoints
         return Results.Ok(applications);
     }
 
+    [ResourceAction("Application", "ViewResume", "Download candidate resume")]
     private static async Task<IResult> GetApplicationResume(Guid id, MicroDbContext db)
     {
         var application = await db.Applications.Include(a => a.Candidate).FirstOrDefaultAsync(a => a.Id == id);
@@ -172,6 +168,7 @@ public static class ApplicationEndpoints
         return Results.File(bytes, "application/pdf", $"{application.Candidate.FullName}_Resume.pdf");
     }
 
+    [ResourceAction("Application", "View", "View application details and feedback")]
     private static async Task<IResult> GetApplicationDetail(Guid id, MicroDbContext db)
     {
         var application = await db.Applications
@@ -201,6 +198,7 @@ public static class ApplicationEndpoints
         return application is null ? Results.NotFound() : Results.Ok(application);
     }
 
+    [ResourceAction("Application", "Edit", "Update application stage or archive")]
     private static async Task<IResult> UpdateApplicationStatus(
         Guid id,
         UpdateStatusRequest request,
@@ -222,6 +220,7 @@ public static class ApplicationEndpoints
         return Results.NoContent();
     }
 
+    [ResourceAction("Application", "Feedback", "Add interview feedback")]
     private static async Task<IResult> AddFeedback(
         Guid id,
         AddFeedbackRequest request,
@@ -254,6 +253,6 @@ public static class ApplicationEndpoints
         db.Feedbacks.Add(feedback);
         await db.SaveChangesAsync();
 
-        return Results.Created($"/api/admin/applications/{id}/feedback", new { feedback.Id });
+        return Results.Created($"/api/applications/{id}/feedback", new { feedback.Id });
     }
 }

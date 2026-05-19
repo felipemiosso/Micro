@@ -82,8 +82,11 @@ public static class DbInitializer
     private static async Task SeedFirebaseEmulator(IConfiguration config)
     {
         var projectId = config["Firebase:ProjectId"] ?? "demo-micro-ats";
+        // Ensure host is set BEFORE FirebaseApp is initialized
         Environment.SetEnvironmentVariable("FIREBASE_AUTH_EMULATOR_HOST", "localhost:9099");
         
+        Serilog.Log.Information("Seeding Firebase Emulator for project {ProjectId}...", projectId);
+
         if (FirebaseApp.DefaultInstance == null)
         {
             FirebaseApp.Create(new AppOptions
@@ -93,29 +96,40 @@ public static class DbInitializer
             });
         }
 
-        try
+        // Retry logic for emulator readiness
+        for (int i = 0; i < 5; i++)
         {
-            await FirebaseAuth.DefaultInstance.CreateUserAsync(new UserRecordArgs
+            try
             {
-                Email = "admin@microats.com",
-                Password = "AdminPassword123!",
-                EmailVerified = true,
-                DisplayName = "Admin User"
-            });
+                await FirebaseAuth.DefaultInstance.CreateUserAsync(new UserRecordArgs
+                {
+                    Email = "admin@microats.com",
+                    Password = "AdminPassword123!",
+                    EmailVerified = true,
+                    DisplayName = "Admin User"
+                });
 
-            var user = await FirebaseAuth.DefaultInstance.GetUserByEmailAsync("admin@microats.com");
-            await FirebaseAuth.DefaultInstance.SetCustomUserClaimsAsync(user.Uid, new Dictionary<string, object>
+                var user = await FirebaseAuth.DefaultInstance.GetUserByEmailAsync("admin@microats.com");
+                await FirebaseAuth.DefaultInstance.SetCustomUserClaimsAsync(user.Uid, new Dictionary<string, object>
+                {
+                    { "role", "Admin" }
+                });
+                
+                Serilog.Log.Information("Successfully seeded admin@microats.com in Firebase Emulator.");
+                return;
+            }
+            catch (FirebaseAuthException ex) when (ex.AuthErrorCode == AuthErrorCode.EmailAlreadyExists)
             {
-                { "role", "Admin" }
-            });
+                Serilog.Log.Information("admin@microats.com already exists in Firebase Emulator.");
+                return;
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Warning("Attempt {Attempt} to seed Firebase Emulator failed: {Message}. Retrying...", i + 1, ex.Message);
+                await Task.Delay(1000);
+            }
         }
-        catch (FirebaseAuthException ex) when (ex.AuthErrorCode == AuthErrorCode.EmailAlreadyExists)
-        {
-            // Already seeded
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Warning: Failed to seed Firebase Emulator: {ex.Message}");
-        }
+
+        Serilog.Log.Error("Failed to seed Firebase Emulator after multiple attempts.");
     }
 }

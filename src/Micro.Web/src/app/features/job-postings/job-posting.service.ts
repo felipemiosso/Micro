@@ -1,10 +1,10 @@
-import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export enum JobPostingStatus {
   Published = 0,
-  Closed = 1,
+  Closed = 1
 }
 
 export interface JobPosting {
@@ -17,7 +17,15 @@ export interface JobPosting {
   createdAt: string;
   updatedAt?: string;
   closedAt?: string;
-  requisition?: any; // To include department from parent
+  requisition?: {
+    department: string;
+  };
+}
+
+export interface UpdateJobPostingRequest {
+  title: string;
+  description: string;
+  requirements: string;
 }
 
 export interface PublicJobResponse {
@@ -37,39 +45,31 @@ export interface PublicJobDetailResponse {
   createdAt: string;
 }
 
-export interface UpdateJobPostingRequest {
-  title: string;
-  description: string;
-  requirements: string;
-}
-
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
 export class JobPostingService {
   private http = inject(HttpClient);
   private publicApiUrl = '/api/jobs';
-  private adminApiUrl = '/api/admin/jobs';
+  private adminApiUrl = '/api/jobs/admin';
 
-  // Public APIs
-  getPublishedJobs(): Observable<PublicJobResponse[]> {
+  getPublicJobs(): Observable<PublicJobResponse[]> {
     return this.http.get<PublicJobResponse[]>(this.publicApiUrl);
   }
 
-  getJobById(id: string): Observable<PublicJobDetailResponse> {
+  getJobDetail(id: string): Observable<PublicJobDetailResponse> {
     return this.http.get<PublicJobDetailResponse>(`${this.publicApiUrl}/${id}`);
   }
 
-  // Admin APIs
   getAllJobs(): Observable<JobPosting[]> {
     return this.http.get<JobPosting[]>(this.adminApiUrl);
   }
 
   updateJob(id: string, request: UpdateJobPostingRequest): Observable<void> {
-    return this.http.put<void>(`${this.adminApiUrl}/${id}`, request);
+    return this.http.put<void>(`${this.publicApiUrl}/${id}`, request);
   }
 
   closeJob(id: string): Observable<void> {
-    return this.http.post<void>(`${this.adminApiUrl}/${id}/close`, {});
+    return this.http.post<void>(`${this.publicApiUrl}/${id}/close`, {});
   }
 }

@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth-guard';
 import { publicGuard } from './core/guards/public-guard';
+import { permissionGuard } from './core/guards/permission-guard';
 
 export const routes: Routes = [
   {
@@ -25,63 +26,72 @@ export const routes: Routes = [
     loadComponent: () => import('./features/applications/success/success').then(m => m.ApplicationSuccessComponent)
   },
   {
-    path: 'admin',
-    canActivate: [authGuard],
-    children: [
-      {
-        path: 'requisitions',
-        loadComponent: () => import('./features/requisitions/list/requisition-list').then(m => m.RequisitionListComponent)
-      },
-      {
-        path: 'requisitions/new',
-        loadComponent: () => import('./features/requisitions/form/requisition-form').then(m => m.RequisitionFormComponent)
-      },
-      {
-        path: 'requisitions/edit/:id',
-        loadComponent: () => import('./features/requisitions/form/requisition-form').then(m => m.RequisitionFormComponent)
-      },
-      {
-        path: 'jobs',
-        loadComponent: () => import('./features/job-postings/admin-list/job-posting-list').then(m => m.JobPostingListComponent)
-      },
-      {
-        path: 'jobs/edit/:id',
-        loadComponent: () => import('./features/job-postings/admin-edit/job-posting-edit').then(m => m.JobPostingEditComponent)
-      },
-      {
-        path: 'candidates',
-        loadComponent: () => import('./features/applications/list/application-list').then(m => m.ApplicationListComponent)
-      },
-      {
-        path: 'applications',
-        loadComponent: () => import('./features/applications/applications-board/applications-board').then(m => m.ApplicationsBoardComponent)
-      },
-      {
-        path: 'applications/archived',
-        loadComponent: () => import('./features/applications/archived-applications/archived-applications').then(m => m.ArchivedApplicationsComponent)
-      },
-      {
-        path: 'candidates/:id',
-        loadComponent: () => import('./features/applications/detail/application-detail').then(m => m.ApplicationDetailComponent)
-      },
-      {
-        path: 'profile',
-        loadComponent: () => import('./features/auth/profile/profile').then(m => m.ProfileComponent)
-      }
-    ]
-  },
-  {
     path: '',
     canActivate: [authGuard],
     children: [
       {
         path: '',
-        redirectTo: 'dashboard',
+        redirectTo: 'requisitions',
         pathMatch: 'full'
       },
       {
-        path: 'dashboard',
+        path: 'requisitions',
+        canActivate: [permissionGuard('Requisition', 'View')],
         loadComponent: () => import('./features/requisitions/list/requisition-list').then(m => m.RequisitionListComponent)
+      },
+      {
+        path: 'requisitions/new',
+        canActivate: [permissionGuard('Requisition', 'Create')],
+        loadComponent: () => import('./features/requisitions/form/requisition-form').then(m => m.RequisitionFormComponent)
+      },
+      {
+        path: 'requisitions/edit/:id',
+        canActivate: [permissionGuard('Requisition', 'Edit')],
+        loadComponent: () => import('./features/requisitions/form/requisition-form').then(m => m.RequisitionFormComponent)
+      },
+      {
+        path: 'job-management',
+        canActivate: [permissionGuard('JobPosting', 'View')],
+        loadComponent: () => import('./features/job-postings/admin-list/job-posting-list').then(m => m.JobPostingListComponent)
+      },
+      {
+        path: 'job-management/edit/:id',
+        canActivate: [permissionGuard('JobPosting', 'Edit')],
+        loadComponent: () => import('./features/job-postings/admin-edit/job-posting-edit').then(m => m.JobPostingEditComponent)
+      },
+      {
+        path: 'candidates',
+        canActivate: [permissionGuard('Application', 'View')],
+        loadComponent: () => import('./features/applications/list/application-list').then(m => m.ApplicationListComponent)
+      },
+      {
+        path: 'candidates/:id',
+        canActivate: [permissionGuard('Application', 'View')],
+        loadComponent: () => import('./features/applications/detail/application-detail').then(m => m.ApplicationDetailComponent)
+      },
+      {
+        path: 'applications',
+        canActivate: [permissionGuard('Application', 'View')],
+        loadComponent: () => import('./features/applications/applications-board/applications-board').then(m => m.ApplicationsBoardComponent)
+      },
+      {
+        path: 'applications/archived',
+        canActivate: [permissionGuard('Application', 'View')],
+        loadComponent: () => import('./features/applications/archived-applications/archived-applications').then(m => m.ArchivedApplicationsComponent)
+      },
+      {
+        path: 'profile',
+        loadComponent: () => import('./features/auth/profile/profile').then(m => m.ProfileComponent)
+      },
+      {
+        path: 'roles',
+        canActivate: [permissionGuard('Role', 'View')],
+        loadComponent: () => import('./features/roles/list/role-list').then(m => m.RoleListComponent)
+      },
+      {
+        path: 'roles/new',
+        canActivate: [permissionGuard('Role', 'Create')],
+        loadComponent: () => import('./features/roles/form/role-editor').then(m => m.RoleEditorComponent)
       }
     ]
   }

@@ -1,5 +1,6 @@
 using Micro.API.Data;
 using Micro.API.Data.Models;
+using Micro.API.Infrastructure.Auth;
 using Microsoft.EntityFrameworkCore;
 
 namespace Micro.API.Endpoints.JobPosting;
@@ -8,14 +9,16 @@ public static class JobPostingEndpoints
 {
     public static void MapJobPostingEndpoints(this IEndpointRouteBuilder app)
     {
-        var publicGroup = app.MapGroup("/api/jobs").AllowAnonymous();
-        publicGroup.MapGet("/", GetPublicJobs);
-        publicGroup.MapGet("/{id:guid}", GetPublicJob);
+        var group = app.MapGroup("/api/jobs");
 
-        var adminGroup = app.MapGroup("/api/admin/jobs");
-        adminGroup.MapGet("/", GetAdminJobs);
-        adminGroup.MapPut("/{id:guid}", UpdateJobPosting);
-        adminGroup.MapPost("/{id:guid}/close", CloseJobPosting);
+        // Public endpoints
+        group.MapGet("/", GetPublicJobs).AllowAnonymous();
+        group.MapGet("/{id:guid}", GetPublicJob).AllowAnonymous();
+
+        // Management endpoints
+        group.MapGet("/admin", GetAdminJobs).RequireAuthorization("JobPosting:View");
+        group.MapPut("/{id:guid}", UpdateJobPosting).RequireAuthorization("JobPosting:Edit");
+        group.MapPost("/{id:guid}/close", CloseJobPosting).RequireAuthorization("JobPosting:Close");
     }
 
     private static async Task<IResult> GetPublicJobs(MicroDbContext db)
@@ -52,6 +55,7 @@ public static class JobPostingEndpoints
         return job is null ? Results.NotFound() : Results.Ok(job);
     }
 
+    [ResourceAction("JobPosting", "View", "List all job postings (including closed)")]
     private static async Task<IResult> GetAdminJobs(MicroDbContext db)
     {
         var jobs = await db.JobPostings
@@ -62,6 +66,7 @@ public static class JobPostingEndpoints
         return Results.Ok(jobs);
     }
 
+    [ResourceAction("JobPosting", "Edit", "Update job posting details")]
     private static async Task<IResult> UpdateJobPosting(Guid id, UpdateJobPostingRequest request, MicroDbContext db)
     {
         var job = await db.JobPostings.FindAsync(id);
@@ -76,6 +81,7 @@ public static class JobPostingEndpoints
         return Results.NoContent();
     }
 
+    [ResourceAction("JobPosting", "Close", "Close a job posting")]
     private static async Task<IResult> CloseJobPosting(Guid id, MicroDbContext db)
     {
         var job = await db.JobPostings.FindAsync(id);

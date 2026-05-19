@@ -11,61 +11,66 @@ public static class UserProfileEndpoints
     {
         var group = app.MapGroup("/api/profile");
 
-        group.MapGet("/", async (AuthUser authUser, MicroDbContext dbContext) =>
+        group.MapGet("/", GetProfile).RequireAuthorization("Profile:View");
+        group.MapPost("/", SyncProfile).RequireAuthorization("Profile:Sync");
+    }
+
+    [ResourceAction("Profile", "View", "View current user profile")]
+    private static async Task<IResult> GetProfile(AuthUser authUser, MicroDbContext dbContext)
+    {
+        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == authUser.Id);
+        if (user == null) return Results.NotFound();
+
+        return Results.Ok(new UserProfileResponse(
+            user.Id,
+            user.Email,
+            user.FullName,
+            user.PhotoUrl,
+            authUser.Roles,
+            authUser.Permissions
+        ));
+    }
+
+    [ResourceAction("Profile", "Sync", "Sync user info from identity provider")]
+    private static async Task<IResult> SyncProfile(AuthUser authUser, MicroDbContext dbContext)
+    {
+        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == authUser.Id);
+        
+        if (user == null)
         {
-            var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == authUser.Id);
-            if (user == null) return Results.NotFound();
-
-            return Results.Ok(new UserProfileResponse(
-                user.Id,
-                user.Email,
-                user.FullName,
-                user.PhotoUrl
-            ));
-        });
-
-        group.MapPost("/", async (AuthUser authUser, MicroDbContext dbContext) =>
+            user = new Data.Models.User
+            {
+                Id = authUser.Id,
+                Email = authUser.Email,
+                FullName = authUser.Name ?? authUser.Email.Split('@')[0],
+                PhotoUrl = authUser.PhotoUrl
+            };
+            dbContext.Users.Add(user);
+        }
+        else
         {
-            var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == authUser.Id);
-            
-            if (user == null)
-            {
-                user = new User
-                {
-                    Id = authUser.Id,
-                    Email = authUser.Email,
-                    FullName = authUser.Name ?? authUser.Email.Split('@')[0],
-                    PhotoUrl = authUser.PhotoUrl
-                };
-                dbContext.Users.Add(user);
-            }
-            else
-            {
-                // Update existing user info if it changed in Firebase
-                user.Email = authUser.Email;
-                user.FullName = authUser.Name ?? user.FullName;
-                user.PhotoUrl = authUser.PhotoUrl ?? user.PhotoUrl;
-            }
+            user.Email = authUser.Email;
+            user.FullName = authUser.Name ?? user.FullName;
+            user.PhotoUrl = authUser.PhotoUrl ?? user.PhotoUrl;
+        }
 
-            try 
-            {
-                await dbContext.SaveChangesAsync();
-            }
-            catch (DbUpdateException)
-            {
-                // If insert failed due to race condition, the user now exists.
-                // We don't need to do anything as the winner of the race created the user.
-                // We re-fetch to ensure we return the correct state.
-                dbContext.Entry(user).State = EntityState.Detached;
-                user = await dbContext.Users.FirstAsync(u => u.Id == authUser.Id);
-            }
+        try 
+        {
+            await dbContext.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            dbContext.Entry(user).State = EntityState.Detached;
+            user = await dbContext.Users.FirstAsync(u => u.Id == authUser.Id);
+        }
 
-            return Results.Ok(new UserProfileResponse(
-                user.Id,
-                user.Email,
-                user.FullName,
-                user.PhotoUrl
-            ));
-        });
+        return Results.Ok(new UserProfileResponse(
+            user.Id,
+            user.Email,
+            user.FullName,
+            user.PhotoUrl,
+            authUser.Roles,
+            authUser.Permissions
+        ));
     }
 }

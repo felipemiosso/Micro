@@ -22,7 +22,7 @@ public class RequisitionTests : PageTest
         await Page.FillAsync("#email", email);
         await Page.FillAsync("#password", AuthSeedHelper.AdminPassword);
         await Page.ClickAsync("button[type='submit']");
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/dashboard|/admin/requisitions"));
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/dashboard|/requisitions"));
     }
 
     [Fact]
@@ -30,7 +30,7 @@ public class RequisitionTests : PageTest
     {
         string title = $"Software Engineer {Guid.NewGuid()}";
         // Arrange
-        await Page.GotoAsync($"{BaseUrl}/admin/requisitions");
+        await Page.GotoAsync($"{BaseUrl}/requisitions");
         await Page.ClickAsync("button:has-text('New Requisition')");
 
         // Act
@@ -40,7 +40,7 @@ public class RequisitionTests : PageTest
         await Page.ClickAsync("button:has-text('Create Requisition')");
 
         // Assert
-        await Expect(Page).ToHaveURLAsync($"{BaseUrl}/admin/requisitions");
+        await Expect(Page).ToHaveURLAsync($"{BaseUrl}/requisitions");
         var row = Page.Locator(".requisition-table tbody tr").Filter(new() { HasText = title });
         await Expect(row).ToBeVisibleAsync();
         await Expect(row.Locator(".status-badge")).ToHaveTextAsync(new System.Text.RegularExpressions.Regex("Draft"));
@@ -52,7 +52,7 @@ public class RequisitionTests : PageTest
         string title = $"To Be Updated {Guid.NewGuid()}";
         string updatedTitle = $"Senior {title}";
         // Arrange
-        await Page.GotoAsync($"{BaseUrl}/admin/requisitions/new");
+        await Page.GotoAsync($"{BaseUrl}/requisitions/new");
         await Page.FillAsync("#title", title);
         await Page.FillAsync("#department", "Test");
         await Page.FillAsync("#openings", "1");
@@ -69,7 +69,7 @@ public class RequisitionTests : PageTest
         await Page.ClickAsync("button:has-text('Update Requisition')");
 
         // Assert
-        await Expect(Page).ToHaveURLAsync($"{BaseUrl}/admin/requisitions");
+        await Expect(Page).ToHaveURLAsync($"{BaseUrl}/requisitions");
         var updatedRow = Page.Locator(".requisition-table tbody tr").Filter(new() { HasText = updatedTitle });
         await Expect(updatedRow).ToBeVisibleAsync(new() { Timeout = 10000 });
     }
@@ -79,7 +79,7 @@ public class RequisitionTests : PageTest
     {
         string title = $"To Be Finalized {Guid.NewGuid()}";
         // Arrange
-        await Page.GotoAsync($"{BaseUrl}/admin/requisitions/new");
+        await Page.GotoAsync($"{BaseUrl}/requisitions/new");
         await Page.FillAsync("#title", title);
         await Page.FillAsync("#department", "Test");
         await Page.FillAsync("#openings", "1");
@@ -109,7 +109,7 @@ public class RequisitionTests : PageTest
     {
         string title = $"To Be Closed {Guid.NewGuid()}";
         // Arrange
-        await Page.GotoAsync($"{BaseUrl}/admin/requisitions/new");
+        await Page.GotoAsync($"{BaseUrl}/requisitions/new");
         await Page.FillAsync("#title", title);
         await Page.FillAsync("#department", "Test");
         await Page.FillAsync("#openings", "1");
@@ -138,7 +138,7 @@ public class RequisitionTests : PageTest
     {
         string title = $"Read Only Test {Guid.NewGuid()}";
         // Arrange
-        await Page.GotoAsync($"{BaseUrl}/admin/requisitions/new");
+        await Page.GotoAsync($"{BaseUrl}/requisitions/new");
         await Page.FillAsync("#title", title);
         await Page.FillAsync("#department", "Test");
         await Page.FillAsync("#openings", "1");

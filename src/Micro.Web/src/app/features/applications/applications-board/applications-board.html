@@ -5,7 +5,7 @@
       <p class="text-ink-light font-medium">Manage and track candidate progress across stages.</p>
     </div>
     <div class="flex items-center gap-4">
-      <a routerLink="/admin/applications/archived" class="btn-secondary text-sm">View Archive</a>
+      <a routerLink="/applications/archived" class="btn-secondary text-sm">View Archive</a>
       <select 
         [ngModel]="selectedJobId()" 
         (ngModelChange)="selectedJobId.set($event); loadApplications()"

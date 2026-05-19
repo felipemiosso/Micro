@@ -44,7 +44,7 @@ export class RequisitionFormComponent implements OnInit {
         error: (err) => {
           console.error('Failed to load requisition', err);
           this.notification.error('Failed to load requisition details. Please try again.');
-          this.router.navigate(['/admin/requisitions']);
+          this.router.navigate(['/requisitions']);
         }
       });
     }
@@ -64,7 +64,7 @@ export class RequisitionFormComponent implements OnInit {
     obs.subscribe({
       next: () => {
         this.notification.success('Requisition saved successfully.');
-        this.router.navigate(['/admin/requisitions']);
+        this.router.navigate(['/requisitions']);
       },
       error: (err) => {
         console.error('Failed to save requisition', err);

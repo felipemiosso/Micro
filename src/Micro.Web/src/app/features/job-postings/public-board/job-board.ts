@@ -15,9 +15,9 @@ export class JobBoardComponent implements OnInit {
   jobs = signal<PublicJobResponse[]>([]);
 
   ngOnInit() {
-    this.jobPostingService.getPublishedJobs().subscribe({
-      next: (data) => this.jobs.set(data),
-      error: (err) => console.error('Failed to load published jobs', err)
+    this.jobPostingService.getPublicJobs().subscribe({
+      next: (data: PublicJobResponse[]) => this.jobs.set(data),
+      error: (err: any) => console.error('Failed to load published jobs', err)
     });
   }
 }

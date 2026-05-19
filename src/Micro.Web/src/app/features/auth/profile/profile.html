@@ -18,7 +18,11 @@
           </div>
           <div>
             <h1 class="text-4xl font-bold tracking-tight mb-1">{{ profile.fullName }}</h1>
-            <p class="text-honeycomb-400 font-bold uppercase tracking-widest text-xs">Professional Recruiter</p>
+            <div class="flex flex-wrap justify-center gap-1 mt-2">
+              @for (role of profile.roles; track role) {
+                <span class="bg-honeycomb-500/20 text-honeycomb-200 border border-honeycomb-500/30 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter">{{ role }}</span>
+              }
+            </div>
           </div>
         </div>
       </div>

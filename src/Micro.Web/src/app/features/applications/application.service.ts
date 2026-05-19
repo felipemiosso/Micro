@@ -69,8 +69,8 @@ export interface ApplicationDetail extends Application {
 export class ApplicationService {
   private http = inject(HttpClient);
   private publicApiUrl = '/api/public/jobs';
-  private adminApiUrl = '/api/admin/applications';
-  private candidateApiUrl = '/api/admin/candidates';
+  private adminApiUrl = '/api/applications';
+  private candidateApiUrl = '/api/candidates';
 
   // Public APIs
   apply(jobId: string, formData: FormData): Observable<{ id: string }> {

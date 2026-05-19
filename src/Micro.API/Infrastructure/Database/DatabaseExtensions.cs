@@ -18,13 +18,16 @@ public static class DatabaseExtensions
 
     public static async Task ApplyMigrationsAndSeed(this IApplicationBuilder app)
     {
-        if (app is WebApplication webApp && webApp.Environment.IsEnvironment("Testing"))
-        {
-            return;
-        }
-
         using var scope = app.ApplicationServices.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<MicroDbContext>();
+        var env = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
+
+        if (env.IsEnvironment("Testing"))
+        {
+            // For E2E tests, we want a fresh start
+            await dbContext.Database.EnsureDeletedAsync();
+        }
+
         await dbContext.Database.MigrateAsync();
         await DbInitializer.SeedData(scope.ServiceProvider);
     }

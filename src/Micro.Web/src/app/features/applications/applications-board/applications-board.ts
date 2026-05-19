@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { ApplicationService, Application, ApplicationStatus, ArchivalResolution } from '../application.service';
 import { JobPostingService, JobPosting } from '../../job-postings/job-posting.service';
+import { AuthService } from '../../../core/auth/auth';
 import { ApplicationCardComponent } from '../application-card/application-card';
 import { RouterLink } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
@@ -23,6 +24,7 @@ export class ApplicationsBoardComponent implements OnInit {
   private jobService = inject(JobPostingService);
   private dialog = inject(MatDialog);
   private notification = inject(NotificationService);
+  authService = inject(AuthService);
 
   jobPostings = signal<JobPosting[]>([]);
   selectedJobId = signal<string>('');
@@ -51,6 +53,12 @@ export class ApplicationsBoardComponent implements OnInit {
   }
 
   onDrop(event: CdkDragDrop<Application[]>) {
+    // Check permission for drag-drop (Edit application)
+    if (!this.authService.hasPermission('Application', 'Edit')) {
+      this.notification.error('You do not have permission to move candidates.');
+      return;
+    }
+
     if (event.previousContainer === event.container) {
       const list = [...event.container.data];
       moveItemInArray(list, event.previousIndex, event.currentIndex);
@@ -115,6 +123,11 @@ export class ApplicationsBoardComponent implements OnInit {
   }
 
   onArchiveDrop(event: CdkDragDrop<Application[]>) {
+    if (!this.authService.hasPermission('Application', 'Edit')) {
+      this.notification.error('You do not have permission to archive candidates.');
+      return;
+    }
+
     const item = event.previousContainer.data[event.previousIndex];
     const dialogRef = this.dialog.open(ArchiveDialogComponent);
 
