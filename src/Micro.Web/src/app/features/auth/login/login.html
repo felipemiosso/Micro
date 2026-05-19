@@ -21,7 +21,20 @@
 
       <div class="flex flex-col gap-2">
         <label for="password" class="text-xs font-bold text-ink uppercase tracking-wider">Password</label>
-        <input id="password" type="password" formControlName="password" class="input-honeycomb" placeholder="••••••••">
+        <div class="relative">
+          <input 
+            id="password" 
+            [type]="hidePassword() ? 'password' : 'text'" 
+            formControlName="password" 
+            class="input-honeycomb !pr-12" 
+            placeholder="••••••••">
+          <button 
+            type="button"
+            (click)="togglePassword()"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-honeycomb-600 transition-colors p-1 rounded-md hover:bg-slate-50">
+            <mat-icon class="!text-[20px] !w-[20px] !h-[20px]">{{ hidePassword() ? 'visibility' : 'visibility_off' }}</mat-icon>
+          </button>
+        </div>
         @if (loginForm.get('password')?.touched && loginForm.get('password')?.invalid) {
           <div class="text-red-500 text-[10px] font-bold uppercase tracking-wide mt-1">
             Min. 8 characters required

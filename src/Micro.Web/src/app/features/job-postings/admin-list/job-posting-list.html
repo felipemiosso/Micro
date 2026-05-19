@@ -26,11 +26,9 @@
             </td>
             <td class="px-6 py-4 text-ink-light">{{ job.requisition?.department }}</td>
             <td class="px-6 py-4">
-              <span class="status-badge badge-status"
-                [class.bg-green-100]="job.status === Status.Published"
-                [class.text-green-800]="job.status === Status.Published"
-                [class.bg-slate-100]="job.status === Status.Closed"
-                [class.text-slate-600]="job.status === Status.Closed">
+              <span class="badge-status"
+                [class.badge-green]="job.status === Status.Published"
+                [class.badge-zinc]="job.status === Status.Closed">
                 {{ getStatusLabel(job.status) }}
               </span>
             </td>
@@ -48,7 +46,7 @@
                   </a>
                 }
                 @if (job.status === Status.Published && authService.hasPermission('JobPosting', 'Close')) {
-                  <button mat-icon-button (click)="closeJob(job.id)" class="action-btn close !text-red-500" matTooltip="Close Job">
+                  <button mat-icon-button (click)="closeJob(job.id)" class="!text-red-500 hover:bg-red-50" matTooltip="Close Job">
                     <mat-icon>close</mat-icon>
                   </button>
                 }

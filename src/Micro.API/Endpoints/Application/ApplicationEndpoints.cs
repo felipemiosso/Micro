@@ -168,7 +168,7 @@ public static class ApplicationEndpoints
         return Results.File(bytes, "application/pdf", $"{application.Candidate.FullName}_Resume.pdf");
     }
 
-    [ResourceAction("Application", "View", "View application details and feedback")]
+    [ResourceAction("Application", "Details", "View application details and feedback")]
     private static async Task<IResult> GetApplicationDetail(Guid id, MicroDbContext db)
     {
         var application = await db.Applications

@@ -43,7 +43,7 @@ public class RequisitionTests : PageTest
         await Expect(Page).ToHaveURLAsync($"{BaseUrl}/requisitions");
         var row = Page.Locator(".requisition-table tbody tr").Filter(new() { HasText = title });
         await Expect(row).ToBeVisibleAsync();
-        await Expect(row.Locator(".status-badge")).ToHaveTextAsync(new System.Text.RegularExpressions.Regex("Draft"));
+        await Expect(row.Locator(".badge-status")).ToHaveTextAsync(new System.Text.RegularExpressions.Regex("Draft"));
     }
 
     [Fact]
@@ -88,19 +88,11 @@ public class RequisitionTests : PageTest
         var row = Page.Locator(".requisition-table tbody tr").Filter(new() { HasText = title });
 
         // Act
-        void HandleDialog(object? sender, IDialog dialog) => dialog.AcceptAsync();
-        Page.Dialog += HandleDialog;
-        try 
-        {
-            await row.Locator(".action-btn.finalize").ClickAsync();
-        }
-        finally
-        {
-            Page.Dialog -= HandleDialog;
-        }
+        await row.Locator(".action-btn.finalize").ClickAsync();
+        await Page.ClickAsync("button:has-text('Finalize')");
 
         // Assert
-        await Expect(row.Locator(".status-badge")).ToHaveTextAsync(new System.Text.RegularExpressions.Regex("Finalized"));
+        await Expect(row.Locator(".badge-status")).ToHaveTextAsync(new System.Text.RegularExpressions.Regex("Finalized"));
         await Expect(row.Locator(".action-link:has-text('Edit')")).Not.ToBeVisibleAsync();
     }
 
@@ -117,20 +109,15 @@ public class RequisitionTests : PageTest
 
         var row = Page.Locator(".requisition-table tbody tr").Filter(new() { HasText = title });
 
-        void HandleDialog(object? sender, IDialog dialog) => dialog.AcceptAsync();
-        Page.Dialog += HandleDialog;
-        try 
-        {
-            await row.Locator(".action-btn.finalize").ClickAsync();
-            await row.Locator(".action-btn.close").ClickAsync();
-        }
-        finally
-        {
-            Page.Dialog -= HandleDialog;
-        }
+        // Act
+        await row.Locator(".action-btn.finalize").ClickAsync();
+        await Page.ClickAsync("button:has-text('Finalize')");
+        
+        await row.Locator(".action-btn.close").ClickAsync();
+        await Page.ClickAsync("button:has-text('Close Requisition')");
 
-        // Act & Assert
-        await Expect(row.Locator(".status-badge")).ToHaveTextAsync(new System.Text.RegularExpressions.Regex("Closed"));
+        // Assert
+        await Expect(row.Locator(".badge-status")).ToHaveTextAsync(new System.Text.RegularExpressions.Regex("Closed"));
     }
 
     [Fact]
@@ -146,16 +133,9 @@ public class RequisitionTests : PageTest
         
         var row = Page.Locator(".requisition-table tbody tr").Filter(new() { HasText = title });
         
-        void HandleDialog(object? sender, IDialog dialog) => dialog.AcceptAsync();
-        Page.Dialog += HandleDialog;
-        try 
-        {
-            await row.Locator(".action-btn.finalize").ClickAsync();
-        }
-        finally
-        {
-            Page.Dialog -= HandleDialog;
-        }
+        // Act
+        await row.Locator(".action-btn.finalize").ClickAsync();
+        await Page.ClickAsync("button:has-text('Finalize')");
 
         // Assert
         await Expect(row.Locator(".action-link:has-text('Edit')")).Not.ToBeVisibleAsync();

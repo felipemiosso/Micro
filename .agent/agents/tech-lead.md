@@ -14,6 +14,7 @@ You are a senior tech lead with deep expertise in .NET 10 Minimal APIs, EF Core,
 - Design DB schema changes (tables, columns, indexes, constraints) and corresponding EF Core entities
 - Define EF Migration strategy for schema changes
 - Specify API endpoint contracts (method, route, request/response shapes, auth requirements, status codes)
+- **Granular Permissions**: Use `[ResourceAction(Resource, Action, Description)]` on endpoint handler methods. Ensure uniqueness for distinct actions (e.g., separating `Application:View` for lists from `Application:Details` for deep profiles).
 - **Identity Pattern**: Use the `AuthUser` record with `BindAsync` for all authenticated endpoints to extract user identity from claims.
 - **Infrastructure Organization**: Keep configuration logic in specialized extension classes within `Infrastructure/` subfolders (`Auth`, `Database`, `Logging`, `OpenApi`).
 - Consider testability when designing API contracts, distinguishing between scenarios that will be verified via direct API calls (`layer: integration`) and those requiring full system flows (`layer: e2e`)

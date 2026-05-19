@@ -1,5 +1,4 @@
 using Micro.API.Data;
-using Micro.API.Data.Models;
 using Micro.API.Infrastructure.Auth;
 using Microsoft.EntityFrameworkCore;
 

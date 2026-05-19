@@ -64,5 +64,10 @@ Rules:
 ## Frontend Rules
 
 - **Design System:** All UI development MUST follow the standards defined in `product/design-system.md`. Use the provided Tailwind utility classes for consistency.
+- **Custom UI Components:** 
+  - NEVER use native `confirm()` or `alert()`. Use `ConfirmDialogComponent` from `src/app/core/ui/confirm-dialog.ts`.
+  - Use `NotificationService` for all user feedback (success/error/info).
+- **Badge Standards:** Use `.badge-status` with its color variants (`.badge-amber`, `.badge-green`, etc.) for all status-like indicators.
+- **Deep Linking:** Implement fragment-based scrolling and use the `.highlight-pulse` animation when navigating to specific items (e.g., Kanban cards).
 - **Angular Signals:** Use Angular Signals (`signal`, `computed`, `effect`) for all component state and data flow. Avoid manual change detection (`ChangeDetectorRef.detectChanges()`) and raw property assignments for reactive data.
 - **Standalone Components:** All new components must be standalone.

@@ -29,8 +29,16 @@
   }
 
   .badge-status {
-    @apply px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider;
+    @apply px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border border-transparent transition-all;
   }
+
+  .badge-amber { @apply bg-amber-100 text-amber-800 border-amber-200; }
+  .badge-blue { @apply bg-blue-100 text-blue-800 border-blue-200; }
+  .badge-green { @apply bg-green-100 text-green-800 border-green-200; }
+  .badge-red { @apply bg-red-100 text-red-800 border-red-200; }
+  .badge-zinc { @apply bg-zinc-100 text-zinc-800 border-zinc-200; }
+  .badge-slate { @apply bg-slate-100 text-slate-600 border-slate-200; }
+  .badge-honeycomb-light { @apply bg-honeycomb-50 text-honeycomb-700 border-honeycomb-200; }
 }
 
 body {
@@ -46,7 +54,11 @@ body {
 }
 
 .nav-links a {
-  @apply text-slate-400 hover:text-honeycomb-400 mx-4 transition-colors no-underline font-medium text-sm;
+  @apply text-slate-400 hover:text-honeycomb-400 mx-4 transition-colors no-underline font-medium text-sm py-1 border-b-2 border-transparent;
+}
+
+.nav-links a.active {
+  @apply text-honeycomb-400 font-bold border-honeycomb-500;
 }
 
 .brand {
@@ -55,6 +67,16 @@ body {
 
 .brand span {
   @apply text-honeycomb-400;
+}
+
+@keyframes pulse-highlight {
+  0% { @apply shadow-none border-slate-200; }
+  50% { @apply shadow-[0_0_20px_rgba(245,158,11,0.4)] border-honeycomb-400 scale-[1.01]; }
+  100% { @apply shadow-none border-slate-200; }
+}
+
+.highlight-pulse {
+  animation: pulse-highlight 2s ease-in-out;
 }
 
 /* Custom Utilities for the Honeycomb Aesthetic */

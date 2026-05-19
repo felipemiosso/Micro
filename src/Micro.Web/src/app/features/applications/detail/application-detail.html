@@ -15,13 +15,33 @@
           <span class="bg-slate-100 text-slate-600 text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-tighter border border-slate-200">Candidate Profile</span>
           <span class="text-slate-400 text-xs font-medium">Since {{ c.createdAt | date:'mediumDate' }}</span>
         </div>
-        <h1>{{ c.fullName }}</h1>
-        <p class="subtitle"><span class="truncate-text">{{ c.email }}</span> • {{ c.phone || 'No phone provided' }}</p>
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h1>{{ c.fullName }}</h1>
+            <div class="subtitle flex items-center gap-2 flex-wrap">
+              <span class="flex items-center gap-1">
+                <mat-icon class="!text-[14px] !w-[14px] !h-[14px] text-slate-400">email</mat-icon>
+                <span class="truncate-text">{{ c.email }}</span>
+              </span>
+              <span class="text-slate-300 hidden md:inline">•</span>
+              <span class="flex items-center gap-1">
+                <mat-icon class="!text-[14px] !w-[14px] !h-[14px] text-slate-400">phone</mat-icon>
+                <span>{{ c.phone || 'No phone provided' }}</span>
+              </span>
+            </div>
+          </div>
+          <div class="flex gap-3">
+             <button (click)="downloadResume(c.applications[0]?.id, c.fullName)" [disabled]="!c.applications.length" class="btn-primary flex items-center gap-2">
+                <mat-icon>download</mat-icon>
+                Download Resume
+             </button>
+          </div>
+        </div>
       </div>
     </header>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <div class="lg:col-span-2 space-y-8">
+    <div class="grid grid-cols-1 gap-8">
+      <div class="space-y-8">
         <section class="applications-history">
           <h2 class="flex items-center gap-2 text-xl font-bold text-ink mb-6">
             <mat-icon class="text-honeycomb-500">assignment</mat-icon>
@@ -30,7 +50,7 @@
 
           <div class="space-y-4">
             @for (app of c.applications; track app.id) {
-              <div class="card-honeycomb !p-0 overflow-hidden">
+              <div class="card-honeycomb !p-0 overflow-hidden" [id]="app.id">
                 <!-- Application Header -->
                 <div class="bg-surface-alt px-6 py-4 border-b border-slate-100 flex justify-between items-center">
                   <div>
@@ -38,15 +58,11 @@
                     <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Applied on {{ app.appliedAt | date:'mediumDate' }}</div>
                   </div>
                   <div class="flex items-center gap-4">
-                    <span class="status-badge badge-status" 
-                      [class.bg-amber-100]="app.status === ApplicationStatus.Applied"
-                      [class.text-amber-800]="app.status === ApplicationStatus.Applied"
-                      [class.bg-blue-100]="app.status === ApplicationStatus.Interview"
-                      [class.text-blue-800]="app.status === ApplicationStatus.Interview"
-                      [class.bg-green-100]="app.status === ApplicationStatus.Offer"
-                      [class.text-green-800]="app.status === ApplicationStatus.Offer"
-                      [class.bg-slate-100]="app.status === ApplicationStatus.Archive"
-                      [class.text-slate-600]="app.status === ApplicationStatus.Archive">
+                    <span class="badge-status" 
+                      [class.badge-amber]="app.status === ApplicationStatus.Applied"
+                      [class.badge-blue]="app.status === ApplicationStatus.Interview"
+                      [class.badge-green]="app.status === ApplicationStatus.Offer"
+                      [class.badge-zinc]="app.status === ApplicationStatus.Archive">
                       {{ getStatusLabel(app.status) }}
                       @if (app.status === ApplicationStatus.Archive) {
                         : {{ getResolutionLabel(app.archivalResolution) }}
@@ -62,27 +78,36 @@
                 <div class="grid grid-cols-1 md:grid-cols-2">
                   <!-- Management Logic -->
                   <div class="p-6 border-r border-slate-100">
-                    <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Pipeline Management</h3>
+                    <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Pipeline Status</h3>
                     
-                    <div class="current-status status-{{app.status}}">
-                      Current Stage: <strong>{{ getStatusLabel(app.status) }}</strong>
+                    <div class="flex items-center justify-between mb-6 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                       <span class="text-xs font-bold text-slate-600">Current Stage</span>
+                       <span class="text-xs font-black uppercase text-honeycomb-700">{{ getStatusLabel(app.status) }}</span>
                     </div>
 
-                    <div class="status-buttons">
+                    <div class="flex flex-col gap-2">
+                      <div class="grid grid-cols-2 gap-2">
+                        <button 
+                          class="btn-secondary !text-[11px] !py-2 flex items-center justify-center gap-1"
+                          [disabled]="app.status !== ApplicationStatus.Applied"
+                          (click)="updateStatus(app.id, ApplicationStatus.Interview)">
+                          <mat-icon class="!text-[14px] !w-[14px] !h-[14px]">forum</mat-icon>
+                          Interview
+                        </button>
+                        <button 
+                          class="btn-secondary !text-[11px] !py-2 flex items-center justify-center gap-1"
+                          [disabled]="app.status !== ApplicationStatus.Interview"
+                          (click)="updateStatus(app.id, ApplicationStatus.Offer)">
+                          <mat-icon class="!text-[14px] !w-[14px] !h-[14px]">check_circle</mat-icon>
+                          Offer
+                        </button>
+                      </div>
+                      
                       <button 
-                        [disabled]="app.status !== ApplicationStatus.Applied"
-                        (click)="updateStatus(app.id, ApplicationStatus.Interview)">
-                        Move to <strong>Interview</strong>
-                      </button>
-                      <button 
-                        [disabled]="app.status !== ApplicationStatus.Interview"
-                        (click)="updateStatus(app.id, ApplicationStatus.Offer)">
-                        Move to <strong>Offer</strong>
-                      </button>
-                      <button 
-                        class="btn-archive"
+                        class="w-full !py-2 text-[11px] font-bold border border-red-100 bg-red-50/30 text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors rounded-lg flex items-center justify-center gap-1 disabled:opacity-30"
                         [disabled]="app.status === ApplicationStatus.Archive"
                         (click)="updateStatus(app.id, ApplicationStatus.Archive)">
+                        <mat-icon class="!text-[14px] !w-[14px] !h-[14px]">archive</mat-icon>
                         Archive Candidate
                       </button>
                     </div>
@@ -141,33 +166,6 @@
             }
           </div>
         </section>
-      </div>
-
-      <!-- Side Stats or Info -->
-      <div class="space-y-6">
-        <div class="card-honeycomb">
-          <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Contact Info</h3>
-          <div class="space-y-4">
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-slate-400">
-                <mat-icon class="!text-lg">email</mat-icon>
-              </div>
-              <div class="min-w-0">
-                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Email Address</div>
-                <div class="text-sm font-medium text-ink truncate">{{ c.email }}</div>
-              </div>
-            </div>
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-slate-400">
-                <mat-icon class="!text-lg">phone</mat-icon>
-              </div>
-              <div class="min-w-0">
-                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Phone Number</div>
-                <div class="text-sm font-medium text-ink">{{ c.phone || 'Not provided' }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   }

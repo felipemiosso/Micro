@@ -23,40 +23,24 @@ This document details the screens and actions available to candidates and the sy
 ## Admin Experience (Internal)
 
 ### 1. Authentication
-- **Screen**: Login page.
-- **Action**: Admin enters email and password to access the internal dashboard.
+- **Screen**: Login page with password visibility toggle.
+- **Action**: Admin enters credentials to access the dashboard.
 
-### 2. Dashboard / Overview
-- **View**: Summary of active job postings and recent applications.
-- **Navigation**: Access to Requisitions, Job Postings, and Candidates.
+### 2. Candidate Board (Kanban)
+- **View**: A visual board with lanes for **Applied**, **Interview**, and **Offer**.
+- **Interaction**: Drag and drop cards between lanes to progress candidates.
+- **Archiving**: Dragging a card triggers a **floating bottom archive zone**. Dropping here opens a resolution dialog.
+- **Deep Linking**: Profile links on Kanban cards navigate to the candidate detail page, automatically scrolling to and highlighting the specific application card.
 
-### 3. Requisition Management
-- **List View**: See all internal requisitions.
-- **Action**: Create/Edit a Requisition.
-- **Status Management**: Toggle between **Draft**, **Finalized**, and **Closed**.
-- **Result**: Finalizing a Requisition **automatically** creates and publishes the **Job Posting**. Closing a Requisition **automatically closes** the associated Job Posting.
+### 3. Requisition & Job Management
+- **Lists**: Tables with standardized status badges and action buttons.
+- **Confirmation**: Deleting or closing items triggers a custom **ConfirmDialogComponent** instead of native popups.
+- **Highlighting**: The current section is always highlighted in the sticky navigation header.
 
-### 4. Job Posting Management
-- **List View**: See all public-facing job advertisements.
-- **Status Management**: Toggle between **Published** and **Closed**. 
-- **Constraint**: Can be closed independently of the Requisition to stop new applications. However, closing the parent **Requisition** will automatically force this Job Posting to **Closed**.
-- **Navigation**: Link back to the source Requisition for any content edits.
-
-### 5. Candidate Tracking (Kanban/List)
-- **View**: A board showing candidates grouped by their current stage:
-  - **Applied**
-  - **Interview**
-  - **Offer**
-  - **Archive**
-- **Filter/Sort**: Ability to filter candidates by **Job Posting / Requisition**.
-- **Search**: Search for candidates by **Name** or **Email**.
-- **Action**: Click a candidate to view their full **Application** profile and download their resume file.
-- **Action**: Move a candidate between stages. **Note**: Moving to **Archive** requires selecting a specific resolution status.
-
-### 6. Candidate Review & Feedback
-- **View**: Candidate's resume (file), contact info, and history of actions.
-- **View**: History of all previously recorded **Feedback** (notes and scores).
-- **Action**: Add new **Feedback** (textarea for notes + 1-5 score).
+### 4. Candidate Profiles
+- **View**: Integrated header with contact info and primary actions (Resume download).
+- **Feedback**: Side-by-side management and history view.
+- **Navigation**: "Back to Candidates" link returns to the board with state preserved.
 
 ### 7. Offer Stage Communication
 - **View**: Application details and negotiation history for candidates in the **Offer** stage.

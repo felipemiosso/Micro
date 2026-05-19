@@ -33,12 +33,11 @@ public class ApplicationTests : PageTest
         var reqRow = Page.Locator(".requisition-table tbody tr").Filter(new() { HasText = title });
         await Expect(reqRow).ToBeVisibleAsync(); // Wait for the row to appear
 
-        void HandleDialog(object? sender, IDialog dialog) => dialog.AcceptAsync();
-        Page.Dialog += HandleDialog;
-        try { await reqRow.Locator(".action-btn.finalize").ClickAsync(); } finally { Page.Dialog -= HandleDialog; }
+        await reqRow.Locator(".action-btn.finalize").ClickAsync();
+        await Page.ClickAsync("button:has-text('Finalize')");
         
         // Wait for finalize to complete (indicated by status change in row)
-        await Expect(reqRow.Locator(".status-badge")).ToHaveTextAsync("Finalized");
+        await Expect(reqRow.Locator(".badge-status")).ToHaveTextAsync("Finalized");
 
         // Logout
         await Page.ClickAsync(".user-menu-trigger");
@@ -163,8 +162,8 @@ public class ApplicationTests : PageTest
         await row.Locator(".action-link").First.ClickAsync();
 
         // Update Stage
-        await Page.ClickAsync("button:has-text('Move to Interview')");
-        await Expect(Page.Locator(".current-status")).ToContainTextAsync("Interview");
+        await Page.ClickAsync("button:has-text('Interview')");
+        await Expect(Page.Locator(".badge-status")).ToContainTextAsync("Interview");
 
         // Add Feedback
         await Page.FillAsync("#notes", "Very promising candidate.");
@@ -218,8 +217,8 @@ public class ApplicationTests : PageTest
         await candidateCard.Locator("a:has-text('Profile')").ClickAsync();
         await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/candidates/"));
         
-        await Page.ClickAsync("button:has-text('Move to Interview')");
-        await Expect(Page.Locator(".current-status")).ToContainTextAsync("Interview");
+        await Page.ClickAsync("button:has-text('Interview')");
+        await Expect(Page.Locator(".badge-status")).ToContainTextAsync("Interview");
 
         // Go back to board
         await Page.ClickAsync("a:has-text('Applications')");
@@ -282,7 +281,7 @@ public class ApplicationTests : PageTest
         await dialog.Locator("button:has-text('Archive')").ClickAsync();
 
         // Verify archived in detail view first
-        await Expect(Page.Locator(".current-status")).ToContainTextAsync("Archive");
+        await Expect(Page.Locator(".badge-status")).ToContainTextAsync("Archive");
 
         // Check archived board
         await Page.GotoAsync($"{BaseUrl}/applications/archived");

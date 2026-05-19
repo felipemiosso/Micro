@@ -58,3 +58,5 @@ src/Micro.API/Storage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+firebase-debug.log

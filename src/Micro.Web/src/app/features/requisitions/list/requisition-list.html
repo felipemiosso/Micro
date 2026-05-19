@@ -36,13 +36,10 @@
               </span>
             </td>
             <td class="px-6 py-4">
-              <span class="status-badge badge-status" 
-                [class.bg-amber-100]="req.status === Status.Draft"
-                [class.text-amber-800]="req.status === Status.Draft"
-                [class.bg-green-100]="req.status === Status.Finalized"
-                [class.text-green-800]="req.status === Status.Finalized"
-                [class.bg-slate-100]="req.status === Status.Closed"
-                [class.text-slate-600]="req.status === Status.Closed">
+              <span class="badge-status" 
+                [class.badge-amber]="req.status === Status.Draft"
+                [class.badge-green]="req.status === Status.Finalized"
+                [class.badge-zinc]="req.status === Status.Closed">
                 {{ getStatusLabel(req.status) }}
               </span>
             </td>

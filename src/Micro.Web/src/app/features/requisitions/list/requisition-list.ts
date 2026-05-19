@@ -7,17 +7,20 @@ import { NotificationService } from '../../../core/ui/notification.service';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { ConfirmDialogComponent } from '../../../core/ui/confirm-dialog';
 
 @Component({
   selector: 'app-requisition-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, MatIconModule, MatButtonModule, MatTooltipModule],
+  imports: [CommonModule, RouterModule, MatIconModule, MatButtonModule, MatTooltipModule, MatDialogModule],
   templateUrl: './requisition-list.html',
   styleUrls: ['./requisition-list.css'],
 })
 export class RequisitionListComponent implements OnInit {
   private requisitionService = inject(RequisitionService);
   private notification = inject(NotificationService);
+  private dialog = inject(MatDialog);
   authService = inject(AuthService);
   
   requisitions = signal<Requisition[]>([]);
@@ -40,15 +43,37 @@ export class RequisitionListComponent implements OnInit {
   }
 
   finalize(id: string) {
-    if (confirm('Are you sure you want to finalize this requisition? It will become read-only.')) {
-      this.requisitionService.finalize(id).subscribe(() => this.loadRequisitions());
-    }
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        title: 'Finalize Requisition',
+        message: 'Are you sure you want to finalize this requisition? It will become read-only and ready for job posting.',
+        confirmText: 'Finalize',
+        isDestructive: false
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.requisitionService.finalize(id).subscribe(() => this.loadRequisitions());
+      }
+    });
   }
 
   close(id: string) {
-    if (confirm('Are you sure you want to close this requisition?')) {
-      this.requisitionService.close(id).subscribe(() => this.loadRequisitions());
-    }
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        title: 'Close Requisition',
+        message: 'Are you sure you want to close this requisition? This action cannot be undone.',
+        confirmText: 'Close Requisition',
+        isDestructive: true
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.requisitionService.close(id).subscribe(() => this.loadRequisitions());
+      }
+    });
   }
 
   getStatusLabel(status: RequisitionStatus): string {

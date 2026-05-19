@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -17,7 +17,7 @@ import { ArchiveDialogComponent } from '../../../core/ui/archive-dialog';
   templateUrl: './application-detail.html',
   styleUrls: ['./application-detail.css'],
 })
-export class ApplicationDetailComponent implements OnInit {
+export class ApplicationDetailComponent implements OnInit, AfterViewInit {
 
   private applicationService = inject(ApplicationService);
   private route = inject(ActivatedRoute);
@@ -39,6 +39,25 @@ export class ApplicationDetailComponent implements OnInit {
     if (id) {
       this.loadCandidate(id);
     }
+  }
+
+  ngAfterViewInit() {
+    this.route.fragment.subscribe(fragment => {
+      if (fragment) {
+        // Wait for data to load and view to render
+        const checkExist = setInterval(() => {
+          const element = document.getElementById(fragment);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            element.classList.add('highlight-pulse');
+            clearInterval(checkExist);
+          }
+        }, 100);
+
+        // Safety timeout
+        setTimeout(() => clearInterval(checkExist), 3000);
+      }
+    });
   }
 
   loadCandidate(id: string) {
@@ -114,15 +133,23 @@ export class ApplicationDetailComponent implements OnInit {
     }
   }
 
-  downloadResume(appId: string, candidateName: string) {
+  downloadResume(appId: string | undefined, candidateName: string) {
+    if (!appId) return;
     this.applicationService.downloadResume(appId).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
+        a.style.display = 'none';
         a.href = url;
         a.download = `${candidateName}_Resume.pdf`;
+        document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      },
+      error: (err) => {
+        console.error('Failed to download resume', err);
+        this.notification.error('Failed to download resume. Please try again.');
       }
     });
   }

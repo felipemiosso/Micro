@@ -61,6 +61,8 @@ Unresolved ambiguities that could affect testability. Each question must name th
 Only observable business behavior — outcomes a tester can verify through the UI or API with no access to source code, logs, or internal state.
 
 - **layer: e2e**: Scenarios that require the full system (UI + API + DB). Use for happy paths and critical user flows.
+- **Deep-Linking & Animations**: Verify that deep-linked elements (via fragments) scroll into view and trigger visual feedback like the `.highlight-pulse` animation.
+- **Visual Consistency**: Check for standardized badge styles and custom dialog behaviors across all pages.
 - **layer: integration**: Scenarios that can be verified via API calls directly. Use for detailed business rules, auth edge cases, and validation logic.
 
 **Include:**

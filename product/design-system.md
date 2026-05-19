@@ -1,54 +1,64 @@
 # Honeycomb Design System
 
 ## Overview
-The Honeycomb Design System establishes the visual and structural language for Micro ATS. It aims for a "Clean, Professional, and Sharp" aesthetic, utilizing a color palette inspired by honeycombs: deep ambers, bright golds, and sophisticated zincs.
+The Honeycomb Design System establishes the visual and structural language for Micro ATS. It aims for a "Clean, Professional, and Sharp" aesthetic, utilizing a color palette inspired by honeycombs: deep ambers, bright golds, and sophisticated dark zincs (Ink).
 
 ## Design Principles
 - **Clarity over Clutter**: Focus on whitespace and high-contrast typography.
-- **Structured Hierarchy**: Use honeycomb-inspired geometry (sharp edges, hex-accents) where appropriate to denote structure.
+- **Structured Hierarchy**: Use honeycomb-inspired geometry (sharp edges, hex-accents) to denote structure.
 - **Responsive & Dynamic**: Full support for varying screen sizes.
 
 ## 1. Visual Language
 
-### Color Palette
-- **Primary (Amber)**: `amber-600` (#D97706) for primary actions, success states, and highlights.
-- **Neutral (Zinc)**: `zinc-900` (#18181B) for text, and `zinc-200` (#E4E4E7) for borders.
-- **Backgrounds**:
-    - `background`: White (#FFFFFF).
-    - `surface`: Off-white/Light gray (#F9FAFB / `zinc-50`).
+### Color Palette (Tailwind Tokens)
+- **Primary (Honeycomb)**: `honeycomb-500` (#f59e0b) for primary actions and highlights.
+- **Dark Neutral (Ink)**: `ink-dark` (#0f172a / `slate-900`) for navigation and primary text.
+- **Surface**: `surface-alt` (#f8fafc / `slate-50`) for backgrounds.
 
 ### Typography
-- **Font Family**: Inter (Sans-serif). Import via Google Fonts.
+- **Font Family**: Inter (Sans-serif).
 - **Scales**:
-    - `heading-1`: 3xl, Bold, Zinc-900, Tracking-tight.
-    - `heading-2`: xl, Semibold, Zinc-900.
-    - `body-text`: sm, Zinc-600, Leading-relaxed.
+    - `heading-1`: 4xl, Bold, Ink, Tracking-tight.
+    - `subtitle`: sm, Medium, slate-400.
 
 ### Geometry
-- **Radius**: `rounded-lg` (8px) for components, `rounded-xl` (12px) for cards.
-- **Shadows**: `shadow-sm` for standard cards, `shadow-md` for interactive elements.
+- **Radius**: `rounded-lg` (8px) for inputs/buttons, `rounded-xl` (12px) for modals, `rounded-2xl` (16px) for main cards.
+- **Shadows**: `shadow-sm` for cards, `shadow-xl` for overlays/modals.
 
 ## 2. Technical Implementation (Tailwind CSS)
 
 ### Global Classes (`src/styles.css`)
 
 #### Buttons
-- `.btn-primary`: `bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 shadow-sm`
-- `.btn-secondary`: `bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50 font-semibold py-2 px-4 rounded-lg transition-colors duration-200 shadow-sm`
-- `.btn-ghost`: `text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 py-2 px-4 rounded-lg transition-colors duration-200`
-
-#### Layout & Containers
-- `.card`: `bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden`
-- `.container-main`: `max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8`
-- `.section-header`: `flex items-center justify-between mb-8`
+- `.btn-primary`: Amber background, white text, bold, hover transitions.
+- `.btn-secondary`: White background, zinc border, ink text, hover border tint.
 
 #### Data & Badges
-- `.badge`: `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium uppercase tracking-wider`
-- `.badge-amber`: `bg-amber-100 text-amber-800 border border-amber-200`
-- `.badge-zinc`: `bg-zinc-100 text-zinc-800 border border-zinc-200`
+- `.badge-status`: Pill-shaped, font-black, uppercase, tracking-wider.
+    - `.badge-amber`: Drafts, Applied.
+    - `.badge-blue`: Interviewing.
+    - `.badge-green`: Finalized, Published, Offer.
+    - `.badge-zinc`: Closed, Archive.
+    - `.badge-red`: Critical/Deleted.
 
-## 3. Interaction & Constraints
-- **Focus States**: `focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2`.
-- **Spacing**: Strictly follow Tailwind's spacing scale (4, 8, 12, 16, 24, 32).
-- **Icons**: Use **Material Design Icons** (`mat-icon`) for all interface elements. Prefer standard symbols like `assignment`, `work`, `people`, and `view_kanban`.
-- **Empty States**: Centered illustrations with `zinc-400` color.
+#### Containers
+- `.card-honeycomb`: White background, thin slate border, soft shadow, transition on hover.
+- `.lane-honeycomb`: Kanban column style, top border accent.
+
+## 3. Interaction Patterns
+
+### Dialogs & Modals
+- **Confirmation**: Use `ConfirmDialogComponent`. Standard centered modal with icon, clear title, and primary/secondary action buttons.
+- **Notifications**: Use `NotificationService` (SnackBars) for transient feedback.
+
+### Navigation
+- **Header**: Sticky dark header with `honeycomb-400` branding.
+- **Active Links**: `honeycomb-400` text with a 2px bottom border.
+
+### Animations
+- **Deep Linking**: Items navigated via fragment scroll must use `.highlight-pulse` (a temporary amber shadow and scale effect).
+- **Drag & Drop**: Archive zone appears as a floating bottom bar during active drag events.
+
+## 4. Components & Icons
+- **Icons**: Material Design Icons (`mat-icon`).
+- **Inputs**: `.input-honeycomb` (full width, slate border, amber focus ring).

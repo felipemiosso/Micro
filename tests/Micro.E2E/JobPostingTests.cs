@@ -35,23 +35,19 @@ public class JobPostingTests : PageTest
 
         // Finalize Requisition
         var reqRow = Page.Locator(".requisition-table tbody tr").Filter(new() { HasText = title });
+        await Expect(reqRow).ToBeVisibleAsync();
         
-        void HandleDialog(object? sender, IDialog dialog) => dialog.AcceptAsync();
-        Page.Dialog += HandleDialog;
-        try 
-        {
-            await reqRow.Locator(".action-btn.finalize").ClickAsync();
-        }
-        finally
-        {
-            Page.Dialog -= HandleDialog;
-        }
+        await reqRow.Locator(".action-btn.finalize").ClickAsync();
+        await Page.ClickAsync("button:has-text('Finalize')");
+        
+        // Wait for finalization to complete before navigating
+        await Expect(reqRow.Locator(".badge-status")).ToHaveTextAsync("Finalized");
 
         // Check Job Posting
         await Page.GotoAsync($"{BaseUrl}/job-management");
         var jobRow = Page.Locator(".job-table tbody tr").Filter(new() { HasText = title });
         await Expect(jobRow).ToBeVisibleAsync();
-        await Expect(jobRow.Locator(".status-badge")).ToHaveTextAsync("Published");
+        await Expect(jobRow.Locator(".badge-status")).ToHaveTextAsync("Published");
 
         // Check Public Board
         await Page.GotoAsync($"{BaseUrl}/jobs");
@@ -74,15 +70,19 @@ public class JobPostingTests : PageTest
         await Page.ClickAsync("button:has-text('Create Requisition')");
         
         var reqRow = Page.Locator(".requisition-table tbody tr").Filter(new() { HasText = title });
-        void HandleDialog(object? sender, IDialog dialog) => dialog.AcceptAsync();
-        Page.Dialog += HandleDialog;
-        try { await reqRow.Locator(".action-btn.finalize").ClickAsync(); } finally { Page.Dialog -= HandleDialog; }
+        await Expect(reqRow).ToBeVisibleAsync();
+        
+        await reqRow.Locator(".action-btn.finalize").ClickAsync();
+        await Page.ClickAsync("button:has-text('Finalize')");
+        
+        // Wait for finalization to complete before navigating
+        await Expect(reqRow.Locator(".badge-status")).ToHaveTextAsync("Finalized");
 
         // Edit Job Posting
         await Page.GotoAsync($"{BaseUrl}/job-management");
         var jobRow = Page.Locator(".job-table tbody tr").Filter(new() { HasText = title });
         await Expect(jobRow).ToBeVisibleAsync(); // Ensure row is loaded
-        await jobRow.Locator(".action-link:has-text('Edit')").ClickAsync();
+        await jobRow.Locator("a[mattooltip='Edit Job']").ClickAsync();
 
         // Wait for the API to populate the form
         await Expect(Page.Locator("#title")).ToHaveValueAsync(title);
@@ -107,7 +107,7 @@ public class JobPostingTests : PageTest
 
     [Fact]
     public async Task AC03_ManualJobPostingClosure()
-        {
+    {
         await LoginAsAdmin();
         string title = $"Closable Job {Guid.NewGuid()}";
 
@@ -120,25 +120,27 @@ public class JobPostingTests : PageTest
         var reqRow = Page.Locator(".requisition-table tbody tr").Filter(new() { HasText = title });
         await Expect(reqRow).ToBeVisibleAsync();
 
-        void HandleDialog(object? sender, IDialog dialog) => dialog.AcceptAsync();
-        Page.Dialog += HandleDialog;
-        try { await reqRow.Locator(".action-btn.finalize").ClickAsync(); } finally { Page.Dialog -= HandleDialog; }
+        await reqRow.Locator(".action-btn.finalize").ClickAsync();
+        await Page.ClickAsync("button:has-text('Finalize')");
+        
+        // Wait for finalization to complete before navigating
+        await Expect(reqRow.Locator(".badge-status")).ToHaveTextAsync("Finalized");
 
         // Close Job Posting
         await Page.GotoAsync($"{BaseUrl}/job-management");
         var jobRow = Page.Locator(".job-table tbody tr").Filter(new() { HasText = title });
         await Expect(jobRow).ToBeVisibleAsync(); // Wait for the job to appear in the list
 
-        Page.Dialog += HandleDialog;
-        try { await jobRow.Locator(".action-btn.close").ClickAsync(); } finally { Page.Dialog -= HandleDialog; }
+        await jobRow.Locator("button[mattooltip='Close Job']").ClickAsync();
+        await Page.ClickAsync("button:has-text('Close Job')");
 
         // Verify Closed status
-        await Expect(jobRow.Locator(".status-badge")).ToHaveTextAsync("Closed");
+        await Expect(jobRow.Locator(".badge-status")).ToHaveTextAsync("Closed");
 
         // Verify Hidden on Public Board
         await Page.GotoAsync($"{BaseUrl}/jobs");
         var jobCard = Page.Locator(".job-card").Filter(new() { HasText = title });
         await Expect(jobCard).Not.ToBeVisibleAsync();
-        }
+    }
 
 }
