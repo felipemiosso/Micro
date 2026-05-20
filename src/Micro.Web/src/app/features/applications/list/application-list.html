@@ -55,7 +55,11 @@
               </td>
               <td class="px-6 py-4 text-sm text-slate-400">{{ app.appliedAt | date:'MMM d, yyyy' }}</td>
               <td class="px-6 py-4">
-                <span class="badge-status badge-slate">
+                <span class="badge-status"
+                  [class.badge-amber]="app.status === 'Applied'"
+                  [class.badge-blue]="app.status === 'Interview'"
+                  [class.badge-green]="app.status === 'Offer'"
+                  [class.badge-zinc]="app.status === 'Archive'">
                   {{ getStatusLabel(app.status) }}
                 </span>
               </td>

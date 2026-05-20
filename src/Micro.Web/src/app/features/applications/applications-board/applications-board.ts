@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, AfterViewInit } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
@@ -6,7 +6,7 @@ import { ApplicationService, Application, ApplicationStatus, ArchivalResolution 
 import { JobPostingService, JobPosting } from '../../job-postings/job-posting.service';
 import { AuthService } from '../../../core/auth/auth';
 import { ApplicationCardComponent } from '../application-card/application-card';
-import { RouterLink, ActivatedRoute } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { NotificationService } from '../../../core/ui/notification.service';
 import { ArchiveDialogComponent } from '../../../core/ui/archive-dialog';
@@ -33,6 +33,7 @@ export class ApplicationsBoardComponent implements OnInit {
   applied = signal<Application[]>([]);
   interview = signal<Application[]>([]);
   offer = signal<Application[]>([]);
+  readonly emptyArchiveList: Application[] = [];
 
   ngOnInit() {
     this.loadJobs();

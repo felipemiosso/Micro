@@ -39,8 +39,8 @@ export class RequisitionFormComponent implements OnInit {
     salaryBandId: ['', [Validators.required]],
     costCenterId: ['', [Validators.required]],
     openingsCount: [1, [Validators.required, Validators.min(1)]],
-    employmentType: [0, [Validators.required]],
-    workplaceType: [0, [Validators.required]],
+    employmentType: ['FullTime', [Validators.required]],
+    workplaceType: ['OnSite', [Validators.required]],
     location: ['', [Validators.required]],
     jobDescription: ['', [Validators.required]],
     isInternalOnly: [false],
@@ -138,6 +138,8 @@ export class RequisitionFormComponent implements OnInit {
           ctrl.patchValue({
             targetStartDate: initial.targetStartDate ? this.formatDateForInput(initial.targetStartDate) : null
           });
+          // Reset dirty so master targetStartDate propagation still works for unchanged openings
+          ctrl.get('targetStartDate')?.markAsPristine();
         }
       });
     }

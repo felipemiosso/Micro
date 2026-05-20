@@ -84,21 +84,13 @@ export const routes: Routes = [
         path: 'profile',
         loadComponent: () => import('./features/auth/profile/profile').then(m => m.ProfileComponent)
       },
-      {
-        path: 'roles',
-        canActivate: [permissionGuard('Role', 'View')],
-        loadComponent: () => import('./features/roles/list/role-list').then(m => m.RoleListComponent)
-      },
+
       {
         path: 'roles/new',
         canActivate: [permissionGuard('Role', 'Create')],
         loadComponent: () => import('./features/roles/form/role-editor').then(m => m.RoleEditorComponent)
       },
-      {
-        path: 'users',
-        canActivate: [permissionGuard('User', 'View')],
-        loadComponent: () => import('./features/users/list/user-list').then(m => m.UserListComponent)
-      },
+
       {
         path: 'admin/settings',
         canActivate: [roleGuard('Admin')],

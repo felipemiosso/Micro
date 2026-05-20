@@ -14,7 +14,7 @@ import { NotificationService } from '../../../core/ui/notification.service';
     <div class="p-8 bg-hex-pattern min-h-screen">
       <div class="max-w-3xl mx-auto">
         <div class="mb-10">
-          <a routerLink="/roles" class="text-xs font-bold text-honeycomb-600 uppercase tracking-widest flex items-center gap-1 mb-4 no-underline">
+          <a routerLink="/admin/settings" [queryParams]="{tab: 'roles'}" class="text-xs font-bold text-honeycomb-600 uppercase tracking-widest flex items-center gap-1 mb-4 no-underline">
             <mat-icon class="!text-[14px] !w-[14px] !h-[14px]">arrow_back</mat-icon>
             Back to Roles
           </a>
@@ -62,7 +62,7 @@ import { NotificationService } from '../../../core/ui/notification.service';
           </div>
 
           <div class="flex justify-end gap-4">
-            <a routerLink="/roles" class="btn-secondary">Cancel</a>
+            <a routerLink="/admin/settings" [queryParams]="{tab: 'roles'}" class="btn-secondary">Cancel</a>
             <button type="submit" class="btn-primary px-10" [disabled]="!roleName || selectedPermissions.length === 0">
               Save Role
             </button>
@@ -114,7 +114,7 @@ export class RoleEditorComponent implements OnInit {
     this.roleService.createRole(this.roleName, this.selectedPermissions).subscribe({
       next: () => {
         this.notification.success('Role created successfully');
-        this.router.navigate(['/roles']);
+        this.router.navigate(['/admin/settings'], { queryParams: { tab: 'roles' } });
       },
       error: () => this.notification.error('Failed to create role')
     });

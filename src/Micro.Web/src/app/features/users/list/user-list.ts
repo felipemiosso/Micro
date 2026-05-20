@@ -17,11 +17,11 @@ import { EditRolesDialogComponent } from '../edit-roles/edit-roles';
   standalone: true,
   imports: [CommonModule, RouterModule, MatIconModule, MatButtonModule, MatTooltipModule, MatDialogModule],
   template: `
-    <div class="p-8 bg-hex-pattern min-h-screen">
-      <div class="flex justify-between items-end mb-10">
+    <div class="flex flex-col gap-6">
+      <div class="flex justify-between items-center">
         <div>
-          <h1 class="text-4xl font-bold text-ink tracking-tight mb-2">Team Members</h1>
-          <p class="text-ink-light font-medium">Manage user access and roles</p>
+          <h2 class="text-2xl font-bold text-ink tracking-tight mb-1">Team Members</h2>
+          <p class="text-sm text-ink-light font-medium">Manage user access and roles</p>
         </div>
         
         @if (authService.hasPermission('User', 'Invite')) {

@@ -58,3 +58,7 @@ requisition-form.ts:84 ERROR RuntimeError: NG0100: ExpressionChangedAfterItHasBe
 **User:** candidate page application history there is a bug: Current Stage Unknown
 
 **Gemini:** `CandidateEndpoints.cs` was casting `a.Status` and `a.ArchivalResolution` to `(int)`, sending numeric values (0, 1, 2...) to the frontend. Frontend enums are strings (`'Applied'`, `'Interview'`...) so every value hit `default: return 'Unknown'`. Fixed by changing `CandidateContracts.cs` fields to `string` and replacing `(int)` casts with `.ToString()`. All 22/22 integration tests passed.
+
+**User:** /caveman full
+
+**Gemini:** Full audit pass. Fixed two additional bugs found during review: (1) `application-list.html` status badge was hardcoded to `badge-slate` regardless of status — replaced with dynamic `badge-amber/blue/green/zinc` bindings. (2) `applications-board.html` used legacy `*ngFor` directive — replaced with modern `@for` control flow. Build clean, all tests green.

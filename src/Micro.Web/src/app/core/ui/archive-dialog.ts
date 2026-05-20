@@ -26,7 +26,7 @@ import { RequisitionOpening } from '../../features/requisitions/requisition.serv
         <div class="flex flex-col gap-2 mt-4">
           <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Select Available Position/Opening</label>
           <select [(ngModel)]="selectedOpeningId" class="border border-slate-300 rounded-lg p-2 bg-white w-full text-slate-700 focus:outline-none focus:border-primary">
-            <option [value]="null">Select an opening...</option>
+            <option [ngValue]="null">Select an opening...</option>
             @for (op of availableOpenings(); track op.id) {
               <option [value]="op.id">Opening #{{ op.sequenceNumber }} (Target Date: {{ op.targetStartDate ? (op.targetStartDate | date:'MMM d, yyyy') : 'Not Set' }})</option>
             }

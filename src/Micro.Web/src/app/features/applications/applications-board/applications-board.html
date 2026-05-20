@@ -11,7 +11,9 @@
         (ngModelChange)="selectedJobId.set($event); loadApplications()"
         class="input-honeycomb w-72">
         <option value="">All Job Postings</option>
-        <option *ngFor="let job of jobPostings()" [value]="job.id">{{ job.title }}</option>
+        @for (job of jobPostings(); track job.id) {
+          <option [value]="job.id">{{ job.title }}</option>
+        }
       </select>
     </div>
   </div>
@@ -28,6 +30,7 @@
           id="appliedList"
           cdkDropList
           [cdkDropListData]="applied()"
+          [cdkDropListConnectedTo]="['archiveList']"
           class="flex-1 min-h-[200px]"
           (cdkDropListDropped)="onDrop($event)">
           @for (app of applied(); track app.id) {
@@ -48,6 +51,7 @@
           id="interviewList"
           cdkDropList
           [cdkDropListData]="interview()"
+          [cdkDropListConnectedTo]="['archiveList']"
           class="flex-1 min-h-[200px]"
           (cdkDropListDropped)="onDrop($event)">
           @for (app of interview(); track app.id) {
@@ -68,6 +72,7 @@
           id="offerList"
           cdkDropList
           [cdkDropListData]="offer()"
+          [cdkDropListConnectedTo]="['archiveList']"
           class="flex-1 min-h-[200px]"
           (cdkDropListDropped)="onDrop($event)">
           @for (app of offer(); track app.id) {
@@ -90,7 +95,9 @@
       [class.pointer-events-auto]="isDragging()">
       
       <div 
+        id="archiveList"
         cdkDropList
+        [cdkDropListData]="emptyArchiveList"
         (cdkDropListDropped)="onArchiveDrop($event)"
         class="bg-ink-dark/95 backdrop-blur-md border-2 border-red-500/30 text-white px-12 py-5 rounded-2xl flex flex-col items-center gap-2 shadow-2xl shadow-red-900/20 hover:bg-red-900/20 hover:border-red-500 transition-colors cursor-default min-w-[400px]">
         <div class="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center text-red-500">

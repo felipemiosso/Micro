@@ -27,20 +27,7 @@
         </a>
       }
 
-      @if (authService.hasPermission('Role', 'View')) {
-        <a routerLink="/roles" routerLinkActive="active" class="flex items-center gap-2">
-          <mat-icon class="!text-[18px] !w-[18px] !h-[18px]">security</mat-icon>
-          Roles
-        </a>
-      }
 
-      @if (authService.hasPermission('User', 'View')) {
-        <a routerLink="/users" routerLinkActive="active" class="flex items-center gap-2">
-          <mat-icon class="!text-[18px] !w-[18px] !h-[18px]">group</mat-icon>
-          Users
-        </a>
-      }
-      
       <!-- User Profile Dropdown -->
       <div class="ml-4 flex items-center">
         <button 

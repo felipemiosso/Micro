@@ -1,14 +1,17 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { AdminService, Department, SalaryBand, CostCenter } from './admin.service';
 import { NotificationService } from '../../core/ui/notification.service';
 import { MatIconModule } from '@angular/material/icon';
+import { UserListComponent } from '../users/list/user-list';
+import { RoleListComponent } from '../roles/list/role-list';
 
 @Component({
   selector: 'app-admin-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, RouterModule, MatIconModule, UserListComponent, RoleListComponent],
   template: `
     <div class="p-8 bg-hex-pattern min-h-screen">
       <div class="max-w-6xl mx-auto">
@@ -21,7 +24,7 @@ import { MatIconModule } from '@angular/material/icon';
 
         <div class="flex gap-1 bg-surface-alt p-1 rounded-xl w-fit mb-8 border border-slate-200 shadow-sm">
           <button 
-            (click)="activeTab.set('departments')" 
+            (click)="switchTab('departments')" 
             [class.bg-white]="activeTab() === 'departments'"
             [class.shadow-sm]="activeTab() === 'departments'"
             [class.text-primary]="activeTab() === 'departments'"
@@ -29,7 +32,7 @@ import { MatIconModule } from '@angular/material/icon';
             Departments
           </button>
           <button 
-            (click)="activeTab.set('salary-bands')" 
+            (click)="switchTab('salary-bands')" 
             [class.bg-white]="activeTab() === 'salary-bands'"
             [class.shadow-sm]="activeTab() === 'salary-bands'"
             [class.text-primary]="activeTab() === 'salary-bands'"
@@ -37,16 +40,40 @@ import { MatIconModule } from '@angular/material/icon';
             Salary Bands
           </button>
           <button 
-            (click)="activeTab.set('cost-centers')" 
+            (click)="switchTab('cost-centers')" 
             [class.bg-white]="activeTab() === 'cost-centers'"
             [class.shadow-sm]="activeTab() === 'cost-centers'"
             [class.text-primary]="activeTab() === 'cost-centers'"
             class="px-6 py-2 rounded-lg text-sm font-bold transition-all text-slate-500 hover:text-ink">
             Cost Centers
           </button>
+          <button 
+            (click)="switchTab('users')" 
+            [class.bg-white]="activeTab() === 'users'"
+            [class.shadow-sm]="activeTab() === 'users'"
+            [class.text-primary]="activeTab() === 'users'"
+            class="px-6 py-2 rounded-lg text-sm font-bold transition-all text-slate-500 hover:text-ink">
+            Users
+          </button>
+          <button 
+            (click)="switchTab('roles')" 
+            [class.bg-white]="activeTab() === 'roles'"
+            [class.shadow-sm]="activeTab() === 'roles'"
+            [class.text-primary]="activeTab() === 'roles'"
+            class="px-6 py-2 rounded-lg text-sm font-bold transition-all text-slate-500 hover:text-ink">
+            Roles
+          </button>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <ng-container *ngIf="activeTab() === 'users'">
+          <app-user-list></app-user-list>
+        </ng-container>
+
+        <ng-container *ngIf="activeTab() === 'roles'">
+          <app-role-list></app-role-list>
+        </ng-container>
+
+        <div *ngIf="['departments', 'salary-bands', 'cost-centers'].includes(activeTab())" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <!-- List Column -->
           <div class="lg:col-span-2 space-y-6">
             <div class="card-honeycomb overflow-hidden !p-0">
@@ -184,8 +211,10 @@ import { MatIconModule } from '@angular/material/icon';
 export class AdminSettingsComponent implements OnInit {
   private adminService = inject(AdminService);
   private notify = inject(NotificationService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
 
-  activeTab = signal<'departments' | 'salary-bands' | 'cost-centers'>('departments');
+  activeTab = signal<'departments' | 'salary-bands' | 'cost-centers' | 'users' | 'roles'>('departments');
   editingId = signal<string | null>(null);
 
   departments = signal<Department[]>([]);
@@ -198,7 +227,16 @@ export class AdminSettingsComponent implements OnInit {
   ccForm = { code: '', name: '' };
 
   ngOnInit() {
+    this.route.queryParams.subscribe(params => {
+      if (params['tab']) {
+        this.activeTab.set(params['tab'] as any);
+      }
+    });
     this.loadAll();
+  }
+
+  switchTab(tab: string) {
+    this.router.navigate([], { queryParams: { tab } });
   }
 
   loadAll() {

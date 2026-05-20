@@ -46,8 +46,8 @@ export interface Requisition {
   closedAt?: string;
   location: string;
   jobDescription: string;
-  employmentType: number;
-  workplaceType: number;
+  employmentType: string;
+  workplaceType: string;
   isInternalOnly: boolean;
   targetStartDate?: string;
   openings?: RequisitionOpening[];
@@ -64,8 +64,8 @@ export interface CreateRequisitionRequest {
   salaryBandId: string;
   costCenterId: string;
   openingsCount: number;
-  employmentType: string | number;
-  workplaceType: string | number;
+  employmentType: string;
+  workplaceType: string;
   location: string;
   jobDescription: string;
   isInternalOnly: boolean;

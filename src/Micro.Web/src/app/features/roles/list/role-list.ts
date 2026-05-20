@@ -10,11 +10,11 @@ import { MatTooltipModule } from '@angular/material/tooltip';
   standalone: true,
   imports: [CommonModule, RouterModule, MatIconModule, MatTooltipModule],
   template: `
-    <div class="p-8 bg-hex-pattern min-h-screen">
-      <div class="flex justify-between items-end mb-10">
+    <div class="flex flex-col gap-6">
+      <div class="flex justify-between items-center">
         <div>
-          <h1 class="text-4xl font-bold text-ink tracking-tight mb-2">Role Management</h1>
-          <p class="text-ink-light font-medium">Define roles and assign system-wide permissions.</p>
+          <h2 class="text-2xl font-bold text-ink tracking-tight mb-1">Role Management</h2>
+          <p class="text-sm text-ink-light font-medium">Define roles and assign system-wide permissions.</p>
         </div>
         <a routerLink="/roles/new" class="btn-primary flex items-center gap-2">
           <mat-icon>add</mat-icon>
