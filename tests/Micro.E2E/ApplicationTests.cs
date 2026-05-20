@@ -278,10 +278,25 @@ public class ApplicationTests : PageTest
         
         // Select Hired resolution
         await dialog.GetByLabel("Hired").ClickAsync();
-        await dialog.Locator("button:has-text('Archive')").ClickAsync();
+
+        // AC-06: Archiving with Hired requires choosing available opening
+        var archiveBtn = dialog.Locator("button:has-text('Archive')");
+        await Expect(archiveBtn).ToBeDisabledAsync();
+
+        // Select the first available opening in the dropdown
+        await dialog.Locator("select").SelectOptionAsync(new SelectOptionValue { Index = 1 });
+        await Expect(archiveBtn).ToBeEnabledAsync();
+
+        await archiveBtn.ClickAsync();
 
         // Verify archived in detail view first
         await Expect(Page.Locator(".badge-status")).ToContainTextAsync("Archive");
+
+        // AC-09: Hired candidate profile displays opening details
+        var hiredPositionDetails = Page.Locator("text=Hired Position Details");
+        await Expect(hiredPositionDetails).ToBeVisibleAsync();
+        await Expect(Page.Locator(".bg-green-50")).ToContainTextAsync(jobTitle);
+        await Expect(Page.Locator(".bg-green-50")).ToContainTextAsync("Opening #1");
 
         // Check archived board
         await Page.GotoAsync($"{BaseUrl}/applications/archived");

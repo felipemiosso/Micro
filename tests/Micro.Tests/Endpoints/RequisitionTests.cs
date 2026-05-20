@@ -207,4 +207,43 @@ public class RequisitionTests : IntegrationTestBase
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
+
+    [Fact]
+    public async Task UpdateOpening_CancelOpening_WhenAllFilledOrCancelled_ClosesRequisitionAndJob()
+    {
+        // Arrange
+        var email = $"test-{Guid.NewGuid()}@microats.com";
+        await AuthenticateAsync(email);
+        var (deptId, bandId, ccId) = await GetLookupIds();
+        
+        var createRequest = new CreateRequisitionRequest(
+            "To Cancel", deptId, bandId, ccId, 1, 
+            EmploymentType.FullTime, WorkplaceType.OnSite, 
+            "London", "Job Desc", false, null);
+            
+        var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest, JsonOptions);
+        var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>(JsonOptions);
+        await Client.PostAsync($"/api/requisitions/{requisition!.Id}/finalize", null);
+        
+        var reqResponse = await Client.GetAsync($"/api/requisitions/{requisition.Id}");
+        var finalizedReq = await reqResponse.Content.ReadFromJsonAsync<Requisition>(JsonOptions);
+        var openingId = finalizedReq!.Openings.First().Id;
+
+        // Act
+        var updateRequest = new Micro.API.Endpoints.Requisition.RequisitionEndpoints.UpdateRequisitionOpeningRequest(null, OpeningStatus.Cancelled);
+        var response = await Client.PutAsJsonAsync($"/api/requisitions/{requisition.Id}/openings/{openingId}", updateRequest, JsonOptions);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        var finalReqResponse = await Client.GetAsync($"/api/requisitions/{requisition.Id}");
+        var closedReq = await finalReqResponse.Content.ReadFromJsonAsync<Requisition>(JsonOptions);
+        Assert.Equal(RequisitionStatus.Closed, closedReq!.Status);
+        Assert.NotNull(closedReq.ClosedAt);
+
+        var jobResponse = await Client.GetAsync($"/api/jobs/admin");
+        var jobs = await jobResponse.Content.ReadFromJsonAsync<List<Micro.API.Data.Models.JobPosting>>(JsonOptions);
+        var jobDetail = jobs!.First(j => j.RequisitionId == requisition.Id);
+        Assert.Equal(JobPostingStatus.Closed, jobDetail.Status);
+    }
 }

@@ -288,4 +288,78 @@ public class ApplicationTests : IntegrationTestBase
         Assert.Equal("Great candidate!", feedbacks[0].GetProperty("notes").GetString());
         Assert.Equal(5, feedbacks[0].GetProperty("score").GetInt32());
     }
+
+    [Fact]
+    public async Task UpdateStatus_ToHired_LinksOpeningAndMarksFilled()
+    {
+        // Arrange
+        var jobId = await CreatePublishedJob();
+        using var content = new MultipartFormDataContent();
+        content.Add(new StringContent("Hired Guy"), "name");
+        content.Add(new StringContent("hired@example.com"), "email");
+        content.Add(new ByteArrayContent(new byte[] { 0x25, 0x50, 0x44, 0x46 }), "resume", "resume.pdf");
+        var createResponse = await Client.PostAsync($"/api/public/jobs/{jobId}/apply", content);
+        var appJson = await createResponse.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
+        Guid appId = appJson.GetProperty("id").GetGuid();
+
+        await AuthenticateAsync();
+
+        // Get available openings for the job posting
+        var openingsResponse = await Client.GetAsync($"/api/job-postings/{jobId}/available-openings");
+        var openings = await openingsResponse.Content.ReadFromJsonAsync<List<RequisitionOpening>>(JsonOptions);
+        var openingId = openings!.First().Id;
+
+        // Act
+        var updateRequest = new UpdateStatusRequest(ApplicationStatus.Archive, ArchivalResolution.Hired, openingId);
+        var response = await Client.PutAsJsonAsync($"/api/applications/{appId}/status", updateRequest, JsonOptions);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        var detailResponse = await Client.GetAsync($"/api/applications/{appId}");
+        var detail = await detailResponse.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
+        Assert.Equal(ApplicationStatus.Archive.ToString(), detail.GetProperty("status").GetString());
+        Assert.Equal(ArchivalResolution.Hired.ToString(), detail.GetProperty("archivalResolution").GetString());
+
+        var openingsResponseAfter = await Client.GetAsync($"/api/job-postings/{jobId}/available-openings");
+        var openingsAfter = await openingsResponseAfter.Content.ReadFromJsonAsync<List<RequisitionOpening>>(JsonOptions);
+        Assert.Empty(openingsAfter!.Where(o => o.Id == openingId));
+    }
+
+    [Fact]
+    public async Task UpdateStatus_ToHired_WhenAllFilled_ClosesRequisitionAndJob()
+    {
+        // Arrange
+        var jobId = await CreatePublishedJob(); // Has 1 opening by default in the test setup
+        using var content = new MultipartFormDataContent();
+        content.Add(new StringContent("Close Guy"), "name");
+        content.Add(new StringContent("close@example.com"), "email");
+        content.Add(new ByteArrayContent(new byte[] { 0x25, 0x50, 0x44, 0x46 }), "resume", "resume.pdf");
+        var createResponse = await Client.PostAsync($"/api/public/jobs/{jobId}/apply", content);
+        var appJson = await createResponse.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
+        Guid appId = appJson.GetProperty("id").GetGuid();
+
+        await AuthenticateAsync();
+
+        var openingsResponse = await Client.GetAsync($"/api/job-postings/{jobId}/available-openings");
+        var openings = await openingsResponse.Content.ReadFromJsonAsync<List<RequisitionOpening>>(JsonOptions);
+        var openingId = openings!.First().Id;
+        var reqId = openings!.First().RequisitionId;
+
+        // Act
+        var updateRequest = new UpdateStatusRequest(ApplicationStatus.Archive, ArchivalResolution.Hired, openingId);
+        var response = await Client.PutAsJsonAsync($"/api/applications/{appId}/status", updateRequest, JsonOptions);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        var reqResponse = await Client.GetAsync($"/api/requisitions/{reqId}");
+        var reqDetail = await reqResponse.Content.ReadFromJsonAsync<Requisition>(JsonOptions);
+        Assert.Equal(RequisitionStatus.Closed, reqDetail!.Status);
+
+        var jobResponse = await Client.GetAsync($"/api/jobs/admin");
+        var jobs = await jobResponse.Content.ReadFromJsonAsync<List<Micro.API.Data.Models.JobPosting>>(JsonOptions);
+        var jobDetail = jobs!.First(j => j.Id == jobId);
+        Assert.Equal(JobPostingStatus.Closed, jobDetail.Status);
+    }
 }
