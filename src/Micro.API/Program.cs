@@ -6,10 +6,12 @@ using Micro.API.Endpoints.UserProfile;
 using Micro.API.Endpoints.Candidate;
 using Micro.API.Endpoints.Role;
 using Micro.API.Endpoints.User;
+using Micro.API.Endpoints;
 using Micro.API.Infrastructure.Auth;
 using Micro.API.Infrastructure.Database;
 using Micro.API.Infrastructure.Logging;
 using Micro.API.Infrastructure.OpenApi;
+using Micro.API.Infrastructure.Serialization;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +20,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Host.AddSerilog();
 builder.Services.AddDatabase(builder.Configuration);
 builder.Services.AddAuth(builder.Configuration, builder.Environment);
+builder.Services.AddJsonOptions();
 builder.Services.AddSwagger();
 
 var app = builder.Build();
@@ -41,6 +44,7 @@ app.MapHealthCheckEndpoints().AllowAnonymous();
 app.MapRequisitionEndpoints();
 app.MapJobPostingEndpoints();
 app.MapApplicationEndpoints();
+app.MapAdminEndpoints();
 
 // Initialize database
 await app.ApplyMigrationsAndSeed();

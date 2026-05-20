@@ -4,20 +4,17 @@ using System.Collections.Generic;
 using Micro.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Micro.API.Data.Migrations
+namespace Micro.API.Migrations
 {
     [DbContext(typeof(MicroDbContext))]
-    [Migration("20260519184342_AddUserInvitations")]
-    partial class AddUserInvitations
+    partial class MicroDbContextModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -44,6 +41,9 @@ namespace Micro.API.Data.Migrations
                     b.Property<Guid>("JobPostingId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("RequisitionOpeningId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("ResumePath")
                         .IsRequired()
                         .HasColumnType("text");
@@ -57,6 +57,8 @@ namespace Micro.API.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CandidateId");
+
+                    b.HasIndex("RequisitionOpeningId");
 
                     b.HasIndex("Status");
 
@@ -95,6 +97,43 @@ namespace Micro.API.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Candidates");
+                });
+
+            modelBuilder.Entity("Micro.API.Data.Models.CostCenter", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CostCenters");
+                });
+
+            modelBuilder.Entity("Micro.API.Data.Models.Department", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Departments");
                 });
 
             modelBuilder.Entity("Micro.API.Data.Models.Feedback", b =>
@@ -175,8 +214,14 @@ namespace Micro.API.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime?>("CandidateStartedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime?>("ClosedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CostCenterId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -185,26 +230,96 @@ namespace Micro.API.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Department")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<Guid>("DepartmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("EmploymentType")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("FinalizedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("Openings")
+                    b.Property<Guid>("HiringManagerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsInternalOnly")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("JobDescription")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("OfferAcceptedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("OpeningsCount")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RecruiterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SalaryBandId")
+                        .HasColumnType("uuid");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("TargetStartDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int>("WorkplaceType")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
+                    b.HasIndex("CostCenterId");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("SalaryBandId");
+
                     b.ToTable("Requisitions");
+                });
+
+            modelBuilder.Entity("Micro.API.Data.Models.RequisitionOpening", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CandidateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RequisitionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SequenceNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("TargetStartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CandidateId");
+
+                    b.HasIndex("RequisitionId");
+
+                    b.ToTable("RequisitionOpenings");
                 });
 
             modelBuilder.Entity("Micro.API.Data.Models.Role", b =>
@@ -225,6 +340,31 @@ namespace Micro.API.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Roles");
+                });
+
+            modelBuilder.Entity("Micro.API.Data.Models.SalaryBand", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("MaxAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("MinAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SalaryBands");
                 });
 
             modelBuilder.Entity("Micro.API.Data.Models.User", b =>
@@ -285,9 +425,16 @@ namespace Micro.API.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Micro.API.Data.Models.RequisitionOpening", "RequisitionOpening")
+                        .WithMany()
+                        .HasForeignKey("RequisitionOpeningId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Candidate");
 
                     b.Navigation("JobPosting");
+
+                    b.Navigation("RequisitionOpening");
                 });
 
             modelBuilder.Entity("Micro.API.Data.Models.Feedback", b =>
@@ -308,6 +455,51 @@ namespace Micro.API.Data.Migrations
                         .HasForeignKey("Micro.API.Data.Models.JobPosting", "RequisitionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Requisition");
+                });
+
+            modelBuilder.Entity("Micro.API.Data.Models.Requisition", b =>
+                {
+                    b.HasOne("Micro.API.Data.Models.CostCenter", "CostCenter")
+                        .WithMany()
+                        .HasForeignKey("CostCenterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Micro.API.Data.Models.Department", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Micro.API.Data.Models.SalaryBand", "SalaryBand")
+                        .WithMany()
+                        .HasForeignKey("SalaryBandId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CostCenter");
+
+                    b.Navigation("Department");
+
+                    b.Navigation("SalaryBand");
+                });
+
+            modelBuilder.Entity("Micro.API.Data.Models.RequisitionOpening", b =>
+                {
+                    b.HasOne("Micro.API.Data.Models.Candidate", "Candidate")
+                        .WithMany()
+                        .HasForeignKey("CandidateId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Micro.API.Data.Models.Requisition", "Requisition")
+                        .WithMany("Openings")
+                        .HasForeignKey("RequisitionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Candidate");
 
                     b.Navigation("Requisition");
                 });
@@ -340,6 +532,11 @@ namespace Micro.API.Data.Migrations
             modelBuilder.Entity("Micro.API.Data.Models.JobPosting", b =>
                 {
                     b.Navigation("Applications");
+                });
+
+            modelBuilder.Entity("Micro.API.Data.Models.Requisition", b =>
+                {
+                    b.Navigation("Openings");
                 });
 #pragma warning restore 612, 618
         }

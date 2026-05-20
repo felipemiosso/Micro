@@ -23,6 +23,7 @@ public static class RequisitionEndpoints
     private static async Task<IResult> GetRequisitions(MicroDbContext db)
     {
         var requisitions = await db.Requisitions
+            .Include(r => r.Department)
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync();
         return Results.Ok(requisitions);
@@ -31,7 +32,13 @@ public static class RequisitionEndpoints
     [ResourceAction("Requisition", "View", "View requisition details")]
     private static async Task<IResult> GetRequisition(Guid id, MicroDbContext db)
     {
-        var requisition = await db.Requisitions.FindAsync(id);
+        var requisition = await db.Requisitions
+            .Include(r => r.Department)
+            .Include(r => r.SalaryBand)
+            .Include(r => r.CostCenter)
+            .Include(r => r.Openings)
+            .FirstOrDefaultAsync(r => r.Id == id);
+            
         return requisition is null ? Results.NotFound() : Results.Ok(requisition);
     }
 
@@ -42,8 +49,16 @@ public static class RequisitionEndpoints
         {
             Id = Guid.NewGuid(),
             Title = request.Title,
-            Department = request.Department,
-            Openings = request.Openings,
+            DepartmentId = request.DepartmentId,
+            SalaryBandId = request.SalaryBandId,
+            CostCenterId = request.CostCenterId,
+            OpeningsCount = request.OpeningsCount,
+            EmploymentType = request.EmploymentType,
+            WorkplaceType = request.WorkplaceType,
+            Location = request.Location,
+            JobDescription = request.JobDescription,
+            IsInternalOnly = request.IsInternalOnly,
+            TargetStartDate = request.TargetStartDate,
             Status = RequisitionStatus.Draft,
             CreatedBy = authUser.Name ?? authUser.Email,
             CreatedAt = DateTime.UtcNow
@@ -63,8 +78,16 @@ public static class RequisitionEndpoints
         if (requisition.Status != RequisitionStatus.Draft) return Results.BadRequest("Only draft requisitions can be updated.");
 
         requisition.Title = request.Title;
-        requisition.Department = request.Department;
-        requisition.Openings = request.Openings;
+        requisition.DepartmentId = request.DepartmentId;
+        requisition.SalaryBandId = request.SalaryBandId;
+        requisition.CostCenterId = request.CostCenterId;
+        requisition.OpeningsCount = request.OpeningsCount;
+        requisition.EmploymentType = request.EmploymentType;
+        requisition.WorkplaceType = request.WorkplaceType;
+        requisition.Location = request.Location;
+        requisition.JobDescription = request.JobDescription;
+        requisition.IsInternalOnly = request.IsInternalOnly;
+        requisition.TargetStartDate = request.TargetStartDate;
 
         await db.SaveChangesAsync();
         return Results.NoContent();
@@ -73,21 +96,34 @@ public static class RequisitionEndpoints
     [ResourceAction("Requisition", "Finalize", "Finalize requisition and publish job")]
     private static async Task<IResult> FinalizeRequisition(Guid id, MicroDbContext db)
     {
-        var requisition = await db.Requisitions.FindAsync(id);
+        var requisition = await db.Requisitions
+            .Include(r => r.Openings)
+            .FirstOrDefaultAsync(r => r.Id == id);
+            
         if (requisition is null) return Results.NotFound();
         if (requisition.Status != RequisitionStatus.Draft) return Results.BadRequest("Only draft requisitions can be finalized.");
 
         requisition.Status = RequisitionStatus.Finalized;
         requisition.FinalizedAt = DateTime.UtcNow;
 
-        // Automatically create a Job Posting
-        var jobPosting = new Data.Models.JobPosting
+        // Initialize Openings
+        for (int i = 1; i <= requisition.OpeningsCount; i++)
         {
-            Id = Guid.NewGuid(),
+            requisition.Openings.Add(new RequisitionOpening
+            {
+                SequenceNumber = i,
+                TargetStartDate = requisition.TargetStartDate,
+                Status = OpeningStatus.Open
+            });
+        }
+
+        // Automatically create a Job Posting
+        var jobPosting = new Micro.API.Data.Models.JobPosting
+        {
             RequisitionId = requisition.Id,
             Title = requisition.Title,
-            Description = $"Open position for {requisition.Title} in {requisition.Department} department.",
-            Requirements = "Requirements to be defined.",
+            Description = requisition.JobDescription,
+            Requirements = "Requirements from requisition.",
             Status = JobPostingStatus.Published,
             CreatedAt = DateTime.UtcNow
         };

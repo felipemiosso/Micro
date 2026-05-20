@@ -21,6 +21,11 @@ public class ApplicationConfiguration : IEntityTypeConfiguration<Application>
         builder.HasIndex(a => new { a.JobPostingId, a.CandidateId })
             .IsUnique();
 
+        builder.HasOne(a => a.RequisitionOpening)
+            .WithMany()
+            .HasForeignKey(a => a.RequisitionOpeningId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.HasIndex(a => a.Status);
     }
 }

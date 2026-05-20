@@ -14,22 +14,20 @@ public static class DbInitializer
         var dbContext = serviceProvider.GetRequiredService<MicroDbContext>();
         var config = serviceProvider.GetRequiredService<IConfiguration>();
         
-        // Seed Firebase Emulator if enabled
         if (config.GetValue<bool>("Firebase:UseEmulator"))
         {
             await SeedFirebaseEmulator(config);
         }
 
-        // Always ensure the test user exists
         await SeedUser(serviceProvider);
+        await SeedLookups(serviceProvider);
 
-        // Only seed more data if the database is otherwise empty
         if (await dbContext.Requisitions.AnyAsync())
         {
             return;
         }
 
-        // 1. Seed more Users
+        // 2. Seed more Users
         var users = UserSeeder.Generate(20);
         foreach (var user in users)
         {
@@ -39,25 +37,42 @@ public static class DbInitializer
             }
         }
         await dbContext.SaveChangesAsync();
-
-        // Reload users to ensure we have them all
         var allUsers = await dbContext.Users.ToListAsync();
 
-        // 2. Seed Requisitions and Job Postings
-        var (requisitions, jobPostings) = RequisitionSeeder.Generate(allUsers, 50);
+        var departments = await dbContext.Departments.ToListAsync();
+        var bands = await dbContext.SalaryBands.ToListAsync();
+        var costCenters = await dbContext.CostCenters.ToListAsync();
+
+        // 3. Seed Requisitions and Job Postings
+        var (requisitions, jobPostings) = RequisitionSeeder.Generate(allUsers, departments, bands, costCenters, 50);
         dbContext.Requisitions.AddRange(requisitions);
         dbContext.JobPostings.AddRange(jobPostings);
         await dbContext.SaveChangesAsync();
 
-        // 3. Seed Candidates and Applications
+        // 4. Seed Candidates and Applications
         var (candidates, applications) = ApplicationSeeder.Generate(jobPostings, 10);
         dbContext.Candidates.AddRange(candidates);
         dbContext.Applications.AddRange(applications);
         await dbContext.SaveChangesAsync();
 
-        // 4. Seed Feedback
+        // 5. Seed Feedback
         var feedbacks = FeedbackSeeder.Generate(applications, allUsers, 200);
         dbContext.Feedbacks.AddRange(feedbacks);
+        await dbContext.SaveChangesAsync();
+    }
+
+    public static async Task SeedLookups(IServiceProvider serviceProvider)
+    {
+        var dbContext = serviceProvider.GetRequiredService<MicroDbContext>();
+        if (await dbContext.Departments.AnyAsync()) return;
+
+        var departments = LookupSeeder.GenerateDepartments();
+        var bands = LookupSeeder.GenerateSalaryBands();
+        var costCenters = LookupSeeder.GenerateCostCenters();
+        
+        dbContext.Departments.AddRange(departments);
+        dbContext.SalaryBands.AddRange(bands);
+        dbContext.CostCenters.AddRange(costCenters);
         await dbContext.SaveChangesAsync();
     }
 
@@ -82,11 +97,8 @@ public static class DbInitializer
     private static async Task SeedFirebaseEmulator(IConfiguration config)
     {
         var projectId = config["Firebase:ProjectId"] ?? "demo-micro-ats";
-        // Ensure host is set BEFORE FirebaseApp is initialized
         Environment.SetEnvironmentVariable("FIREBASE_AUTH_EMULATOR_HOST", "localhost:9099");
         
-        Serilog.Log.Information("Seeding Firebase Emulator for project {ProjectId}...", projectId);
-
         if (FirebaseApp.DefaultInstance == null)
         {
             FirebaseApp.Create(new AppOptions
@@ -96,7 +108,6 @@ public static class DbInitializer
             });
         }
 
-        // Retry logic for emulator readiness
         for (int i = 0; i < 5; i++)
         {
             try
@@ -114,22 +125,16 @@ public static class DbInitializer
                 {
                     { "role", "Admin" }
                 });
-                
-                Serilog.Log.Information("Successfully seeded admin@microats.com in Firebase Emulator.");
                 return;
             }
             catch (FirebaseAuthException ex) when (ex.AuthErrorCode == AuthErrorCode.EmailAlreadyExists)
             {
-                Serilog.Log.Information("admin@microats.com already exists in Firebase Emulator.");
                 return;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Serilog.Log.Warning("Attempt {Attempt} to seed Firebase Emulator failed: {Message}. Retrying...", i + 1, ex.Message);
                 await Task.Delay(1000);
             }
         }
-
-        Serilog.Log.Error("Failed to seed Firebase Emulator after multiple attempts.");
     }
 }

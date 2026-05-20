@@ -60,3 +60,5 @@ TestResult.xml
 nunit-*.xml
 
 firebase-debug.log
+
+.antigravitycli

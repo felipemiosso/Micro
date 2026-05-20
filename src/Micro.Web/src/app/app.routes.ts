@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth-guard';
 import { publicGuard } from './core/guards/public-guard';
 import { permissionGuard } from './core/guards/permission-guard';
+import { roleGuard } from './core/guards/role-guard';
 
 export const routes: Routes = [
   {
@@ -97,6 +98,11 @@ export const routes: Routes = [
         path: 'users',
         canActivate: [permissionGuard('User', 'View')],
         loadComponent: () => import('./features/users/list/user-list').then(m => m.UserListComponent)
+      },
+      {
+        path: 'admin/settings',
+        canActivate: [roleGuard('Admin')],
+        loadComponent: () => import('./features/admin/admin-settings').then(m => m.AdminSettingsComponent)
       }
     ]
   }

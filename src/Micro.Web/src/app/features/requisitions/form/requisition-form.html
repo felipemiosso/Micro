@@ -1,36 +1,105 @@
 <div class="p-8 bg-hex-pattern min-h-screen flex justify-center items-start">
-  <div class="w-full max-w-2xl bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden">
+  <div class="w-full max-w-3xl bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden">
     <div class="bg-ink-dark px-8 py-6 border-b border-honeycomb-500/30">
       <h2 class="text-2xl font-bold text-white tracking-tight">{{ isEdit ? 'Edit' : 'Create' }} Requisition</h2>
       <p class="text-slate-400 text-sm mt-1 font-medium">Define the requirements for a new headcount.</p>
     </div>
 
-    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="p-8 flex flex-col gap-8">
-      <div class="flex flex-col gap-2">
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="p-8 grid grid-cols-2 gap-6">
+      <!-- Title (Full Width) -->
+      <div class="col-span-2 flex flex-col gap-2">
         <label for="title" class="text-xs font-bold text-ink uppercase tracking-widest">Job Title</label>
         <input id="title" type="text" formControlName="title" placeholder="e.g. Senior Backend Engineer" class="input-honeycomb">
-        @if (form.get('title')?.invalid && form.get('title')?.touched) {
-          <span class="text-red-500 text-[10px] font-bold uppercase tracking-wide">Title is required.</span>
-        }
       </div>
 
+      <!-- Department -->
       <div class="flex flex-col gap-2">
-        <label for="department" class="text-xs font-bold text-ink uppercase tracking-widest">Department</label>
-        <input id="department" type="text" formControlName="department" placeholder="e.g. Engineering" class="input-honeycomb">
-        @if (form.get('department')?.invalid && form.get('department')?.touched) {
-          <span class="text-red-500 text-[10px] font-bold uppercase tracking-wide">Department is required.</span>
-        }
+        <label for="departmentId" class="text-xs font-bold text-ink uppercase tracking-widest">Department</label>
+        <select id="departmentId" formControlName="departmentId" class="input-honeycomb">
+          <option value="">Select Department</option>
+          @for (d of departments(); track d.id) {
+            <option [value]="d.id">{{ d.name }}</option>
+          }
+        </select>
       </div>
 
+      <!-- Cost Center -->
       <div class="flex flex-col gap-2">
-        <label for="openings" class="text-xs font-bold text-ink uppercase tracking-widest">Number of Openings</label>
-        <input id="openings" type="number" formControlName="openings" class="input-honeycomb">
-        @if (form.get('openings')?.invalid && form.get('openings')?.touched) {
-          <span class="text-red-500 text-[10px] font-bold uppercase tracking-wide">Must have at least 1 opening.</span>
-        }
+        <label for="costCenterId" class="text-xs font-bold text-ink uppercase tracking-widest">Cost Center</label>
+        <select id="costCenterId" formControlName="costCenterId" class="input-honeycomb">
+          <option value="">Select Cost Center</option>
+          @for (cc of costCenters(); track cc.id) {
+            <option [value]="cc.id">{{ cc.code }} - {{ cc.name }}</option>
+          }
+        </select>
       </div>
 
-      <div class="flex justify-end gap-4 pt-4 border-t border-slate-100">
+      <!-- Salary Band -->
+      <div class="flex flex-col gap-2">
+        <label for="salaryBandId" class="text-xs font-bold text-ink uppercase tracking-widest">Salary Band</label>
+        <select id="salaryBandId" formControlName="salaryBandId" class="input-honeycomb">
+          <option value="">Select Salary Band</option>
+          @for (b of salaryBands(); track b.id) {
+            <option [value]="b.id">{{ b.name }} ({{ b.minAmount | number }} - {{ b.maxAmount | number }})</option>
+          }
+        </select>
+      </div>
+
+      <!-- Openings -->
+      <div class="flex flex-col gap-2">
+        <label for="openingsCount" class="text-xs font-bold text-ink uppercase tracking-widest">Number of Openings</label>
+        <input id="openingsCount" type="number" formControlName="openingsCount" class="input-honeycomb">
+      </div>
+
+      <!-- Employment Type -->
+      <div class="flex flex-col gap-2">
+        <label for="employmentType" class="text-xs font-bold text-ink uppercase tracking-widest">Employment Type</label>
+        <select id="employmentType" formControlName="employmentType" class="input-honeycomb">
+          <option value="FullTime">Full-Time</option>
+          <option value="PartTime">Part-Time</option>
+          <option value="Contract">Contract</option>
+          <option value="Internship">Internship</option>
+          <option value="Temporary">Temporary</option>
+          <option value="Volunteer">Volunteer</option>
+        </select>
+      </div>
+
+      <!-- Workplace Type -->
+      <div class="flex flex-col gap-2">
+        <label for="workplaceType" class="text-xs font-bold text-ink uppercase tracking-widest">Workplace Type</label>
+        <select id="workplaceType" formControlName="workplaceType" class="input-honeycomb">
+          <option value="OnSite">On-Site</option>
+          <option value="Remote">Remote</option>
+          <option value="Hybrid">Hybrid</option>
+        </select>
+      </div>
+
+      <!-- Location -->
+      <div class="col-span-2 flex flex-col gap-2">
+        <label for="location" class="text-xs font-bold text-ink uppercase tracking-widest">Location</label>
+        <input id="location" type="text" formControlName="location" placeholder="e.g. London, UK" class="input-honeycomb">
+      </div>
+
+      <!-- Job Description -->
+      <div class="col-span-2 flex flex-col gap-2">
+        <label for="jobDescription" class="text-xs font-bold text-ink uppercase tracking-widest">Job Description</label>
+        <textarea id="jobDescription" formControlName="jobDescription" rows="5" class="input-honeycomb"></textarea>
+      </div>
+
+      <!-- Internal Only -->
+      <div class="flex items-center gap-3">
+        <input id="isInternalOnly" type="checkbox" formControlName="isInternalOnly" class="w-4 h-4 text-primary rounded border-slate-300 focus:ring-primary">
+        <label for="isInternalOnly" class="text-xs font-bold text-ink uppercase tracking-widest">Internal Only</label>
+      </div>
+
+      <!-- Target Start Date -->
+      <div class="flex flex-col gap-2">
+        <label for="targetStartDate" class="text-xs font-bold text-ink uppercase tracking-widest">Target Start Date</label>
+        <input id="targetStartDate" type="date" formControlName="targetStartDate" class="input-honeycomb">
+      </div>
+
+      <!-- Footer Actions -->
+      <div class="col-span-2 flex justify-end gap-4 pt-6 border-t border-slate-100">
         <button type="button" class="btn-secondary" routerLink="/requisitions">Cancel</button>
         @if (form.enabled) {
           <button type="submit" class="btn-primary" [disabled]="form.invalid">

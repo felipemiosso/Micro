@@ -52,6 +52,10 @@ export class AuthService {
     return this.user()?.permissions.includes(p) || false;
   }
 
+  hasRole(role: string): boolean {
+    return this.user()?.roles.includes(role) || false;
+  }
+
   constructor() {
     onAuthStateChanged(auth, async (firebaseUser: User | null) => {
       if (firebaseUser) {

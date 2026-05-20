@@ -29,10 +29,10 @@
         @for (req of requisitions(); track req.id) {
           <tr class="hover:bg-honeycomb-50/30 transition-colors">
             <td class="px-6 py-4 font-bold text-ink">{{ req.title }}</td>
-            <td class="px-6 py-4 text-ink-light">{{ req.department }}</td>
+            <td class="px-6 py-4 text-ink-light">{{ req.department?.name }}</td>
             <td class="px-6 py-4">
               <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-700">
-                {{ req.openings }}
+                {{ req.openingsCount }}
               </span>
             </td>
             <td class="px-6 py-4">

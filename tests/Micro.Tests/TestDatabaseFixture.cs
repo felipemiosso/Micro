@@ -79,8 +79,9 @@ public class TestDatabaseFixture : IAsyncLifetime
         await conn.OpenAsync();
         await Respawner.ResetAsync(conn);
         
-        // Re-seed user after reset if needed
+        // Re-seed essential data after reset
         using var scope = Factory.Services.CreateScope();
+        await DbInitializer.SeedLookups(scope.ServiceProvider);
         await DbInitializer.SeedUser(scope.ServiceProvider);
     }
 

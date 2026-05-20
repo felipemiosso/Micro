@@ -26,7 +26,8 @@ public static class AuthExtensions
                     ValidateAudience = false,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = false,
-                    RequireSignedTokens = false
+                    RequireSignedTokens = false,
+                    RoleClaimType = "role"
                 };
             });
         }

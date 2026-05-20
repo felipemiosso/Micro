@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
+import { Department, SalaryBand, CostCenter } from '../admin/admin.service';
 
 export enum RequisitionStatus {
   Draft = 0,
@@ -11,24 +12,41 @@ export enum RequisitionStatus {
 export interface Requisition {
   id: string;
   title: string;
-  department: string;
-  openings: number;
+  departmentId: string;
+  department?: Department;
+  salaryBandId: string;
+  salaryBand?: SalaryBand;
+  costCenterId: string;
+  costCenter?: CostCenter;
+  openingsCount: number;
   status: RequisitionStatus;
   createdBy: string;
   createdAt: string;
   finalizedAt?: string;
   closedAt?: string;
+  location: string;
+  jobDescription: string;
+  isInternalOnly: boolean;
+  targetStartDate?: string;
 }
 
 export interface CreateRequisitionRequest {
   title: string;
-  department: string;
-  openings: number;
+  departmentId: string;
+  salaryBandId: string;
+  costCenterId: string;
+  openingsCount: number;
+  employmentType: number;
+  workplaceType: number;
+  location: string;
+  jobDescription: string;
+  isInternalOnly: boolean;
+  targetStartDate?: string;
 }
 
 @Injectable({
   providedIn: 'root',
-})
+  })
 export class RequisitionService {
   private http = inject(HttpClient);
   private apiUrl = '/api/requisitions';

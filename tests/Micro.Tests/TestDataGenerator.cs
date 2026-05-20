@@ -5,18 +5,22 @@ namespace Micro.Tests;
 
 public static class TestDataGenerator
 {
-    private static readonly string[] Departments = { "Engineering", "Product", "Design", "Sales", "Marketing", "HR" };
-
-    public static Requisition CreateRequisition(string createdBy = "test-user-id")
+    public static Requisition CreateRequisition(Guid departmentId, Guid salaryBandId, Guid costCenterId, string createdBy = "test-user-id")
     {
         return new Faker<Requisition>()
             .RuleFor(r => r.Id, f => f.Random.Guid())
             .RuleFor(r => r.Title, f => f.Name.JobTitle())
-            .RuleFor(r => r.Department, f => f.PickRandom(Departments))
-            .RuleFor(r => r.Openings, f => f.Random.Number(1, 5))
+            .RuleFor(r => r.DepartmentId, departmentId)
+            .RuleFor(r => r.SalaryBandId, salaryBandId)
+            .RuleFor(r => r.CostCenterId, costCenterId)
+            .RuleFor(r => r.OpeningsCount, f => f.Random.Number(1, 5))
             .RuleFor(r => r.Status, RequisitionStatus.Draft)
             .RuleFor(r => r.CreatedBy, createdBy)
             .RuleFor(r => r.CreatedAt, DateTime.UtcNow)
+            .RuleFor(r => r.EmploymentType, f => f.PickRandom<EmploymentType>())
+            .RuleFor(r => r.WorkplaceType, f => f.PickRandom<WorkplaceType>())
+            .RuleFor(r => r.Location, f => f.Address.City())
+            .RuleFor(r => r.JobDescription, f => f.Lorem.Paragraph())
             .Generate();
     }
 

@@ -77,10 +77,12 @@
             <span class="text-xs font-bold">My Profile</span>
           </a>
           
-          <button mat-menu-item>
-            <mat-icon>settings</mat-icon>
-            <span class="text-xs font-bold">Settings</span>
-          </button>
+          @if (authService.hasRole('Admin')) {
+            <a mat-menu-item routerLink="/admin/settings">
+              <mat-icon>settings</mat-icon>
+              <span class="text-xs font-bold">Settings</span>
+            </a>
+          }
           
           <mat-divider></mat-divider>
           

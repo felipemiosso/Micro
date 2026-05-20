@@ -14,6 +14,8 @@ public class Application
     // Navigation properties
     public JobPosting JobPosting { get; set; } = null!;
     public Candidate Candidate { get; set; } = null!;
+    public Guid? RequisitionOpeningId { get; set; }
+    public RequisitionOpening? RequisitionOpening { get; set; }
     public ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
 }
 

@@ -29,6 +29,9 @@ public class PermissionPolicyProvider : IAuthorizationPolicyProvider
             return Task.FromResult<AuthorizationPolicy?>(policy.Build());
         }
 
-        return FallbackPolicyProvider.GetPolicyAsync(policyName);
+        // If it doesn't contain ':', treat it as a role requirement
+        var rolePolicy = new AuthorizationPolicyBuilder();
+        rolePolicy.RequireClaim("role", policyName);
+        return Task.FromResult<AuthorizationPolicy?>(rolePolicy.Build());
     }
 }

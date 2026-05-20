@@ -1,7 +1,11 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
+using Micro.API.Data;
 using Micro.API.Data.Models;
 using Micro.API.Endpoints.Requisition;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Micro.Tests.Endpoints;
@@ -13,20 +17,35 @@ public class RequisitionTests : IntegrationTestBase
     {
     }
 
+    private async Task<(Guid deptId, Guid bandId, Guid ccId)> GetLookupIds()
+    {
+        using var scope = Fixture.Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MicroDbContext>();
+        var dept = await db.Departments.FirstAsync();
+        var band = await db.SalaryBands.FirstAsync();
+        var cc = await db.CostCenters.FirstAsync();
+        return (dept.Id, band.Id, cc.Id);
+    }
+
     [Fact]
     public async Task Create_WithValidData_ReturnsCreated()
     {
         // Arrange
         var email = $"test-{Guid.NewGuid()}@microats.com";
         await AuthenticateAsync(email);
-        var request = new CreateRequisitionRequest("Dev", "IT", 2);
+        var (deptId, bandId, ccId) = await GetLookupIds();
+        
+        var request = new CreateRequisitionRequest(
+            "Dev", deptId, bandId, ccId, 2, 
+            EmploymentType.FullTime, WorkplaceType.OnSite, 
+            "London", "Job Desc", false, null);
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/requisitions", request);
+        var response = await Client.PostAsJsonAsync("/api/requisitions", request, JsonOptions);
 
         // Assert
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        var requisition = await response.Content.ReadFromJsonAsync<Requisition>();
+        var requisition = await response.Content.ReadFromJsonAsync<Requisition>(JsonOptions);
         Assert.NotNull(requisition);
         Assert.Equal("Dev", requisition.Title);
         Assert.Equal(email, requisition.CreatedBy);
@@ -37,13 +56,23 @@ public class RequisitionTests : IntegrationTestBase
     {
         // Arrange
         await AuthenticateAsync();
-        var createRequest = new CreateRequisitionRequest("Dev", "IT", 2);
-        var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
-        var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();
-        var updateRequest = new UpdateRequisitionRequest("Senior Dev", "IT", 1);
+        var (deptId, bandId, ccId) = await GetLookupIds();
+        
+        var createRequest = new CreateRequisitionRequest(
+            "Dev", deptId, bandId, ccId, 2, 
+            EmploymentType.FullTime, WorkplaceType.OnSite, 
+            "London", "Job Desc", false, null);
+            
+        var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest, JsonOptions);
+        var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>(JsonOptions);
+        
+        var updateRequest = new UpdateRequisitionRequest(
+            "Senior Dev", deptId, bandId, ccId, 1,
+            EmploymentType.FullTime, WorkplaceType.Remote,
+            "Remote", "New Desc", false, null);
 
         // Act
-        var response = await Client.PutAsJsonAsync($"/api/requisitions/{requisition!.Id}", updateRequest);
+        var response = await Client.PutAsJsonAsync($"/api/requisitions/{requisition!.Id}", updateRequest, JsonOptions);
 
         // Assert
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
@@ -54,9 +83,15 @@ public class RequisitionTests : IntegrationTestBase
     {
         // Arrange
         await AuthenticateAsync();
-        var createRequest = new CreateRequisitionRequest("Dev", "IT", 2);
+        var (deptId, bandId, ccId) = await GetLookupIds();
+        
+        var createRequest = new CreateRequisitionRequest(
+            "Dev", deptId, bandId, ccId, 2, 
+            EmploymentType.FullTime, WorkplaceType.OnSite, 
+            "London", "Job Desc", false, null);
+            
         var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
-        var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();
+        var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>(JsonOptions);
 
         // Act
         var response = await Client.PostAsync($"/api/requisitions/{requisition!.Id}/finalize", null);
@@ -65,7 +100,7 @@ public class RequisitionTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
         
         var getResponse = await Client.GetAsync("/api/requisitions");
-        var requisitions = await getResponse.Content.ReadFromJsonAsync<List<Requisition>>();
+        var requisitions = await getResponse.Content.ReadFromJsonAsync<List<Requisition>>(JsonOptions);
         Assert.Equal(RequisitionStatus.Finalized, requisitions!.First(r => r.Id == requisition.Id).Status);
     }
 
@@ -74,14 +109,24 @@ public class RequisitionTests : IntegrationTestBase
     {
         // Arrange
         await AuthenticateAsync();
-        var createRequest = new CreateRequisitionRequest("Dev", "IT", 2);
+        var (deptId, bandId, ccId) = await GetLookupIds();
+        
+        var createRequest = new CreateRequisitionRequest(
+            "Dev", deptId, bandId, ccId, 2, 
+            EmploymentType.FullTime, WorkplaceType.OnSite, 
+            "London", "Job Desc", false, null);
+            
         var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
-        var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();
+        var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>(JsonOptions);
         await Client.PostAsync($"/api/requisitions/{requisition!.Id}/finalize", null);
 
         // Act
-        var updateRequest = new UpdateRequisitionRequest("Senior Dev", "IT", 1);
-        var response = await Client.PutAsJsonAsync($"/api/requisitions/{requisition!.Id}", updateRequest);
+        var updateRequest = new UpdateRequisitionRequest(
+            "Senior Dev", deptId, bandId, ccId, 1,
+            EmploymentType.FullTime, WorkplaceType.Remote,
+            "Remote", "New Desc", false, null);
+            
+        var response = await Client.PutAsJsonAsync($"/api/requisitions/{requisition!.Id}", updateRequest, JsonOptions);
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -92,9 +137,15 @@ public class RequisitionTests : IntegrationTestBase
     {
         // Arrange
         await AuthenticateAsync();
-        var createRequest = new CreateRequisitionRequest("To Close", "IT", 1);
+        var (deptId, bandId, ccId) = await GetLookupIds();
+        
+        var createRequest = new CreateRequisitionRequest(
+            "To Close", deptId, bandId, ccId, 1, 
+            EmploymentType.FullTime, WorkplaceType.OnSite, 
+            "London", "Job Desc", false, null);
+            
         var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest);
-        var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>();
+        var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>(JsonOptions);
 
         // Act
         var response = await Client.PostAsync($"/api/requisitions/{requisition!.Id}/close", null);
@@ -103,7 +154,7 @@ public class RequisitionTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
         var getResponse = await Client.GetAsync($"/api/requisitions/{requisition.Id}");
-        var updated = await getResponse.Content.ReadFromJsonAsync<Requisition>();
+        var updated = await getResponse.Content.ReadFromJsonAsync<Requisition>(JsonOptions);
         Assert.Equal(RequisitionStatus.Closed, updated!.Status);
         Assert.NotNull(updated.ClosedAt);
     }

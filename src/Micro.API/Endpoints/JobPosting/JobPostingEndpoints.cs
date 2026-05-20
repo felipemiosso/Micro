@@ -28,7 +28,7 @@ public static class JobPostingEndpoints
             .Select(j => new PublicJobResponse(
                 j.Id,
                 j.Title,
-                j.Requisition.Department,
+                j.Requisition.Department.Name,
                 j.Description,
                 j.CreatedAt
             ))
@@ -45,7 +45,7 @@ public static class JobPostingEndpoints
             .Select(j => new PublicJobDetailResponse(
                 j.Id,
                 j.Title,
-                j.Requisition.Department,
+                j.Requisition.Department.Name,
                 j.Description,
                 j.Requirements,
                 j.CreatedAt

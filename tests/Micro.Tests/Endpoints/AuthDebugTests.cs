@@ -15,7 +15,8 @@ public class AuthDebugTests : IntegrationTestBase
     {
         // 1. Authenticate using the emulator
         var email = $"test-{Guid.NewGuid()}@microats.com";
-        var token = await Fixture.Auth.CreateUserAndGetTokenAsync(email, "password123");
+        var roles = new Dictionary<string, object> { { "role", "Admin" } };
+        var token = await Fixture.Auth.CreateUserAndGetTokenAsync(email, "password123", roles);
         
         // LOG TOKEN FOR DEBUGGING
         Console.WriteLine($"[DEBUG] Generated Token: {token}");

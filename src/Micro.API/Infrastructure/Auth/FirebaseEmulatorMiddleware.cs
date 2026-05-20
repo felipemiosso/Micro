@@ -27,7 +27,7 @@ public static class FirebaseEmulatorMiddlewareExtensions
                             var handler = new JsonWebTokenHandler();
                             var jwt = handler.ReadJsonWebToken(token);
                             var claims = jwt.Claims.Select(c => new Claim(c.Type, c.Value)).ToList();
-                            var identity = new ClaimsIdentity(claims, "FirebaseEmulator");
+                            var identity = new ClaimsIdentity(claims, "FirebaseEmulator", "user_id", "role");
                             context.User = new ClaimsPrincipal(identity);
                         }
                         catch
