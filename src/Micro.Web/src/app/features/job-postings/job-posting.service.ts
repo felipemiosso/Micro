@@ -3,8 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export enum JobPostingStatus {
-  Published = 0,
-  Closed = 1
+  Published = 'Published',
+  Closed = 'Closed'
 }
 
 export interface JobPosting {

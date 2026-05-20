@@ -59,8 +59,21 @@ public static class JobPostingEndpoints
     private static async Task<IResult> GetAdminJobs(MicroDbContext db)
     {
         var jobs = await db.JobPostings
-            .Include(j => j.Requisition)
             .OrderByDescending(j => j.CreatedAt)
+            .Select(j => new {
+                j.Id,
+                j.RequisitionId,
+                j.Title,
+                j.Description,
+                j.Requirements,
+                j.Status,
+                j.CreatedAt,
+                j.UpdatedAt,
+                j.ClosedAt,
+                Requisition = new {
+                    Department = j.Requisition.Department.Name
+                }
+            })
             .ToListAsync();
         
         return Results.Ok(jobs);
