@@ -69,13 +69,48 @@ public class RequisitionTests : IntegrationTestBase
         var updateRequest = new UpdateRequisitionRequest(
             "Senior Dev", deptId, bandId, ccId, 1,
             EmploymentType.FullTime, WorkplaceType.Remote,
-            "Remote", "New Desc", false, null);
+            "Remote", "New Desc", false, null,
+            new List<RequisitionOpeningDto> { new RequisitionOpeningDto(1, null) });
 
         // Act
         var response = await Client.PutAsJsonAsync($"/api/requisitions/{requisition!.Id}", updateRequest, JsonOptions);
 
         // Assert
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Update_DraftRequisition_WithNullTargetStartDate_SavesNull()
+    {
+        // Arrange
+        await AuthenticateAsync();
+        var (deptId, bandId, ccId) = await GetLookupIds();
+        
+        var createRequest = new CreateRequisitionRequest(
+            "Dev", deptId, bandId, ccId, 2, 
+            EmploymentType.FullTime, WorkplaceType.OnSite, 
+            "London", "Job Desc", false, DateTime.UtcNow);
+            
+        var createResponse = await Client.PostAsJsonAsync("/api/requisitions", createRequest, JsonOptions);
+        var requisition = await createResponse.Content.ReadFromJsonAsync<Requisition>(JsonOptions);
+        
+        var updateRequest = new UpdateRequisitionRequest(
+            "Senior Dev", deptId, bandId, ccId, 1,
+            EmploymentType.FullTime, WorkplaceType.Remote,
+            "Remote", "New Desc", false, null,
+            new List<RequisitionOpeningDto> { new RequisitionOpeningDto(1, null) });
+
+        // Act
+        var response = await Client.PutAsJsonAsync($"/api/requisitions/{requisition!.Id}", updateRequest, JsonOptions);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        
+        var getResponse = await Client.GetAsync("/api/requisitions");
+        var requisitions = await getResponse.Content.ReadFromJsonAsync<List<Requisition>>(JsonOptions);
+        var updated = requisitions!.First(r => r.Id == requisition.Id);
+        Assert.Null(updated.TargetStartDate);
+        Assert.Null(updated.Openings.First(o => o.SequenceNumber == 1).TargetStartDate);
     }
 
     [Fact]

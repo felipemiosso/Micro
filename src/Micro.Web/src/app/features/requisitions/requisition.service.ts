@@ -4,9 +4,29 @@ import { Observable } from 'rxjs';
 import { Department, SalaryBand, CostCenter } from '../admin/admin.service';
 
 export enum RequisitionStatus {
-  Draft = 0,
-  Finalized = 1,
-  Closed = 2,
+  Draft = 'Draft',
+  Finalized = 'Finalized',
+  Closed = 'Closed',
+}
+
+export enum OpeningStatus {
+  Open = 'Open',
+  Filled = 'Filled',
+  Cancelled = 'Cancelled',
+}
+
+export interface RequisitionOpening {
+  id: string;
+  requisitionId: string;
+  sequenceNumber: number;
+  targetStartDate?: string;
+  candidateId?: string;
+  candidate?: {
+    id: string;
+    fullName: string;
+    email: string;
+  };
+  status: OpeningStatus;
 }
 
 export interface Requisition {
@@ -26,8 +46,16 @@ export interface Requisition {
   closedAt?: string;
   location: string;
   jobDescription: string;
+  employmentType: number;
+  workplaceType: number;
   isInternalOnly: boolean;
   targetStartDate?: string;
+  openings?: RequisitionOpening[];
+}
+
+export interface CreateRequisitionOpeningRequest {
+  sequenceNumber: number;
+  targetStartDate?: string | null;
 }
 
 export interface CreateRequisitionRequest {
@@ -36,12 +64,13 @@ export interface CreateRequisitionRequest {
   salaryBandId: string;
   costCenterId: string;
   openingsCount: number;
-  employmentType: number;
-  workplaceType: number;
+  employmentType: string | number;
+  workplaceType: string | number;
   location: string;
   jobDescription: string;
   isInternalOnly: boolean;
-  targetStartDate?: string;
+  targetStartDate?: string | null;
+  openings?: CreateRequisitionOpeningRequest[];
 }
 
 @Injectable({
@@ -65,6 +94,10 @@ export class RequisitionService {
 
   update(id: string, request: CreateRequisitionRequest): Observable<void> {
     return this.http.put<void>(`${this.apiUrl}/${id}`, request);
+  }
+
+  updateOpening(requisitionId: string, openingId: string, request: { targetStartDate?: string | null; status?: OpeningStatus }): Observable<void> {
+    return this.http.put<void>(`${this.apiUrl}/${requisitionId}/openings/${openingId}`, request);
   }
 
   finalize(id: string): Observable<void> {

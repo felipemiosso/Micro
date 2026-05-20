@@ -34,8 +34,8 @@ public static class CandidateEndpoints
                         a.Id,
                         a.JobPostingId,
                         a.JobPosting.Title,
-                        (int)a.Status,
-                        (int)a.ArchivalResolution,
+                        a.Status.ToString(),
+                        a.ArchivalResolution.ToString(),
                         a.AppliedAt,
                         a.Feedbacks
                             .OrderByDescending(f => f.CreatedAt)
@@ -44,7 +44,10 @@ public static class CandidateEndpoints
                                 f.Notes,
                                 f.Score,
                                 f.CreatedAt
-                            )).ToList()
+                            )).ToList(),
+                        a.RequisitionOpeningId,
+                        a.RequisitionOpening != null ? a.RequisitionOpening.SequenceNumber : (int?)null,
+                        a.RequisitionOpening != null && a.RequisitionOpening.Requisition != null ? a.RequisitionOpening.Requisition.Title : null
                     )).ToList()
             ))
             .FirstOrDefaultAsync();

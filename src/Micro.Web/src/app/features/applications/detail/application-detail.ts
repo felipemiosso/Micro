@@ -75,11 +75,16 @@ export class ApplicationDetailComponent implements OnInit, AfterViewInit {
   }
 
   updateStatus(appId: string, status: ApplicationStatus) {
+    const app = this.candidate()?.applications.find(a => a.id === appId);
+    if (!app) return;
+
     if (status === ApplicationStatus.Archive) {
-      const dialogRef = this.dialog.open(ArchiveDialogComponent);
-      dialogRef.afterClosed().subscribe(resolution => {
-        if (resolution) {
-          this.executeStatusUpdate(appId, status, resolution);
+      const dialogRef = this.dialog.open(ArchiveDialogComponent, {
+        data: { jobPostingId: app.jobPostingId }
+      });
+      dialogRef.afterClosed().subscribe((res: { resolution: ArchivalResolution, requisitionOpeningId?: string | null } | null) => {
+        if (res && res.resolution) {
+          this.executeStatusUpdate(appId, status, res.resolution, res.requisitionOpeningId || undefined);
         }
       });
     } else {
@@ -87,8 +92,8 @@ export class ApplicationDetailComponent implements OnInit, AfterViewInit {
     }
   }
 
-  private executeStatusUpdate(appId: string, status: ApplicationStatus, resolution: ArchivalResolution = ArchivalResolution.None) {
-    this.applicationService.updateStatus(appId, status, resolution).subscribe({
+  private executeStatusUpdate(appId: string, status: ApplicationStatus, resolution: ArchivalResolution = ArchivalResolution.None, requisitionOpeningId?: string) {
+    this.applicationService.updateStatus(appId, status, resolution, requisitionOpeningId).subscribe({
       next: () => {
         this.notification.success(`Status updated to ${this.getStatusLabel(status)}`);
         const id = this.route.snapshot.paramMap.get('id');

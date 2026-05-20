@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Micro.API.Data.Models;
 
 public class RequisitionOpening
@@ -10,6 +12,7 @@ public class RequisitionOpening
     public OpeningStatus Status { get; set; } = OpeningStatus.Open;
 
     // Navigation
+    [JsonIgnore]
     public Requisition Requisition { get; set; } = null!;
     public Candidate? Candidate { get; set; }
 }

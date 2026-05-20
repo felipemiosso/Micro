@@ -98,14 +98,94 @@
         <input id="targetStartDate" type="date" formControlName="targetStartDate" class="input-honeycomb">
       </div>
 
+      <!-- Individual Opening Dates (Draft Mode only, when openingsCount > 1) -->
+      @if ((!requisition() || requisition()?.status === Status.Draft) && (form.get('openingsCount')?.value ?? 0) > 1) {
+        <div class="col-span-2 border-t border-slate-100 pt-6">
+          <h3 class="text-xs font-bold text-ink uppercase tracking-widest mb-4">Individual Opening Target Dates</h3>
+          <div formArrayName="openings" class="grid grid-cols-2 gap-4">
+            @for (control of openingsFormArray.controls; track idx; let idx = $index) {
+              <div [formGroupName]="idx" class="flex flex-col gap-2">
+                <label class="text-xs font-bold text-slate-500">Opening #{{ idx + 1 }} Target Date</label>
+                <input type="date" formControlName="targetStartDate" class="input-honeycomb">
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Openings list for finalized/closed -->
+      @if (requisition() && requisition()?.status !== Status.Draft) {
+        <div class="col-span-2 border-t border-slate-100 pt-6">
+          <h3 class="text-xs font-bold text-ink uppercase tracking-widest mb-4">Openings Tracking</h3>
+          <div class="overflow-hidden border border-slate-200 rounded-lg">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200">
+                  <th class="px-4 py-2 text-xs font-bold text-slate-500 uppercase">#</th>
+                  <th class="px-4 py-2 text-xs font-bold text-slate-500 uppercase">Target Start Date</th>
+                  <th class="px-4 py-2 text-xs font-bold text-slate-500 uppercase">Status</th>
+                  <th class="px-4 py-2 text-xs font-bold text-slate-500 uppercase">Hired Candidate</th>
+                  <th class="px-4 py-2 text-xs font-bold text-slate-500 uppercase text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                @for (op of requisition()?.openings; track op.id) {
+                  <tr>
+                    <td class="px-4 py-3 text-sm font-bold text-ink">#{{ op.sequenceNumber }}</td>
+                    <td class="px-4 py-3 text-sm">
+                      @if (op.status === OpeningStatus.Open && requisition()?.status === Status.Finalized) {
+                        <div class="flex items-center gap-2">
+                          <input type="date" [value]="formatDateForInput(op.targetStartDate)" #dateInput class="input-honeycomb !py-1 !px-2 !w-36 text-xs">
+                          <button type="button" (click)="updateOpeningDate(op, dateInput.value)" class="p-1 text-green-600 hover:text-green-800" matTooltip="Save Date">
+                            <mat-icon class="!text-lg">check</mat-icon>
+                          </button>
+                        </div>
+                      } @else {
+                        <span class="text-slate-600">{{ op.targetStartDate ? (op.targetStartDate | date:'MMM d, yyyy') : 'Not Set' }}</span>
+                      }
+                    </td>
+                    <td class="px-4 py-3 text-sm">
+                      <span class="badge-status text-xs"
+                        [class.badge-green]="op.status === OpeningStatus.Filled"
+                        [class.badge-amber]="op.status === OpeningStatus.Open"
+                        [class.badge-red]="op.status === OpeningStatus.Cancelled">
+                        @switch (op.status) {
+                          @case (OpeningStatus.Open) { Open }
+                          @case (OpeningStatus.Filled) { Filled }
+                          @case (OpeningStatus.Cancelled) { Cancelled }
+                        }
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 text-sm">
+                      @if (op.candidateId) {
+                        <a [routerLink]="['/candidates', op.candidateId]" class="font-medium text-primary hover:underline">
+                          {{ op.candidate?.fullName || 'Candidate Profile' }}
+                        </a>
+                      } @else {
+                        <span class="text-slate-400 font-medium">-</span>
+                      }
+                    </td>
+                    <td class="px-4 py-3 text-sm text-right">
+                      @if (op.status === OpeningStatus.Open && requisition()?.status === Status.Finalized) {
+                        <button type="button" (click)="cancelOpening(op)" class="p-1 text-red-500 hover:text-red-700" matTooltip="Cancel Opening">
+                          <mat-icon class="!text-lg">close</mat-icon>
+                        </button>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
       <!-- Footer Actions -->
       <div class="col-span-2 flex justify-end gap-4 pt-6 border-t border-slate-100">
         <button type="button" class="btn-secondary" routerLink="/requisitions">Cancel</button>
-        @if (form.enabled) {
-          <button type="submit" class="btn-primary" [disabled]="form.invalid">
-            {{ isEdit ? 'Update' : 'Create' }} Requisition
-          </button>
-        }
+        <button type="submit" class="btn-primary" [disabled]="form.invalid || (isEdit && requisition()?.status !== Status.Draft)">
+          {{ isEdit ? 'Update' : 'Create' }} Requisition
+        </button>
       </div>
     </form>
   </div>

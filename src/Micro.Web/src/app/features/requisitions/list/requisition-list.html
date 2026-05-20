@@ -28,11 +28,13 @@
       <tbody class="divide-y divide-slate-100">
         @for (req of requisitions(); track req.id) {
           <tr class="hover:bg-honeycomb-50/30 transition-colors">
-            <td class="px-6 py-4 font-bold text-ink">{{ req.title }}</td>
+            <td class="px-6 py-4 font-bold text-ink">
+              <a [routerLink]="['/requisitions/edit', req.id]" class="hover:text-primary transition-colors cursor-pointer">{{ req.title }}</a>
+            </td>
             <td class="px-6 py-4 text-ink-light">{{ req.department?.name }}</td>
             <td class="px-6 py-4">
               <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-700">
-                {{ req.openingsCount }}
+                {{ getFilledRatio(req) }}
               </span>
             </td>
             <td class="px-6 py-4">
@@ -47,6 +49,11 @@
             <td class="px-6 py-4 text-sm text-slate-400">{{ req.createdAt | date:'MMM d, yyyy' }}</td>
             <td class="px-6 py-4 text-right">
               <div class="flex justify-end gap-1">
+                @if (req.status !== Status.Draft) {
+                  <a mat-icon-button [routerLink]="['/requisitions/edit', req.id]" color="primary" matTooltip="View Details" class="action-link">
+                    <mat-icon>visibility</mat-icon>
+                  </a>
+                }
                 @if (req.status === Status.Draft && authService.hasPermission('Requisition', 'Edit')) {
                   <a mat-icon-button [routerLink]="['/requisitions/edit', req.id]" color="primary" matTooltip="Edit" class="action-link">
                     <mat-icon>edit</mat-icon>

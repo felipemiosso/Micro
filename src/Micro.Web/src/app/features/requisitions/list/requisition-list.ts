@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { RequisitionService, Requisition, RequisitionStatus } from '../requisition.service';
+import { RequisitionService, Requisition, RequisitionStatus, OpeningStatus } from '../requisition.service';
 import { AuthService } from '../../../core/auth/auth';
 import { NotificationService } from '../../../core/ui/notification.service';
 import { MatIconModule } from '@angular/material/icon';
@@ -84,4 +84,13 @@ export class RequisitionListComponent implements OnInit {
       default: return 'Unknown';
     }
   }
+
+  getFilledRatio(req: Requisition): string {
+    if (req.status === RequisitionStatus.Draft) {
+      return `${req.openingsCount} (Draft)`;
+    }
+    const filled = req.openings ? req.openings.filter(o => o.status === OpeningStatus.Filled).length : 0;
+    return `${filled} / ${req.openingsCount}`;
+  }
 }
+

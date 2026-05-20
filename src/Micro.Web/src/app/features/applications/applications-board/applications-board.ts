@@ -130,11 +130,13 @@ export class ApplicationsBoardComponent implements OnInit {
     }
 
     const item = event.previousContainer.data[event.previousIndex];
-    const dialogRef = this.dialog.open(ArchiveDialogComponent);
+    const dialogRef = this.dialog.open(ArchiveDialogComponent, {
+      data: { jobPostingId: item.jobPostingId }
+    });
 
-    dialogRef.afterClosed().subscribe(resolution => {
-      if (resolution) {
-        this.applicationService.updateStatus(item.id, ApplicationStatus.Archive, resolution).subscribe({
+    dialogRef.afterClosed().subscribe((res: { resolution: ArchivalResolution, requisitionOpeningId?: string | null } | null) => {
+      if (res && res.resolution) {
+        this.applicationService.updateStatus(item.id, ApplicationStatus.Archive, res.resolution, res.requisitionOpeningId || undefined).subscribe({
           next: () => {
             const list = [...event.previousContainer.data];
             list.splice(event.previousIndex, 1);

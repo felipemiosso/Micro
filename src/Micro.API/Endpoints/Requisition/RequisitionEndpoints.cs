@@ -15,6 +15,7 @@ public static class RequisitionEndpoints
         group.MapGet("/{id:guid}", GetRequisition).RequireAuthorization("Requisition:View");
         group.MapPost("/", CreateRequisition).RequireAuthorization("Requisition:Create");
         group.MapPut("/{id:guid}", UpdateRequisition).RequireAuthorization("Requisition:Edit");
+        group.MapPut("/{id:guid}/openings/{openingId:guid}", UpdateRequisitionOpening).RequireAuthorization("Requisition:Edit");
         group.MapPost("/{id:guid}/finalize", FinalizeRequisition).RequireAuthorization("Requisition:Finalize");
         group.MapPost("/{id:guid}/close", CloseRequisition).RequireAuthorization("Requisition:Close");
     }
@@ -24,6 +25,7 @@ public static class RequisitionEndpoints
     {
         var requisitions = await db.Requisitions
             .Include(r => r.Department)
+            .Include(r => r.Openings)
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync();
         return Results.Ok(requisitions);
@@ -36,7 +38,7 @@ public static class RequisitionEndpoints
             .Include(r => r.Department)
             .Include(r => r.SalaryBand)
             .Include(r => r.CostCenter)
-            .Include(r => r.Openings)
+            .Include(r => r.Openings).ThenInclude(o => o.Candidate)
             .FirstOrDefaultAsync(r => r.Id == id);
             
         return requisition is null ? Results.NotFound() : Results.Ok(requisition);
@@ -64,6 +66,19 @@ public static class RequisitionEndpoints
             CreatedAt = DateTime.UtcNow
         };
 
+        // Initialize Openings in Draft State
+        for (int i = 1; i <= request.OpeningsCount; i++)
+        {
+            var customOpening = request.Openings?.FirstOrDefault(o => o.SequenceNumber == i);
+            requisition.Openings.Add(new RequisitionOpening
+            {
+                Id = Guid.NewGuid(),
+                SequenceNumber = i,
+                TargetStartDate = customOpening?.TargetStartDate ?? request.TargetStartDate,
+                Status = OpeningStatus.Open
+            });
+        }
+
         db.Requisitions.Add(requisition);
         await db.SaveChangesAsync();
 
@@ -73,7 +88,10 @@ public static class RequisitionEndpoints
     [ResourceAction("Requisition", "Edit", "Update draft requisition")]
     private static async Task<IResult> UpdateRequisition(Guid id, UpdateRequisitionRequest request, MicroDbContext db)
     {
-        var requisition = await db.Requisitions.FindAsync(id);
+        var requisition = await db.Requisitions
+            .Include(r => r.Openings)
+            .FirstOrDefaultAsync(r => r.Id == id);
+
         if (requisition is null) return Results.NotFound();
         if (requisition.Status != RequisitionStatus.Draft) return Results.BadRequest("Only draft requisitions can be updated.");
 
@@ -88,6 +106,92 @@ public static class RequisitionEndpoints
         requisition.JobDescription = request.JobDescription;
         requisition.IsInternalOnly = request.IsInternalOnly;
         requisition.TargetStartDate = request.TargetStartDate;
+
+        // Synchronize Openings
+        // 1. Remove excess openings
+        var existingOpenings = requisition.Openings.ToList();
+        foreach (var opening in existingOpenings.Where(o => o.SequenceNumber > request.OpeningsCount))
+        {
+            db.RequisitionOpenings.Remove(opening);
+            requisition.Openings.Remove(opening);
+        }
+
+        // 2. Add or update remaining openings
+        for (int i = 1; i <= request.OpeningsCount; i++)
+        {
+            var customOpening = request.Openings?.FirstOrDefault(o => o.SequenceNumber == i);
+            var targetDate = customOpening?.TargetStartDate ?? request.TargetStartDate;
+
+            var existing = requisition.Openings.FirstOrDefault(o => o.SequenceNumber == i);
+            if (existing != null)
+            {
+                existing.TargetStartDate = targetDate;
+            }
+            else
+            {
+                requisition.Openings.Add(new RequisitionOpening
+                {
+                    Id = Guid.NewGuid(),
+                    SequenceNumber = i,
+                    TargetStartDate = targetDate,
+                    Status = OpeningStatus.Open
+                });
+            }
+        }
+
+        await db.SaveChangesAsync();
+        return Results.NoContent();
+    }
+
+    public record UpdateRequisitionOpeningRequest(DateTime? TargetStartDate, OpeningStatus Status);
+
+    [ResourceAction("Requisition", "Edit", "Update an individual requisition opening")]
+    private static async Task<IResult> UpdateRequisitionOpening(
+        Guid id,
+        Guid openingId,
+        UpdateRequisitionOpeningRequest request,
+        MicroDbContext db)
+    {
+        var opening = await db.RequisitionOpenings
+            .Include(o => o.Requisition)
+            .FirstOrDefaultAsync(o => o.Id == openingId && o.RequisitionId == id);
+
+        if (opening is null) return Results.NotFound();
+
+        if (opening.Status == OpeningStatus.Filled)
+        {
+            return Results.BadRequest("Cannot modify a filled opening.");
+        }
+
+        if (request.Status == OpeningStatus.Filled)
+        {
+            return Results.BadRequest("Cannot manually set status to Filled. Assign a candidate to fill.");
+        }
+
+        opening.TargetStartDate = request.TargetStartDate;
+        opening.Status = request.Status;
+
+        // If status becomes Cancelled, check if all openings are now Filled or Cancelled
+        if (request.Status == OpeningStatus.Cancelled)
+        {
+            var otherOpenings = await db.RequisitionOpenings
+                .Where(o => o.RequisitionId == id && o.Id != openingId)
+                .ToListAsync();
+
+            if (otherOpenings.All(o => o.Status == OpeningStatus.Filled || o.Status == OpeningStatus.Cancelled))
+            {
+                var requisition = opening.Requisition;
+                requisition.Status = RequisitionStatus.Closed;
+                requisition.ClosedAt = DateTime.UtcNow;
+
+                var posting = await db.JobPostings.FirstOrDefaultAsync(p => p.RequisitionId == id);
+                if (posting != null && posting.Status == JobPostingStatus.Published)
+                {
+                    posting.Status = JobPostingStatus.Closed;
+                    posting.ClosedAt = DateTime.UtcNow;
+                }
+            }
+        }
 
         await db.SaveChangesAsync();
         return Results.NoContent();
@@ -106,15 +210,10 @@ public static class RequisitionEndpoints
         requisition.Status = RequisitionStatus.Finalized;
         requisition.FinalizedAt = DateTime.UtcNow;
 
-        // Initialize Openings
-        for (int i = 1; i <= requisition.OpeningsCount; i++)
+        // Ensure openings status is Open
+        foreach (var opening in requisition.Openings)
         {
-            requisition.Openings.Add(new RequisitionOpening
-            {
-                SequenceNumber = i,
-                TargetStartDate = requisition.TargetStartDate,
-                Status = OpeningStatus.Open
-            });
+            opening.Status = OpeningStatus.Open;
         }
 
         // Automatically create a Job Posting

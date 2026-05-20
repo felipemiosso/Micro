@@ -14,6 +14,9 @@ public static class ApplicationEndpoints
             .AllowAnonymous()
             .DisableAntiforgery();
 
+        app.MapGet("/api/job-postings/{jobPostingId:guid}/available-openings", GetAvailableOpenings)
+            .RequireAuthorization("Application:View");
+
         // Management endpoints
         var group = app.MapGroup("/api/applications");
         
@@ -204,12 +207,76 @@ public static class ApplicationEndpoints
         UpdateStatusRequest request,
         MicroDbContext db)
     {
-        var application = await db.Applications.FindAsync(id);
+        var application = await db.Applications
+            .Include(a => a.JobPosting)
+            .FirstOrDefaultAsync(a => a.Id == id);
         if (application is null) return Results.NotFound();
 
         if (request.Status == ApplicationStatus.Archive && request.Resolution == ArchivalResolution.None)
         {
             return Results.BadRequest("Archival resolution is required when moving to Archive status.");
+        }
+
+        if (request.Status == ApplicationStatus.Archive && request.Resolution == ArchivalResolution.Hired)
+        {
+            if (!request.RequisitionOpeningId.HasValue)
+            {
+                return Results.BadRequest("RequisitionOpeningId is required when status is Hired.");
+            }
+
+            var opening = await db.RequisitionOpenings
+                .Include(o => o.Requisition)
+                .FirstOrDefaultAsync(o => o.Id == request.RequisitionOpeningId.Value && o.RequisitionId == application.JobPosting.RequisitionId);
+
+            if (opening is null)
+            {
+                return Results.BadRequest("Requisition opening not found or does not belong to the correct requisition.");
+            }
+
+            if (opening.Status != OpeningStatus.Open)
+            {
+                return Results.BadRequest("Selected opening is not available.");
+            }
+
+            using var transaction = await db.Database.BeginTransactionAsync();
+            try
+            {
+                application.Status = request.Status;
+                application.ArchivalResolution = request.Resolution;
+                application.RequisitionOpeningId = request.RequisitionOpeningId;
+                application.UpdatedAt = DateTime.UtcNow;
+
+                opening.Status = OpeningStatus.Filled;
+                opening.CandidateId = application.CandidateId;
+
+                // Check if all openings of this requisition are now Filled or Cancelled
+                var otherOpenings = await db.RequisitionOpenings
+                    .Where(o => o.RequisitionId == opening.RequisitionId && o.Id != opening.Id)
+                    .ToListAsync();
+
+                if (otherOpenings.All(o => o.Status == OpeningStatus.Filled || o.Status == OpeningStatus.Cancelled))
+                {
+                    var requisition = opening.Requisition;
+                    requisition.Status = RequisitionStatus.Closed;
+                    requisition.ClosedAt = DateTime.UtcNow;
+
+                    var posting = await db.JobPostings.FirstOrDefaultAsync(p => p.RequisitionId == requisition.Id);
+                    if (posting != null && posting.Status == JobPostingStatus.Published)
+                    {
+                        posting.Status = JobPostingStatus.Closed;
+                        posting.ClosedAt = DateTime.UtcNow;
+                    }
+                }
+
+                await db.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return Results.NoContent();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         application.Status = request.Status;
@@ -218,6 +285,20 @@ public static class ApplicationEndpoints
 
         await db.SaveChangesAsync();
         return Results.NoContent();
+    }
+
+    [ResourceAction("Application", "View", "Get available (open) openings for a job posting's requisition")]
+    private static async Task<IResult> GetAvailableOpenings(Guid jobPostingId, MicroDbContext db)
+    {
+        var jobPosting = await db.JobPostings.FindAsync(jobPostingId);
+        if (jobPosting is null) return Results.NotFound();
+
+        var openings = await db.RequisitionOpenings
+            .Where(o => o.RequisitionId == jobPosting.RequisitionId && o.Status == OpeningStatus.Open)
+            .OrderBy(o => o.SequenceNumber)
+            .ToListAsync();
+
+        return Results.Ok(openings);
     }
 
     [ResourceAction("Application", "Feedback", "Add interview feedback")]

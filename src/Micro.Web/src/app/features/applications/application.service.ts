@@ -1,20 +1,21 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
+import { RequisitionOpening } from '../requisitions/requisition.service';
 
 export enum ApplicationStatus {
-  Applied = 0,
-  Interview = 1,
-  Offer = 2,
-  Archive = 3,
+  Applied = 'Applied',
+  Interview = 'Interview',
+  Offer = 'Offer',
+  Archive = 'Archive',
 }
 
 export enum ArchivalResolution {
-  None = 0,
-  Hired = 1,
-  Rejected = 2,
-  Declined = 3,
-  Withdrawn = 4
+  None = 'None',
+  Hired = 'Hired',
+  Rejected = 'Rejected',
+  Declined = 'Declined',
+  Withdrawn = 'Withdrawn',
 }
 
 export interface Feedback {
@@ -40,6 +41,9 @@ export interface CandidateApplication {
   archivalResolution: ArchivalResolution;
   appliedAt: string;
   feedbacks: Feedback[];
+  requisitionOpeningId?: string;
+  openingSequenceNumber?: number;
+  requisitionTitle?: string;
 }
 
 export interface CandidateDetail extends Candidate {
@@ -57,6 +61,7 @@ export interface Application {
   status: ApplicationStatus;
   archivalResolution: ArchivalResolution;
   appliedAt: string;
+  requisitionOpeningId?: string;
 }
 
 export interface ApplicationDetail extends Application {
@@ -97,8 +102,12 @@ export class ApplicationService {
     return this.http.get<CandidateDetail>(`${this.candidateApiUrl}/${id}`);
   }
 
-  updateStatus(id: string, status: ApplicationStatus, resolution: ArchivalResolution = ArchivalResolution.None): Observable<void> {
-    return this.http.put<void>(`${this.adminApiUrl}/${id}/status`, { status, resolution });
+  updateStatus(id: string, status: ApplicationStatus, resolution: ArchivalResolution = ArchivalResolution.None, requisitionOpeningId?: string): Observable<void> {
+    return this.http.put<void>(`${this.adminApiUrl}/${id}/status`, { status, resolution, requisitionOpeningId });
+  }
+
+  getAvailableOpenings(jobPostingId: string): Observable<RequisitionOpening[]> {
+    return this.http.get<RequisitionOpening[]>(`/api/job-postings/${jobPostingId}/available-openings`);
   }
 
   addFeedback(id: string, notes: string, score: number): Observable<void> {
@@ -109,3 +118,4 @@ export class ApplicationService {
     return this.http.get(`${this.adminApiUrl}/${id}/resume`, { responseType: 'blob' });
   }
 }
+

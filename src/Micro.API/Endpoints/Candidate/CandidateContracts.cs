@@ -13,10 +13,13 @@ public record CandidateApplicationResponse(
     Guid Id,
     Guid JobPostingId,
     string JobTitle,
-    int Status,
-    int ArchivalResolution,
+    string Status,
+    string ArchivalResolution,
     DateTime AppliedAt,
-    List<CandidateFeedbackResponse> Feedbacks
+    List<CandidateFeedbackResponse> Feedbacks,
+    Guid? RequisitionOpeningId = null,
+    int? OpeningSequenceNumber = null,
+    string? RequisitionTitle = null
 );
 
 public record CandidateFeedbackResponse(
