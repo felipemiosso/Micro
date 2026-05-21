@@ -323,7 +323,7 @@ public class ApplicationTests : IntegrationTestBase
 
         var openingsResponseAfter = await Client.GetAsync($"/api/job-postings/{jobId}/available-openings");
         var openingsAfter = await openingsResponseAfter.Content.ReadFromJsonAsync<List<RequisitionOpening>>(JsonOptions);
-        Assert.Empty(openingsAfter!.Where(o => o.Id == openingId));
+        Assert.DoesNotContain(openingsAfter!, o => o.Id == openingId);
     }
 
     [Fact]

@@ -17,6 +17,9 @@ public class Application
     public Guid? RequisitionOpeningId { get; set; }
     public RequisitionOpening? RequisitionOpening { get; set; }
     public ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
+    
+    public InterviewDetails? Interview { get; set; }
+    public OfferDetails? Offer { get; set; }
 }
 
 public enum ApplicationStatus

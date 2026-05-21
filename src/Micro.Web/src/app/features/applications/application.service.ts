@@ -25,6 +25,17 @@ export interface Feedback {
   createdAt: string;
 }
 
+export interface InterviewDetails {
+  scheduledDate?: string;
+  interviewerName?: string;
+}
+
+export interface OfferDetails {
+  proposedSalary?: number;
+  targetStartDate?: string;
+  deadline?: string;
+}
+
 export interface Candidate {
   id: string;
   fullName: string;
@@ -44,6 +55,8 @@ export interface CandidateApplication {
   requisitionOpeningId?: string;
   openingSequenceNumber?: number;
   requisitionTitle?: string;
+  interviewDetails?: InterviewDetails;
+  offerDetails?: OfferDetails;
 }
 
 export interface CandidateDetail extends Candidate {
@@ -66,6 +79,8 @@ export interface Application {
 
 export interface ApplicationDetail extends Application {
   feedbacks: Feedback[];
+  interviewDetails?: InterviewDetails;
+  offerDetails?: OfferDetails;
 }
 
 @Injectable({
@@ -104,6 +119,14 @@ export class ApplicationService {
 
   updateStatus(id: string, status: ApplicationStatus, resolution: ArchivalResolution = ArchivalResolution.None, requisitionOpeningId?: string): Observable<void> {
     return this.http.put<void>(`${this.adminApiUrl}/${id}/status`, { status, resolution, requisitionOpeningId });
+  }
+
+  updateInterviewDetails(id: string, payload: InterviewDetails): Observable<void> {
+    return this.http.put<void>(`${this.adminApiUrl}/${id}/interview-details`, payload);
+  }
+
+  updateOfferDetails(id: string, payload: OfferDetails): Observable<void> {
+    return this.http.put<void>(`${this.adminApiUrl}/${id}/offer-details`, payload);
   }
 
   getAvailableOpenings(jobPostingId: string): Observable<RequisitionOpening[]> {

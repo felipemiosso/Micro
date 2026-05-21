@@ -27,5 +27,18 @@ public class ApplicationConfiguration : IEntityTypeConfiguration<Application>
             .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasIndex(a => a.Status);
+
+        builder.OwnsOne(a => a.Interview, i =>
+        {
+            i.Property(p => p.ScheduledDate).HasColumnName("InterviewScheduledDate");
+            i.Property(p => p.InterviewerName).HasColumnName("InterviewerName").HasMaxLength(100);
+        });
+
+        builder.OwnsOne(a => a.Offer, o =>
+        {
+            o.Property(p => p.ProposedSalary).HasColumnName("OfferProposedSalary").HasColumnType("decimal(18,2)");
+            o.Property(p => p.TargetStartDate).HasColumnName("OfferTargetStartDate");
+            o.Property(p => p.Deadline).HasColumnName("OfferDeadline");
+        });
     }
 }

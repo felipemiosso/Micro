@@ -24,6 +24,8 @@ public static class ApplicationEndpoints
         group.MapGet("/{id:guid}", GetApplicationDetail).RequireAuthorization("Application:View");
         group.MapGet("/{id:guid}/resume", GetApplicationResume).RequireAuthorization("Application:ViewResume");
         group.MapPut("/{id:guid}/status", UpdateApplicationStatus).RequireAuthorization("Application:Edit");
+        group.MapPut("/{id:guid}/interview-details", UpdateInterviewDetails).RequireAuthorization("Application:Edit");
+        group.MapPut("/{id:guid}/offer-details", UpdateOfferDetails).RequireAuthorization("Application:Edit");
         group.MapPost("/{id:guid}/feedback", AddFeedback).RequireAuthorization("Application:Feedback");
     }
 
@@ -122,6 +124,7 @@ public static class ApplicationEndpoints
         MicroDbContext db)
     {
         var query = db.Applications
+            .AsNoTracking()
             .Include(a => a.JobPosting)
             .Include(a => a.Candidate)
             .AsQueryable();
@@ -149,7 +152,9 @@ public static class ApplicationEndpoints
                 CandidatePhone = a.Candidate.Phone,
                 a.Status,
                 a.ArchivalResolution,
-                a.AppliedAt
+                a.AppliedAt,
+                InterviewDetails = a.Interview,
+                OfferDetails = a.Offer
             })
             .ToListAsync();
 
@@ -175,6 +180,7 @@ public static class ApplicationEndpoints
     private static async Task<IResult> GetApplicationDetail(Guid id, MicroDbContext db)
     {
         var application = await db.Applications
+            .AsNoTracking()
             .Include(a => a.JobPosting)
             .Include(a => a.Candidate)
             .Include(a => a.Feedbacks.OrderByDescending(f => f.CreatedAt))
@@ -189,6 +195,8 @@ public static class ApplicationEndpoints
                 a.Status,
                 a.ArchivalResolution,
                 a.AppliedAt,
+                InterviewDetails = a.Interview,
+                OfferDetails = a.Offer,
                 Feedbacks = a.Feedbacks.Select(f => new {
                     f.Id,
                     f.Notes,
@@ -336,4 +344,52 @@ public static class ApplicationEndpoints
 
         return Results.Created($"/api/applications/{id}/feedback", new { feedback.Id });
     }
+
+    [ResourceAction("Application", "Edit", "Update interview details")]
+    private static async Task<IResult> UpdateInterviewDetails(Guid id, UpdateInterviewDetailsRequest request, MicroDbContext db)
+    {
+        var application = await db.Applications.FindAsync(id);
+        if (application is null) return Results.NotFound();
+
+        if (application.Interview == null)
+        {
+            application.Interview = new InterviewDetails();
+        }
+        
+        application.Interview.ScheduledDate = request.ScheduledDate.HasValue 
+            ? DateTime.SpecifyKind(request.ScheduledDate.Value, DateTimeKind.Utc) 
+            : null;
+        application.Interview.InterviewerName = request.InterviewerName;
+        application.UpdatedAt = DateTime.UtcNow;
+
+        await db.SaveChangesAsync();
+        return Results.NoContent();
+    }
+
+    [ResourceAction("Application", "Edit", "Update offer details")]
+    private static async Task<IResult> UpdateOfferDetails(Guid id, UpdateOfferDetailsRequest request, MicroDbContext db)
+    {
+        var application = await db.Applications.FindAsync(id);
+        if (application is null) return Results.NotFound();
+
+        if (application.Offer == null)
+        {
+            application.Offer = new OfferDetails();
+        }
+
+        application.Offer.ProposedSalary = request.ProposedSalary;
+        application.Offer.TargetStartDate = request.TargetStartDate.HasValue 
+            ? DateTime.SpecifyKind(request.TargetStartDate.Value, DateTimeKind.Utc) 
+            : null;
+        application.Offer.Deadline = request.Deadline.HasValue 
+            ? DateTime.SpecifyKind(request.Deadline.Value, DateTimeKind.Utc) 
+            : null;
+        application.UpdatedAt = DateTime.UtcNow;
+
+        await db.SaveChangesAsync();
+        return Results.NoContent();
+    }
 }
+
+public record UpdateInterviewDetailsRequest(DateTime? ScheduledDate, string? InterviewerName);
+public record UpdateOfferDetailsRequest(decimal? ProposedSalary, DateTime? TargetStartDate, DateTime? Deadline);

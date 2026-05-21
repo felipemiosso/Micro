@@ -2,7 +2,7 @@ import { Component, OnInit, inject, signal, AfterViewInit } from '@angular/core'
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { ApplicationService, CandidateDetail, ApplicationStatus, ArchivalResolution } from '../application.service';
+import { ApplicationService, CandidateDetail, ApplicationStatus, ArchivalResolution, CandidateApplication } from '../application.service';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -64,7 +64,29 @@ export class ApplicationDetailComponent implements OnInit, AfterViewInit {
     this.loading.set(true);
     this.applicationService.getCandidate(id).subscribe({
       next: (data) => {
-        this.candidate.set(data);
+        this.candidate.set({
+          ...data,
+          applications: data.applications.map(app => {
+            const interview = { ...(app.interviewDetails || {}) };
+            if (interview.scheduledDate) {
+              interview.scheduledDate = interview.scheduledDate.substring(0, 10);
+            }
+            
+            const offer = { ...(app.offerDetails || {}) };
+            if (offer.targetStartDate) {
+              offer.targetStartDate = offer.targetStartDate.substring(0, 10);
+            }
+            if (offer.deadline) {
+              offer.deadline = offer.deadline.substring(0, 10);
+            }
+            
+            return {
+              ...app,
+              interviewDetails: interview,
+              offerDetails: offer
+            };
+          })
+        });
         this.loading.set(false);
       },
       error: (err) => {
@@ -115,6 +137,26 @@ export class ApplicationDetailComponent implements OnInit, AfterViewInit {
         if (id) this.loadCandidate(id);
       },
       error: () => this.notification.error('Failed to add feedback')
+    });
+  }
+
+  saveInterviewDetails(app: CandidateApplication) {
+    if (!app.interviewDetails) return;
+    this.applicationService.updateInterviewDetails(app.id, app.interviewDetails).subscribe({
+      next: () => {
+        this.notification.success('Interview details updated successfully');
+      },
+      error: () => this.notification.error('Failed to update interview details')
+    });
+  }
+
+  saveOfferDetails(app: CandidateApplication) {
+    if (!app.offerDetails) return;
+    this.applicationService.updateOfferDetails(app.id, app.offerDetails).subscribe({
+      next: () => {
+        this.notification.success('Offer details updated successfully');
+      },
+      error: () => this.notification.error('Failed to update offer details')
     });
   }
 

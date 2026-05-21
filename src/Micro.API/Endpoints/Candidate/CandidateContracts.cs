@@ -19,7 +19,9 @@ public record CandidateApplicationResponse(
     List<CandidateFeedbackResponse> Feedbacks,
     Guid? RequisitionOpeningId = null,
     int? OpeningSequenceNumber = null,
-    string? RequisitionTitle = null
+    string? RequisitionTitle = null,
+    Micro.API.Data.Models.InterviewDetails? InterviewDetails = null,
+    Micro.API.Data.Models.OfferDetails? OfferDetails = null
 );
 
 public record CandidateFeedbackResponse(

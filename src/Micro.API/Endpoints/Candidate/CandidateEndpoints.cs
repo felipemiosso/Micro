@@ -17,6 +17,7 @@ public static class CandidateEndpoints
     private static async Task<IResult> GetCandidateDetail(Guid id, MicroDbContext db)
     {
         var candidate = await db.Candidates
+            .AsNoTracking()
             .Include(c => c.Applications)
                 .ThenInclude(a => a.JobPosting)
             .Include(c => c.Applications)
@@ -47,7 +48,9 @@ public static class CandidateEndpoints
                             )).ToList(),
                         a.RequisitionOpeningId,
                         a.RequisitionOpening != null ? a.RequisitionOpening.SequenceNumber : (int?)null,
-                        a.RequisitionOpening != null && a.RequisitionOpening.Requisition != null ? a.RequisitionOpening.Requisition.Title : null
+                        a.RequisitionOpening != null && a.RequisitionOpening.Requisition != null ? a.RequisitionOpening.Requisition.Title : null,
+                        a.Interview,
+                        a.Offer
                     )).ToList()
             ))
             .FirstOrDefaultAsync();

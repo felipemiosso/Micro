@@ -60,7 +60,7 @@ public static class RequisitionEndpoints
             Location = request.Location,
             JobDescription = request.JobDescription,
             IsInternalOnly = request.IsInternalOnly,
-            TargetStartDate = request.TargetStartDate,
+            TargetStartDate = request.TargetStartDate.HasValue ? DateTime.SpecifyKind(request.TargetStartDate.Value, DateTimeKind.Utc) : null,
             Status = RequisitionStatus.Draft,
             CreatedBy = authUser.Name ?? authUser.Email,
             CreatedAt = DateTime.UtcNow
@@ -74,7 +74,7 @@ public static class RequisitionEndpoints
             {
                 Id = Guid.NewGuid(),
                 SequenceNumber = i,
-                TargetStartDate = customOpening?.TargetStartDate ?? request.TargetStartDate,
+                TargetStartDate = (customOpening?.TargetStartDate ?? request.TargetStartDate) is DateTime d1 ? DateTime.SpecifyKind(d1, DateTimeKind.Utc) : null,
                 Status = OpeningStatus.Open
             });
         }
@@ -105,7 +105,7 @@ public static class RequisitionEndpoints
         requisition.Location = request.Location;
         requisition.JobDescription = request.JobDescription;
         requisition.IsInternalOnly = request.IsInternalOnly;
-        requisition.TargetStartDate = request.TargetStartDate;
+        requisition.TargetStartDate = request.TargetStartDate.HasValue ? DateTime.SpecifyKind(request.TargetStartDate.Value, DateTimeKind.Utc) : null;
 
         // Synchronize Openings
         // 1. Remove excess openings
@@ -120,7 +120,8 @@ public static class RequisitionEndpoints
         for (int i = 1; i <= request.OpeningsCount; i++)
         {
             var customOpening = request.Openings?.FirstOrDefault(o => o.SequenceNumber == i);
-            var targetDate = customOpening?.TargetStartDate ?? request.TargetStartDate;
+            var rawDate = customOpening?.TargetStartDate ?? request.TargetStartDate;
+            var targetDate = rawDate.HasValue ? DateTime.SpecifyKind(rawDate.Value, DateTimeKind.Utc) : (DateTime?)null;
 
             var existing = requisition.Openings.FirstOrDefault(o => o.SequenceNumber == i);
             if (existing != null)
@@ -168,7 +169,7 @@ public static class RequisitionEndpoints
             return Results.BadRequest("Cannot manually set status to Filled. Assign a candidate to fill.");
         }
 
-        opening.TargetStartDate = request.TargetStartDate;
+        opening.TargetStartDate = request.TargetStartDate.HasValue ? DateTime.SpecifyKind(request.TargetStartDate.Value, DateTimeKind.Utc) : null;
         opening.Status = request.Status;
 
         // If status becomes Cancelled, check if all openings are now Filled or Cancelled
