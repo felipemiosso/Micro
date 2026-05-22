@@ -1,5 +1,6 @@
 using Micro.API.Data.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Micro.API.Data;
 
@@ -19,8 +20,40 @@ public class MicroDbContext : DbContext
     public DbSet<Application> Applications { get; set; }
     public DbSet<Feedback> Feedbacks { get; set; }
 
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        // Normalize all DateTime values to UTC before writing to PostgreSQL's
+        // 'timestamp with time zone' columns. Npgsql 6+ rejects Kind=Unspecified.
+        configurationBuilder
+            .Properties<DateTime>()
+            .HaveConversion<UtcDateTimeConverter>();
+
+        configurationBuilder
+            .Properties<DateTime?>()
+            .HaveConversion<UtcNullableDateTimeConverter>();
+    }
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         builder.ApplyConfigurationsFromAssembly(typeof(MicroDbContext).Assembly);
     }
+}
+
+/// <summary>
+/// Converts a DateTime to UTC kind on write (required by Npgsql for 'timestamp with time zone').
+/// On read, marks the returned value as UTC.
+/// </summary>
+public class UtcDateTimeConverter : ValueConverter<DateTime, DateTime>
+{
+    public UtcDateTimeConverter() : base(
+        v => v.Kind == DateTimeKind.Utc ? v : v.ToUniversalTime(),
+        v => DateTime.SpecifyKind(v, DateTimeKind.Utc)) { }
+}
+
+/// <summary>Nullable variant of <see cref="UtcDateTimeConverter"/>.</summary>
+public class UtcNullableDateTimeConverter : ValueConverter<DateTime?, DateTime?>
+{
+    public UtcNullableDateTimeConverter() : base(
+        v => v == null ? v : v.Value.Kind == DateTimeKind.Utc ? v : v.Value.ToUniversalTime(),
+        v => v == null ? v : DateTime.SpecifyKind(v.Value, DateTimeKind.Utc)) { }
 }

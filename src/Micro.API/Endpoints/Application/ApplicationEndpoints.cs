@@ -356,9 +356,7 @@ public static class ApplicationEndpoints
             application.Interview = new InterviewDetails();
         }
         
-        application.Interview.ScheduledDate = request.ScheduledDate.HasValue 
-            ? DateTime.SpecifyKind(request.ScheduledDate.Value, DateTimeKind.Utc) 
-            : null;
+        application.Interview.ScheduledDate = request.ScheduledDate;
         application.Interview.InterviewerName = request.InterviewerName;
         application.UpdatedAt = DateTime.UtcNow;
 
@@ -378,12 +376,8 @@ public static class ApplicationEndpoints
         }
 
         application.Offer.ProposedSalary = request.ProposedSalary;
-        application.Offer.TargetStartDate = request.TargetStartDate.HasValue 
-            ? DateTime.SpecifyKind(request.TargetStartDate.Value, DateTimeKind.Utc) 
-            : null;
-        application.Offer.Deadline = request.Deadline.HasValue 
-            ? DateTime.SpecifyKind(request.Deadline.Value, DateTimeKind.Utc) 
-            : null;
+        application.Offer.TargetStartDate = request.TargetStartDate;
+        application.Offer.Deadline = request.Deadline;
         application.UpdatedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync();
