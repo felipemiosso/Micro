@@ -1,5 +1,6 @@
 using Micro.API.Data;
 using Micro.API.Infrastructure.Auth;
+using Micro.API.Infrastructure.CustomFields;
 using Microsoft.EntityFrameworkCore;
 
 namespace Micro.API.Endpoints.Candidate;
@@ -16,29 +17,31 @@ public static class CandidateEndpoints
     [ResourceAction("Candidate", "View", "View candidate profile and application history")]
     private static async Task<IResult> GetCandidateDetail(Guid id, MicroDbContext db)
     {
-        var candidate = await db.Candidates
+        var candidateDto = await db.Candidates
             .AsNoTracking()
             .Include(c => c.Applications)
                 .ThenInclude(a => a.JobPosting)
             .Include(c => c.Applications)
                 .ThenInclude(a => a.Feedbacks)
             .Where(c => c.Id == id)
-            .Select(c => new CandidateDetailResponse(
+            .Select(c => new
+            {
                 c.Id,
                 c.FullName,
                 c.Email,
                 c.Phone,
                 c.CreatedAt,
-                c.Applications
+                Applications = c.Applications
                     .OrderByDescending(a => a.AppliedAt)
-                    .Select(a => new CandidateApplicationResponse(
+                    .Select(a => new
+                    {
                         a.Id,
                         a.JobPostingId,
-                        a.JobPosting.Title,
-                        a.Status.ToString(),
-                        a.ArchivalResolution.ToString(),
+                        JobTitle = a.JobPosting.Title,
+                        Status = a.Status,
+                        ArchivalResolution = a.ArchivalResolution,
                         a.AppliedAt,
-                        a.Feedbacks
+                        Feedbacks = a.Feedbacks
                             .OrderByDescending(f => f.CreatedAt)
                             .Select(f => new CandidateFeedbackResponse(
                                 f.Id,
@@ -47,14 +50,49 @@ public static class CandidateEndpoints
                                 f.CreatedAt
                             )).ToList(),
                         a.RequisitionOpeningId,
-                        a.RequisitionOpening != null ? a.RequisitionOpening.SequenceNumber : (int?)null,
-                        a.RequisitionOpening != null && a.RequisitionOpening.Requisition != null ? a.RequisitionOpening.Requisition.Title : null,
+                        OpeningSequenceNumber = a.RequisitionOpening != null ? a.RequisitionOpening.SequenceNumber : (int?)null,
+                        RequisitionTitle = a.RequisitionOpening != null && a.RequisitionOpening.Requisition != null ? a.RequisitionOpening.Requisition.Title : null,
                         a.Interview,
                         a.Offer
-                    )).ToList()
-            ))
+                    }).ToList()
+            })
             .FirstOrDefaultAsync();
 
-        return candidate is null ? Results.NotFound() : Results.Ok(candidate);
+        if (candidateDto is null)
+        {
+            return Results.NotFound();
+        }
+
+        var apps = new List<CandidateApplicationResponse>();
+        foreach (var a in candidateDto.Applications)
+        {
+            var customFields = await CustomFieldPersistence.GetApplicationValuesAsync(db, a.Id, a.Status);
+            apps.Add(new CandidateApplicationResponse(
+                a.Id,
+                a.JobPostingId,
+                a.JobTitle,
+                a.Status.ToString(),
+                a.ArchivalResolution.ToString(),
+                a.AppliedAt,
+                a.Feedbacks,
+                a.RequisitionOpeningId,
+                a.OpeningSequenceNumber,
+                a.RequisitionTitle,
+                a.Interview,
+                a.Offer,
+                customFields
+            ));
+        }
+
+        var response = new CandidateDetailResponse(
+            candidateDto.Id,
+            candidateDto.FullName,
+            candidateDto.Email,
+            candidateDto.Phone,
+            candidateDto.CreatedAt,
+            apps
+        );
+
+        return Results.Ok(response);
     }
 }

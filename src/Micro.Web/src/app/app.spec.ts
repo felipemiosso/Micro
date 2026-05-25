@@ -17,6 +17,8 @@ describe('App', () => {
         fullName: 'System Admin',
         photoUrl: null
       }),
+      hasPermission: vi.fn().mockReturnValue(true),
+      hasRole: vi.fn().mockReturnValue(true),
       logout: vi.fn()
     };
 

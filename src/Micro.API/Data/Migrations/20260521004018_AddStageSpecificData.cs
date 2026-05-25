@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Micro.API.Migrations
+namespace Micro.API.Data.Migrations
 {
     /// <inheritdoc />
     public partial class AddStageSpecificData : Migration

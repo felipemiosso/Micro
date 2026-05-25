@@ -1,4 +1,5 @@
 using Micro.API.Data.Models;
+using Micro.API.Endpoints.CustomFields;
 
 namespace Micro.API.Endpoints.Requisition;
 
@@ -16,7 +17,8 @@ public record CreateRequisitionRequest(
     string JobDescription,
     bool IsInternalOnly,
     DateTime? TargetStartDate,
-    List<RequisitionOpeningDto>? Openings = null
+    List<RequisitionOpeningDto>? Openings = null,
+    List<CustomFieldValueInput>? CustomFieldValues = null
 );
 
 public record UpdateRequisitionRequest(
@@ -31,6 +33,7 @@ public record UpdateRequisitionRequest(
     string JobDescription,
     bool IsInternalOnly,
     DateTime? TargetStartDate,
-    List<RequisitionOpeningDto>? Openings = null
+    List<RequisitionOpeningDto>? Openings = null,
+    List<CustomFieldValueInput>? CustomFieldValues = null
 );
 

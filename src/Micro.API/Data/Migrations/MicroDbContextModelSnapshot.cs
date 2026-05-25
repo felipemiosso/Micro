@@ -4,20 +4,17 @@ using System.Collections.Generic;
 using Micro.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Micro.API.Migrations
+namespace Micro.API.Data.Migrations
 {
     [DbContext(typeof(MicroDbContext))]
-    [Migration("20260521004018_AddStageSpecificData")]
-    partial class AddStageSpecificData
+    partial class MicroDbContextModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -119,6 +116,93 @@ namespace Micro.API.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("CostCenters");
+                });
+
+            modelBuilder.Entity("Micro.API.Data.Models.CustomFieldDefinition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FieldType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("HelpText")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsCandidateFacing")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDisabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TargetEntity")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ValidationJson")
+                        .HasColumnType("jsonb");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TargetEntity", "IsDisabled", "Order");
+
+                    b.ToTable("CustomFieldDefinitions");
+                });
+
+            modelBuilder.Entity("Micro.API.Data.Models.CustomFieldValue", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CustomFieldDefinitionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TargetEntity")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(10000)
+                        .HasColumnType("character varying(10000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomFieldDefinitionId");
+
+                    b.HasIndex("EntityId", "TargetEntity");
+
+                    b.ToTable("CustomFieldValues");
                 });
 
             modelBuilder.Entity("Micro.API.Data.Models.Department", b =>
@@ -491,6 +575,17 @@ namespace Micro.API.Migrations
                     b.Navigation("RequisitionOpening");
                 });
 
+            modelBuilder.Entity("Micro.API.Data.Models.CustomFieldValue", b =>
+                {
+                    b.HasOne("Micro.API.Data.Models.CustomFieldDefinition", "Definition")
+                        .WithMany("Values")
+                        .HasForeignKey("CustomFieldDefinitionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Definition");
+                });
+
             modelBuilder.Entity("Micro.API.Data.Models.Feedback", b =>
                 {
                     b.HasOne("Micro.API.Data.Models.Application", "Application")
@@ -581,6 +676,11 @@ namespace Micro.API.Migrations
             modelBuilder.Entity("Micro.API.Data.Models.Candidate", b =>
                 {
                     b.Navigation("Applications");
+                });
+
+            modelBuilder.Entity("Micro.API.Data.Models.CustomFieldDefinition", b =>
+                {
+                    b.Navigation("Values");
                 });
 
             modelBuilder.Entity("Micro.API.Data.Models.JobPosting", b =>

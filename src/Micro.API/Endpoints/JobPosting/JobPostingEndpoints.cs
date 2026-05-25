@@ -2,6 +2,9 @@ using Micro.API.Data;
 using Micro.API.Data.Models;
 using Micro.API.Infrastructure.Auth;
 using Microsoft.EntityFrameworkCore;
+using Micro.API.Endpoints.CustomFields;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace Micro.API.Endpoints.JobPosting;
 
@@ -41,18 +44,52 @@ public static class JobPostingEndpoints
     {
         var job = await db.JobPostings
             .Include(j => j.Requisition)
+            .ThenInclude(r => r.Department)
             .Where(j => j.Id == id && j.Status == JobPostingStatus.Published)
-            .Select(j => new PublicJobDetailResponse(
-                j.Id,
-                j.Title,
-                j.Requisition.Department.Name,
-                j.Description,
-                j.Requirements,
-                j.CreatedAt
-            ))
             .FirstOrDefaultAsync();
 
-        return job is null ? Results.NotFound() : Results.Ok(job);
+        if (job is null) return Results.NotFound();
+
+        // Load active, candidate-facing definitions for application global and application applied
+        var candidateFacingFields = await db.CustomFieldDefinitions
+            .Where(d => (d.TargetEntity == CustomFieldTargetEntity.Application_Global || d.TargetEntity == CustomFieldTargetEntity.Application_Applied)
+                        && d.IsCandidateFacing && !d.IsDisabled)
+            .OrderBy(d => d.Order)
+            .ToListAsync();
+
+        var dtos = candidateFacingFields.Select(d => {
+            var validationDto = string.IsNullOrEmpty(d.ValidationJson)
+                ? null
+                : System.Text.Json.JsonSerializer.Deserialize<ValidationOptionsDto>(d.ValidationJson);
+
+            return new CustomFieldDefinitionDto(
+                d.Id,
+                d.TargetEntity,
+                d.FieldType,
+                d.Label,
+                d.HelpText,
+                d.Order,
+                d.IsRequired,
+                d.IsDisabled,
+                d.IsCandidateFacing,
+                validationDto,
+                0, // Value count not needed for candidate facing public view
+                d.CreatedAt,
+                d.UpdatedAt
+            );
+        }).ToList();
+
+        var response = new PublicJobDetailResponse(
+            job.Id,
+            job.Title,
+            job.Requisition.Department.Name,
+            job.Description,
+            job.Requirements,
+            job.CreatedAt,
+            dtos
+        );
+
+        return Results.Ok(response);
     }
 
     [ResourceAction("JobPosting", "View", "List all job postings (including closed)")]

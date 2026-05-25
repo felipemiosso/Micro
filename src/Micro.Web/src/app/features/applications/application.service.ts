@@ -1,7 +1,8 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { RequisitionOpening } from '../requisitions/requisition.service';
+import { CustomFieldValueDto } from '../../core/services/custom-fields.service';
 
 export enum ApplicationStatus {
   Applied = 'Applied',
@@ -16,6 +17,7 @@ export enum ArchivalResolution {
   Rejected = 'Rejected',
   Declined = 'Declined',
   Withdrawn = 'Withdrawn',
+  // custom
 }
 
 export interface Feedback {
@@ -57,6 +59,7 @@ export interface CandidateApplication {
   requisitionTitle?: string;
   interviewDetails?: InterviewDetails;
   offerDetails?: OfferDetails;
+  customFields?: CustomFieldValueDto[];
 }
 
 export interface CandidateDetail extends Candidate {
@@ -75,6 +78,7 @@ export interface Application {
   archivalResolution: ArchivalResolution;
   appliedAt: string;
   requisitionOpeningId?: string;
+  customFields?: CustomFieldValueDto[];
 }
 
 export interface ApplicationDetail extends Application {
@@ -98,14 +102,12 @@ export class ApplicationService {
   }
 
   // Admin APIs
-  getApplications(jobPostingId?: string, search?: string): Observable<Application[]> {
-    let url = this.adminApiUrl;
-    const params: string[] = [];
-    if (jobPostingId) params.push(`jobPostingId=${jobPostingId}`);
-    if (search) params.push(`search=${encodeURIComponent(search)}`);
-    if (params.length > 0) url += `?${params.join('&')}`;
-    
-    return this.http.get<Application[]>(url);
+  getApplications(jobPostingId?: string, search?: string, httpParams?: HttpParams): Observable<Application[]> {
+    let params = httpParams || new HttpParams();
+    if (jobPostingId) params = params.set('jobPostingId', jobPostingId);
+    if (search) params = params.set('search', search);
+
+    return this.http.get<Application[]>(this.adminApiUrl, { params });
   }
 
   getApplication(id: string): Observable<ApplicationDetail> {

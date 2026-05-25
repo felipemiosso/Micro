@@ -6,6 +6,7 @@ using Micro.API.Endpoints.UserProfile;
 using Micro.API.Endpoints.Candidate;
 using Micro.API.Endpoints.Role;
 using Micro.API.Endpoints.User;
+using Micro.API.Endpoints.CustomFields;
 using Micro.API.Endpoints;
 using Micro.API.Infrastructure.Auth;
 using Micro.API.Infrastructure.Database;
@@ -45,6 +46,7 @@ app.MapRequisitionEndpoints();
 app.MapJobPostingEndpoints();
 app.MapApplicationEndpoints();
 app.MapAdminEndpoints();
+app.MapCustomFieldEndpoints();
 
 // Initialize database
 await app.ApplyMigrationsAndSeed();

@@ -92,6 +92,11 @@ export const routes: Routes = [
       },
 
       {
+        path: 'admin/custom-fields',
+        canActivate: [roleGuard('Admin')],
+        loadComponent: () => import('./features/admin/custom-fields/custom-fields-admin').then(m => m.CustomFieldsAdminComponent)
+      },
+      {
         path: 'admin/settings',
         canActivate: [roleGuard('Admin')],
         loadComponent: () => import('./features/admin/admin-settings').then(m => m.AdminSettingsComponent)

@@ -9,11 +9,12 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { NotificationService } from '../../../core/ui/notification.service';
 import { ArchiveDialogComponent } from '../../../core/ui/archive-dialog';
+import { CustomFieldDisplayComponent } from '../../../core/ui/custom-field-display/custom-field-display';
 
 @Component({
   selector: 'app-application-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, MatIconModule, MatDividerModule, MatTooltipModule, MatDialogModule],
+  imports: [CommonModule, RouterModule, FormsModule, MatIconModule, MatDividerModule, MatTooltipModule, MatDialogModule, CustomFieldDisplayComponent],
   templateUrl: './application-detail.html',
   styleUrls: ['./application-detail.css'],
 })

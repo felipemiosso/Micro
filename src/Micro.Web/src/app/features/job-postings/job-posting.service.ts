@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { CustomFieldDefinition } from '../../core/services/custom-fields.service';
 
 export enum JobPostingStatus {
   Published = 'Published',
@@ -43,6 +44,7 @@ export interface PublicJobDetailResponse {
   description: string;
   requirements: string;
   createdAt: string;
+  candidateFacingFields?: CustomFieldDefinition[];
 }
 
 @Injectable({

@@ -36,3 +36,5 @@ public abstract class IntegrationTestBase : IAsyncLifetime
 
     public virtual Task DisposeAsync() => Task.CompletedTask;
 }
+
+public record AdminJobTestResponse(Guid Id, Guid RequisitionId, Micro.API.Data.Models.JobPostingStatus Status);

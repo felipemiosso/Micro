@@ -1,6 +1,15 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Micro.API.Data;
 using Micro.API.Data.Models;
 using Micro.API.Infrastructure.Auth;
+using Micro.API.Infrastructure.CustomFields;
+using Micro.API.Endpoints.CustomFields;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 
 namespace Micro.API.Endpoints.Requisition;
@@ -21,27 +30,198 @@ public static class RequisitionEndpoints
     }
 
     [ResourceAction("Requisition", "View", "List all requisitions")]
-    private static async Task<IResult> GetRequisitions(MicroDbContext db)
+    private static async Task<IResult> GetRequisitions(HttpContext context, MicroDbContext db)
     {
-        var requisitions = await db.Requisitions
+        var query = db.Requisitions
             .Include(r => r.Department)
             .Include(r => r.Openings)
+            .AsQueryable();
+
+        var cfFilters = CustomFieldPersistence.ParseFilters(context.Request.Query);
+        if (cfFilters.Count > 0)
+        {
+            var filterDefs = await db.CustomFieldDefinitions
+                .Where(d => cfFilters.Keys.Contains(d.Id))
+                .ToDictionaryAsync(d => d.Id);
+
+            foreach (var filterPair in cfFilters)
+            {
+                var defId = filterPair.Key;
+                var filter = filterPair.Value;
+                if (!filterDefs.TryGetValue(defId, out var def)) continue;
+
+                if (def.FieldType == CustomFieldType.Number)
+                {
+                    if (decimal.TryParse(filter.Value, out var val))
+                    {
+                        query = query.Where(r => db.CustomFieldValues.Any(v =>
+                            v.EntityId == r.Id &&
+                            v.TargetEntity == CustomFieldTargetEntity.Requisition &&
+                            v.CustomFieldDefinitionId == defId &&
+                            Convert.ToDecimal(v.Value) == val
+                        ));
+                    }
+                    if (decimal.TryParse(filter.Min, out var min))
+                    {
+                        query = query.Where(r => db.CustomFieldValues.Any(v =>
+                            v.EntityId == r.Id &&
+                            v.TargetEntity == CustomFieldTargetEntity.Requisition &&
+                            v.CustomFieldDefinitionId == defId &&
+                            Convert.ToDecimal(v.Value) >= min
+                        ));
+                    }
+                    if (decimal.TryParse(filter.Max, out var max))
+                    {
+                        query = query.Where(r => db.CustomFieldValues.Any(v =>
+                            v.EntityId == r.Id &&
+                            v.TargetEntity == CustomFieldTargetEntity.Requisition &&
+                            v.CustomFieldDefinitionId == defId &&
+                            Convert.ToDecimal(v.Value) <= max
+                        ));
+                    }
+                }
+                else if (def.FieldType == CustomFieldType.Date)
+                {
+                    if (DateOnly.TryParse(filter.Value, out var val))
+                    {
+                        var valStr = val.ToString("yyyy-MM-dd");
+                        query = query.Where(r => db.CustomFieldValues.Any(v =>
+                            v.EntityId == r.Id &&
+                            v.TargetEntity == CustomFieldTargetEntity.Requisition &&
+                            v.CustomFieldDefinitionId == defId &&
+                            v.Value == valStr
+                        ));
+                    }
+                    if (DateOnly.TryParse(filter.Min, out var min))
+                    {
+                        var minStr = min.ToString("yyyy-MM-dd");
+                        query = query.Where(r => db.CustomFieldValues.Any(v =>
+                            v.EntityId == r.Id &&
+                            v.TargetEntity == CustomFieldTargetEntity.Requisition &&
+                            v.CustomFieldDefinitionId == defId &&
+                            v.Value.CompareTo(minStr) >= 0
+                        ));
+                    }
+                    if (DateOnly.TryParse(filter.Max, out var max))
+                    {
+                        var maxStr = max.ToString("yyyy-MM-dd");
+                        query = query.Where(r => db.CustomFieldValues.Any(v =>
+                            v.EntityId == r.Id &&
+                            v.TargetEntity == CustomFieldTargetEntity.Requisition &&
+                            v.CustomFieldDefinitionId == defId &&
+                            v.Value.CompareTo(maxStr) <= 0
+                        ));
+                    }
+                }
+                else if (def.FieldType == CustomFieldType.Boolean)
+                {
+                    if (!string.IsNullOrEmpty(filter.Value))
+                    {
+                        var valStr = filter.Value.ToLower();
+                        query = query.Where(r => db.CustomFieldValues.Any(v =>
+                            v.EntityId == r.Id &&
+                            v.TargetEntity == CustomFieldTargetEntity.Requisition &&
+                            v.CustomFieldDefinitionId == defId &&
+                            v.Value == valStr
+                        ));
+                    }
+                }
+                else
+                {
+                    if (!string.IsNullOrEmpty(filter.Value))
+                    {
+                        query = query.Where(r => db.CustomFieldValues.Any(v =>
+                            v.EntityId == r.Id &&
+                            v.TargetEntity == CustomFieldTargetEntity.Requisition &&
+                            v.CustomFieldDefinitionId == defId &&
+                            EF.Functions.ILike(v.Value, $"%{filter.Value}%")
+                        ));
+                    }
+                }
+            }
+        }
+
+        var requisitions = await query
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync();
-        return Results.Ok(requisitions);
+
+        var results = new List<object>();
+        foreach (var r in requisitions)
+        {
+            var customFields = await CustomFieldPersistence.GetValuesAsync(db, CustomFieldTargetEntity.Requisition, r.Id);
+            results.Add(new {
+                r.Id,
+                r.Title,
+                r.DepartmentId,
+                Department = new { r.Department.Id, r.Department.Name, r.Department.IsActive },
+                r.SalaryBandId,
+                r.CostCenterId,
+                r.OpeningsCount,
+                r.Status,
+                r.CreatedBy,
+                r.HiringManagerId,
+                r.RecruiterId,
+                r.EmploymentType,
+                r.WorkplaceType,
+                r.Location,
+                r.JobDescription,
+                r.IsInternalOnly,
+                r.CreatedAt,
+                r.FinalizedAt,
+                r.PublishedAt,
+                r.OfferAcceptedAt,
+                r.CandidateStartedAt,
+                r.ClosedAt,
+                r.TargetStartDate,
+                Openings = r.Openings.Select(o => new { o.Id, o.SequenceNumber, o.TargetStartDate, o.Status, o.CandidateId }),
+                CustomFields = customFields
+            });
+        }
+        return Results.Ok(results);
     }
 
     [ResourceAction("Requisition", "View", "View requisition details")]
     private static async Task<IResult> GetRequisition(Guid id, MicroDbContext db)
     {
-        var requisition = await db.Requisitions
+        var r = await db.Requisitions
             .Include(r => r.Department)
             .Include(r => r.SalaryBand)
             .Include(r => r.CostCenter)
             .Include(r => r.Openings).ThenInclude(o => o.Candidate)
             .FirstOrDefaultAsync(r => r.Id == id);
             
-        return requisition is null ? Results.NotFound() : Results.Ok(requisition);
+        if (r is null) return Results.NotFound();
+
+        var customFields = await CustomFieldPersistence.GetValuesAsync(db, CustomFieldTargetEntity.Requisition, r.Id);
+        return Results.Ok(new {
+            r.Id,
+            r.Title,
+            r.DepartmentId,
+            Department = new { r.Department.Id, r.Department.Name, r.Department.IsActive },
+            r.SalaryBandId,
+            SalaryBand = new { r.SalaryBand.Id, r.SalaryBand.Name, MinSalary = r.SalaryBand.MinAmount, MaxSalary = r.SalaryBand.MaxAmount },
+            r.CostCenterId,
+            CostCenter = new { r.CostCenter.Id, r.CostCenter.Code, r.CostCenter.Name },
+            r.OpeningsCount,
+            r.Status,
+            r.CreatedBy,
+            r.HiringManagerId,
+            r.RecruiterId,
+            r.EmploymentType,
+            r.WorkplaceType,
+            r.Location,
+            r.JobDescription,
+            r.IsInternalOnly,
+            r.CreatedAt,
+            r.FinalizedAt,
+            r.PublishedAt,
+            r.OfferAcceptedAt,
+            r.CandidateStartedAt,
+            r.ClosedAt,
+            r.TargetStartDate,
+            Openings = r.Openings.Select(o => new { o.Id, o.SequenceNumber, o.TargetStartDate, o.Status, o.CandidateId, Candidate = o.Candidate != null ? new { o.Candidate.Id, o.Candidate.FullName, o.Candidate.Email } : null }),
+            CustomFields = customFields
+        });
     }
 
     [ResourceAction("Requisition", "Create", "Create a new requisition")]
@@ -79,10 +259,41 @@ public static class RequisitionEndpoints
             });
         }
 
+        var cfErrors = await CustomFieldPersistence.ValidateAsync(
+            db, CustomFieldTargetEntity.Requisition, requisition.Id,
+            request.CustomFieldValues ?? [], CancellationToken.None);
+
+        if (cfErrors is not null)
+            return Results.ValidationProblem(cfErrors);
+
         db.Requisitions.Add(requisition);
         await db.SaveChangesAsync();
 
-        return Results.Created($"/api/requisitions/{requisition.Id}", requisition);
+        await CustomFieldPersistence.PersistAsync(
+            db, CustomFieldTargetEntity.Requisition, requisition.Id,
+            request.CustomFieldValues ?? [], CancellationToken.None);
+        await db.SaveChangesAsync();
+
+        var customFields = await CustomFieldPersistence.GetValuesAsync(db, CustomFieldTargetEntity.Requisition, requisition.Id);
+        return Results.Created($"/api/requisitions/{requisition.Id}", new {
+            requisition.Id,
+            requisition.Title,
+            requisition.DepartmentId,
+            requisition.SalaryBandId,
+            requisition.CostCenterId,
+            requisition.OpeningsCount,
+            requisition.EmploymentType,
+            requisition.WorkplaceType,
+            requisition.Location,
+            requisition.JobDescription,
+            requisition.IsInternalOnly,
+            requisition.TargetStartDate,
+            requisition.Status,
+            requisition.CreatedBy,
+            requisition.CreatedAt,
+            Openings = requisition.Openings.Select(o => new { o.Id, o.SequenceNumber, o.TargetStartDate, o.Status }),
+            CustomFields = customFields
+        });
     }
 
     [ResourceAction("Requisition", "Edit", "Update draft requisition")]
@@ -139,7 +350,20 @@ public static class RequisitionEndpoints
             }
         }
 
+        var cfErrors = await CustomFieldPersistence.ValidateAsync(
+            db, CustomFieldTargetEntity.Requisition, requisition.Id,
+            request.CustomFieldValues ?? [], CancellationToken.None);
+
+        if (cfErrors is not null)
+            return Results.ValidationProblem(cfErrors);
+
         await db.SaveChangesAsync();
+
+        await CustomFieldPersistence.PersistAsync(
+            db, CustomFieldTargetEntity.Requisition, requisition.Id,
+            request.CustomFieldValues ?? [], CancellationToken.None);
+        await db.SaveChangesAsync();
+
         return Results.NoContent();
     }
 

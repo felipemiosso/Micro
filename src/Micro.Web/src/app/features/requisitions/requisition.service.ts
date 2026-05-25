@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Department, SalaryBand, CostCenter } from '../admin/admin.service';
+import { CustomFieldValueDto } from '../../core/services/custom-fields.service';
 
 export enum RequisitionStatus {
   Draft = 'Draft',
@@ -51,6 +52,7 @@ export interface Requisition {
   isInternalOnly: boolean;
   targetStartDate?: string;
   openings?: RequisitionOpening[];
+  customFields?: CustomFieldValueDto[];
 }
 
 export interface CreateRequisitionOpeningRequest {
@@ -80,8 +82,8 @@ export class RequisitionService {
   private http = inject(HttpClient);
   private apiUrl = '/api/requisitions';
 
-  getAll(): Observable<Requisition[]> {
-    return this.http.get<Requisition[]>(this.apiUrl);
+  getAll(params?: import('@angular/common/http').HttpParams): Observable<Requisition[]> {
+    return this.http.get<Requisition[]>(this.apiUrl, { params });
   }
 
   getById(id: string): Observable<Requisition> {

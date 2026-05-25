@@ -88,7 +88,7 @@ public class JobPostingTests : IntegrationTestBase
         await Client.PostAsync($"/api/requisitions/{requisition!.Id}/finalize", null);
         
         var adminJobsResponse = await Client.GetAsync("/api/jobs/admin");
-        var adminJobs = await adminJobsResponse.Content.ReadFromJsonAsync<List<Micro.API.Data.Models.JobPosting>>(JsonOptions);
+        var adminJobs = await adminJobsResponse.Content.ReadFromJsonAsync<List<AdminJobTestResponse>>(JsonOptions);
         var job = adminJobs!.First(j => j.RequisitionId == requisition.Id);
 
         var updateRequest = new UpdateJobPostingRequest("New Title", "New Desc", "New Req");

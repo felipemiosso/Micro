@@ -1,6 +1,18 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Micro.API.Data;
 using Micro.API.Data.Models;
 using Micro.API.Infrastructure.Auth;
+using Micro.API.Infrastructure.CustomFields;
+using Micro.API.Endpoints.CustomFields;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 
 namespace Micro.API.Endpoints.Application;
@@ -55,6 +67,30 @@ public static class ApplicationEndpoints
         if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(email) || resumeFile is null)
         {
             return Results.BadRequest("Name, email, and resume are required.");
+        }
+
+        // Parse custom fields from form
+        var customFieldInputs = new List<CustomFieldValueInput>();
+        foreach (var key in form.Keys)
+        {
+            if (key.StartsWith("customFields[") || key.StartsWith("customFieldValues["))
+            {
+                var prefixLength = key.StartsWith("customFields[") ? "customFields[".Length : "customFieldValues[".Length;
+                var rest = key[prefixLength..];
+                if (rest.EndsWith("]") && Guid.TryParse(rest[..^1], out var defId))
+                {
+                    var val = form[key].ToString();
+                    customFieldInputs.Add(new CustomFieldValueInput(defId, string.IsNullOrWhiteSpace(val) ? null : val));
+                }
+            }
+        }
+
+        // Validate custom fields
+        var cfErrors = await CustomFieldPersistence.ValidateCandidateFacingAsync(
+            db, Guid.Empty, customFieldInputs, CancellationToken.None);
+        if (cfErrors is not null)
+        {
+            return Results.ValidationProblem(cfErrors);
         }
 
         if (resumeFile.Length > 5 * 1024 * 1024)
@@ -114,17 +150,24 @@ public static class ApplicationEndpoints
         db.Applications.Add(application);
         await db.SaveChangesAsync();
 
+        // Persist candidate facing custom fields
+        if (customFieldInputs.Count > 0)
+        {
+            await CustomFieldPersistence.PersistCandidateFacingAsync(db, application.Id, customFieldInputs, CancellationToken.None);
+            await db.SaveChangesAsync();
+        }
+
         return Results.Created($"/api/applications/{application.Id}", new { application.Id });
     }
 
     [ResourceAction("Application", "View", "List and filter all applications")]
     private static async Task<IResult> GetAdminApplications(
+        HttpContext context,
         Guid? jobPostingId,
         string? search,
         MicroDbContext db)
     {
         var query = db.Applications
-            .AsNoTracking()
             .Include(a => a.JobPosting)
             .Include(a => a.Candidate)
             .AsQueryable();
@@ -140,9 +183,111 @@ public static class ApplicationEndpoints
             query = query.Where(a => a.Candidate.FullName.ToLower().Contains(s) || a.Candidate.Email.ToLower().Contains(s));
         }
 
-        var applications = await query
+        var cfFilters = CustomFieldPersistence.ParseFilters(context.Request.Query);
+        if (cfFilters.Count > 0)
+        {
+            var filterDefs = await db.CustomFieldDefinitions
+                .Where(d => cfFilters.Keys.Contains(d.Id))
+                .ToDictionaryAsync(d => d.Id);
+
+            foreach (var filterPair in cfFilters)
+            {
+                var defId = filterPair.Key;
+                var filter = filterPair.Value;
+                if (!filterDefs.TryGetValue(defId, out var def)) continue;
+
+                if (def.FieldType == CustomFieldType.Number)
+                {
+                    if (decimal.TryParse(filter.Value, out var val))
+                    {
+                        query = query.Where(a => db.CustomFieldValues.Any(v =>
+                            v.EntityId == a.Id &&
+                            v.CustomFieldDefinitionId == defId &&
+                            Convert.ToDecimal(v.Value) == val
+                        ));
+                    }
+                    if (decimal.TryParse(filter.Min, out var min))
+                    {
+                        query = query.Where(a => db.CustomFieldValues.Any(v =>
+                            v.EntityId == a.Id &&
+                            v.CustomFieldDefinitionId == defId &&
+                            Convert.ToDecimal(v.Value) >= min
+                        ));
+                    }
+                    if (decimal.TryParse(filter.Max, out var max))
+                    {
+                        query = query.Where(a => db.CustomFieldValues.Any(v =>
+                            v.EntityId == a.Id &&
+                            v.CustomFieldDefinitionId == defId &&
+                            Convert.ToDecimal(v.Value) <= max
+                        ));
+                    }
+                }
+                else if (def.FieldType == CustomFieldType.Date)
+                {
+                    if (DateOnly.TryParse(filter.Value, out var val))
+                    {
+                        var valStr = val.ToString("yyyy-MM-dd");
+                        query = query.Where(a => db.CustomFieldValues.Any(v =>
+                            v.EntityId == a.Id &&
+                            v.CustomFieldDefinitionId == defId &&
+                            v.Value == valStr
+                        ));
+                    }
+                    if (DateOnly.TryParse(filter.Min, out var min))
+                    {
+                        var minStr = min.ToString("yyyy-MM-dd");
+                        query = query.Where(a => db.CustomFieldValues.Any(v =>
+                            v.EntityId == a.Id &&
+                            v.CustomFieldDefinitionId == defId &&
+                            v.Value.CompareTo(minStr) >= 0
+                        ));
+                    }
+                    if (DateOnly.TryParse(filter.Max, out var max))
+                    {
+                        var maxStr = max.ToString("yyyy-MM-dd");
+                        query = query.Where(a => db.CustomFieldValues.Any(v =>
+                            v.EntityId == a.Id &&
+                            v.CustomFieldDefinitionId == defId &&
+                            v.Value.CompareTo(maxStr) <= 0
+                        ));
+                    }
+                }
+                else if (def.FieldType == CustomFieldType.Boolean)
+                {
+                    if (!string.IsNullOrEmpty(filter.Value))
+                    {
+                        var valStr = filter.Value.ToLower();
+                        query = query.Where(a => db.CustomFieldValues.Any(v =>
+                            v.EntityId == a.Id &&
+                            v.CustomFieldDefinitionId == defId &&
+                            v.Value == valStr
+                        ));
+                    }
+                }
+                else
+                {
+                    if (!string.IsNullOrEmpty(filter.Value))
+                    {
+                        query = query.Where(a => db.CustomFieldValues.Any(v =>
+                            v.EntityId == a.Id &&
+                            v.CustomFieldDefinitionId == defId &&
+                            EF.Functions.ILike(v.Value, $"%{filter.Value}%")
+                        ));
+                    }
+                }
+            }
+        }
+
+        var apps = await query
             .OrderByDescending(a => a.AppliedAt)
-            .Select(a => new {
+            .ToListAsync();
+
+        var results = new List<object>();
+        foreach (var a in apps)
+        {
+            var customFields = await CustomFieldPersistence.GetApplicationValuesAsync(db, a.Id, a.Status);
+            results.Add(new {
                 a.Id,
                 a.JobPostingId,
                 a.CandidateId,
@@ -154,11 +299,12 @@ public static class ApplicationEndpoints
                 a.ArchivalResolution,
                 a.AppliedAt,
                 InterviewDetails = a.Interview,
-                OfferDetails = a.Offer
-            })
-            .ToListAsync();
+                OfferDetails = a.Offer,
+                CustomFields = customFields
+            });
+        }
 
-        return Results.Ok(applications);
+        return Results.Ok(results);
     }
 
     [ResourceAction("Application", "ViewResume", "Download candidate resume")]
@@ -180,33 +326,35 @@ public static class ApplicationEndpoints
     private static async Task<IResult> GetApplicationDetail(Guid id, MicroDbContext db)
     {
         var application = await db.Applications
-            .AsNoTracking()
             .Include(a => a.JobPosting)
             .Include(a => a.Candidate)
             .Include(a => a.Feedbacks.OrderByDescending(f => f.CreatedAt))
-            .Where(a => a.Id == id)
-            .Select(a => new {
-                a.Id,
-                a.JobPostingId,
-                JobTitle = a.JobPosting.Title,
-                CandidateName = a.Candidate.FullName,
-                CandidateEmail = a.Candidate.Email,
-                CandidatePhone = a.Candidate.Phone,
-                a.Status,
-                a.ArchivalResolution,
-                a.AppliedAt,
-                InterviewDetails = a.Interview,
-                OfferDetails = a.Offer,
-                Feedbacks = a.Feedbacks.Select(f => new {
-                    f.Id,
-                    f.Notes,
-                    f.Score,
-                    f.CreatedAt
-                })
-            })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(a => a.Id == id);
 
-        return application is null ? Results.NotFound() : Results.Ok(application);
+        if (application is null) return Results.NotFound();
+
+        var customFields = await CustomFieldPersistence.GetApplicationValuesAsync(db, application.Id, application.Status);
+
+        return Results.Ok(new {
+            application.Id,
+            application.JobPostingId,
+            JobTitle = application.JobPosting.Title,
+            CandidateName = application.Candidate.FullName,
+            CandidateEmail = application.Candidate.Email,
+            CandidatePhone = application.Candidate.Phone,
+            application.Status,
+            application.ArchivalResolution,
+            application.AppliedAt,
+            InterviewDetails = application.Interview,
+            OfferDetails = application.Offer,
+            Feedbacks = application.Feedbacks.Select(f => new {
+                f.Id,
+                f.Notes,
+                f.Score,
+                f.CreatedAt
+            }),
+            CustomFields = customFields
+        });
     }
 
     [ResourceAction("Application", "Edit", "Update application stage or archive")]
@@ -219,6 +367,14 @@ public static class ApplicationEndpoints
             .Include(a => a.JobPosting)
             .FirstOrDefaultAsync(a => a.Id == id);
         if (application is null) return Results.NotFound();
+
+        if (request.CustomFieldValues is not null)
+        {
+            var cfErrors = await CustomFieldPersistence.ValidateApplicationAsync(
+                db, application.Id, request.Status, request.CustomFieldValues, CancellationToken.None);
+            if (cfErrors is not null)
+                return Results.ValidationProblem(cfErrors);
+        }
 
         if (request.Status == ApplicationStatus.Archive && request.Resolution == ArchivalResolution.None)
         {
@@ -277,6 +433,14 @@ public static class ApplicationEndpoints
                 }
 
                 await db.SaveChangesAsync();
+
+                if (request.CustomFieldValues is not null)
+                {
+                    await CustomFieldPersistence.PersistApplicationAsync(
+                        db, application.Id, request.Status, request.CustomFieldValues, CancellationToken.None);
+                    await db.SaveChangesAsync();
+                }
+
                 await transaction.CommitAsync();
                 return Results.NoContent();
             }
@@ -292,6 +456,14 @@ public static class ApplicationEndpoints
         application.UpdatedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync();
+
+        if (request.CustomFieldValues is not null)
+        {
+            await CustomFieldPersistence.PersistApplicationAsync(
+                db, application.Id, request.Status, request.CustomFieldValues, CancellationToken.None);
+            await db.SaveChangesAsync();
+        }
+
         return Results.NoContent();
     }
 
@@ -351,6 +523,14 @@ public static class ApplicationEndpoints
         var application = await db.Applications.FindAsync(id);
         if (application is null) return Results.NotFound();
 
+        if (request.CustomFieldValues is not null)
+        {
+            var cfErrors = await CustomFieldPersistence.ValidateApplicationAsync(
+                db, application.Id, application.Status, request.CustomFieldValues, CancellationToken.None);
+            if (cfErrors is not null)
+                return Results.ValidationProblem(cfErrors);
+        }
+
         if (application.Interview == null)
         {
             application.Interview = new InterviewDetails();
@@ -361,6 +541,14 @@ public static class ApplicationEndpoints
         application.UpdatedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync();
+
+        if (request.CustomFieldValues is not null)
+        {
+            await CustomFieldPersistence.PersistApplicationAsync(
+                db, application.Id, application.Status, request.CustomFieldValues, CancellationToken.None);
+            await db.SaveChangesAsync();
+        }
+
         return Results.NoContent();
     }
 
@@ -369,6 +557,14 @@ public static class ApplicationEndpoints
     {
         var application = await db.Applications.FindAsync(id);
         if (application is null) return Results.NotFound();
+
+        if (request.CustomFieldValues is not null)
+        {
+            var cfErrors = await CustomFieldPersistence.ValidateApplicationAsync(
+                db, application.Id, application.Status, request.CustomFieldValues, CancellationToken.None);
+            if (cfErrors is not null)
+                return Results.ValidationProblem(cfErrors);
+        }
 
         if (application.Offer == null)
         {
@@ -381,9 +577,17 @@ public static class ApplicationEndpoints
         application.UpdatedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync();
+
+        if (request.CustomFieldValues is not null)
+        {
+            await CustomFieldPersistence.PersistApplicationAsync(
+                db, application.Id, application.Status, request.CustomFieldValues, CancellationToken.None);
+            await db.SaveChangesAsync();
+        }
+
         return Results.NoContent();
     }
 }
 
-public record UpdateInterviewDetailsRequest(DateTime? ScheduledDate, string? InterviewerName);
-public record UpdateOfferDetailsRequest(decimal? ProposedSalary, DateTime? TargetStartDate, DateTime? Deadline);
+public record UpdateInterviewDetailsRequest(DateTime? ScheduledDate, string? InterviewerName, List<CustomFieldValueInput>? CustomFieldValues = null);
+public record UpdateOfferDetailsRequest(decimal? ProposedSalary, DateTime? TargetStartDate, DateTime? Deadline, List<CustomFieldValueInput>? CustomFieldValues = null);

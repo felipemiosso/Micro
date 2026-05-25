@@ -12,6 +12,25 @@
     }
   </div>
 
+  <!-- Filter Panel Toggle -->
+  @if (customFieldDefs().length > 0) {
+    <div class="mb-4 flex items-center justify-end">
+      <button (click)="toggleFilters()" class="text-xs font-bold text-slate-500 hover:text-ink flex items-center gap-1">
+        <mat-icon class="!text-sm">filter_list</mat-icon>
+        {{ showFilters() ? 'Hide Filters' : 'Show Field Filters' }}
+      </button>
+    </div>
+  }
+
+  <!-- Collapsible Filter Panel -->
+  @if (showFilters() && customFieldDefs().length > 0) {
+    <div class="card-honeycomb mb-6 grid grid-cols-1 md:grid-cols-3 gap-4 border border-slate-200 shadow-sm bg-slate-50/50 p-4 rounded-xl">
+      @for (def of customFieldDefs(); track def.id) {
+        <app-custom-field-filter [definition]="def" (filterChange)="onFilterChange($event)"></app-custom-field-filter>
+      }
+    </div>
+  }
+
   <div class="card-honeycomb !p-0 overflow-hidden">
     <table class="requisition-table w-full text-left border-collapse">
       <thead>

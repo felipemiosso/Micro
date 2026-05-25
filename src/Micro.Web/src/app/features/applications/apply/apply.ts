@@ -1,14 +1,16 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators, FormControl, FormGroup } from '@angular/forms';
 import { ApplicationService } from '../application.service';
 import { JobPostingService, PublicJobDetailResponse } from '../../job-postings/job-posting.service';
+import { CustomFieldFormService } from '../../../core/services/custom-field-form.service';
+import { CustomFieldInputComponent } from '../../../core/ui/custom-field-input/custom-field-input';
 
 @Component({
   selector: 'app-apply',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, CustomFieldInputComponent],
   templateUrl: './apply.html',
   styleUrls: ['./apply.css'],
 })
@@ -18,11 +20,14 @@ export class ApplyComponent implements OnInit {
   private router = inject(Router);
   private applicationService = inject(ApplicationService);
   private jobPostingService = inject(JobPostingService);
+  private customFieldFormService = inject(CustomFieldFormService);
 
   jobId: string | null = null;
   job = signal<PublicJobDetailResponse | null>(null);
   submitting = signal(false);
   errorMessage = signal<string | null>(null);
+
+  customFieldsGroup = signal<FormGroup | null>(null);
 
   applyForm = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(200)]],
@@ -31,11 +36,21 @@ export class ApplyComponent implements OnInit {
     resume: [null as File | null, [Validators.required]],
   });
 
+  getCustomFieldControl(id: string): FormControl {
+    return this.applyForm.get(`customFields.${id}`) as unknown as FormControl;
+  }
+
   ngOnInit() {
     this.jobId = this.route.snapshot.paramMap.get('id');
     if (this.jobId) {
       this.jobPostingService.getJobDetail(this.jobId).subscribe({
-        next: (data: PublicJobDetailResponse) => this.job.set(data),
+        next: (data: PublicJobDetailResponse) => {
+          this.job.set(data);
+          const fields = data.candidateFacingFields || [];
+          const group = this.customFieldFormService.buildFormGroup(fields, []);
+          this.customFieldsGroup.set(group);
+          (this.applyForm as any).addControl('customFields', group);
+        },
         error: (err: any) => {
           this.errorMessage.set('Job not found or no longer accepting applications.');
           console.error(err);
@@ -76,6 +91,17 @@ export class ApplyComponent implements OnInit {
     }
     formData.append('resume', this.applyForm.value.resume!);
 
+    // Append custom fields
+    if (this.customFieldsGroup()) {
+      const fields = this.job()?.candidateFacingFields || [];
+      fields.forEach(def => {
+        const ctrl = this.customFieldsGroup()?.get(def.id);
+        if (ctrl && ctrl.value !== null && ctrl.value !== undefined && ctrl.value !== '') {
+          formData.append(`customFields[${def.id}]`, ctrl.value);
+        }
+      });
+    }
+
     this.applicationService.apply(this.jobId, formData).subscribe({
       next: () => {
         this.router.navigate(['/jobs/apply/success']);
@@ -84,6 +110,9 @@ export class ApplyComponent implements OnInit {
         this.submitting.set(false);
         if (err.status === 409) {
           this.errorMessage.set('You have already applied for this position.');
+        } else if (err.status === 422 && err.error?.errors) {
+          this.customFieldFormService.applyServerErrors(err.error.errors, this.customFieldsGroup()!);
+          this.errorMessage.set('Please correct the errors in the custom fields.');
         } else {
           this.errorMessage.set('An error occurred while submitting your application. Please try again.');
         }

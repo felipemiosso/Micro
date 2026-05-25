@@ -1,8 +1,8 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, Validators, FormArray } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, Validators, FormArray, FormControl, FormGroup } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { Observable } from 'rxjs';
+import { Observable, forkJoin } from 'rxjs';
 import { RequisitionService, Requisition, RequisitionStatus, RequisitionOpening, OpeningStatus } from '../requisition.service';
 import { NotificationService } from '../../../core/ui/notification.service';
 import { AdminService, Department, SalaryBand, CostCenter } from '../../admin/admin.service';
@@ -11,11 +11,14 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ConfirmDialogComponent } from '../../../core/ui/confirm-dialog';
+import { CustomFieldsService, CustomFieldDefinition } from '../../../core/services/custom-fields.service';
+import { CustomFieldFormService } from '../../../core/services/custom-field-form.service';
+import { CustomFieldInputComponent } from '../../../core/ui/custom-field-input/custom-field-input';
 
 @Component({
   selector: 'app-requisition-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule, MatIconModule, MatButtonModule, MatTooltipModule, MatDialogModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, MatIconModule, MatButtonModule, MatTooltipModule, MatDialogModule, CustomFieldInputComponent],
   templateUrl: './requisition-form.html',
   styleUrls: ['./requisition-form.css'],
 })
@@ -27,11 +30,16 @@ export class RequisitionFormComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private notification = inject(NotificationService);
   private dialog = inject(MatDialog);
+  private customFieldsService = inject(CustomFieldsService);
+  private customFieldFormService = inject(CustomFieldFormService);
 
   departments = signal<Department[]>([]);
   salaryBands = signal<SalaryBand[]>([]);
   costCenters = signal<CostCenter[]>([]);
   requisition = signal<Requisition | null>(null);
+
+  customFieldDefs = signal<CustomFieldDefinition[]>([]);
+  customFieldsGroup = signal<FormGroup | null>(null);
 
   form = this.fb.group({
     title: ['', [Validators.required]],
@@ -57,6 +65,10 @@ export class RequisitionFormComponent implements OnInit {
     return this.form.get('openings') as FormArray;
   }
 
+  getCustomFieldControl(id: string): FormControl {
+    return this.form.get(`customFields.${id}`) as unknown as FormControl;
+  }
+
   ngOnInit() {
     this.loadLookups();
     this.requisitionId = this.route.snapshot.paramMap.get('id') ?? undefined;
@@ -77,11 +89,22 @@ export class RequisitionFormComponent implements OnInit {
       });
     });
 
+    const defsObs = this.customFieldsService.getDefinitions('Requisition');
+
     if (this.requisitionId) {
       this.isEdit = true;
-      this.requisitionService.getById(this.requisitionId).subscribe({
-        next: (req) => {
+      forkJoin({
+        req: this.requisitionService.getById(this.requisitionId),
+        defs: defsObs
+      }).subscribe({
+        next: ({ req, defs }) => {
           this.requisition.set(req);
+          this.customFieldDefs.set(defs);
+
+          const group = this.customFieldFormService.buildFormGroup(defs, req.customFields || []);
+          this.customFieldsGroup.set(group);
+          (this.form as any).addControl('customFields', group);
+
           this.form.patchValue({
             title: req.title,
             departmentId: req.departmentId,
@@ -106,6 +129,14 @@ export class RequisitionFormComponent implements OnInit {
         }
       });
     } else {
+      defsObs.subscribe({
+        next: (defs) => {
+          this.customFieldDefs.set(defs);
+          const group = this.customFieldFormService.buildFormGroup(defs, []);
+          this.customFieldsGroup.set(group);
+          (this.form as any).addControl('customFields', group);
+        }
+      });
       this.syncOpeningsFormArray(1);
     }
   }
@@ -226,8 +257,19 @@ export class RequisitionFormComponent implements OnInit {
       return;
     }
 
-    const data = this.form.getRawValue();
-    
+    const rawData = this.form.getRawValue();
+
+    // Extract custom fields values
+    const cfValues = this.customFieldFormService.extractValues(
+      this.form.get('customFields') as unknown as FormGroup,
+      this.customFieldDefs()
+    );
+
+    const data = {
+      ...rawData,
+      customFieldValues: cfValues
+    };
+
     // Convert empty date strings to null for backend deserialization
     if (data.targetStartDate === '') {
       data.targetStartDate = null;
@@ -250,7 +292,15 @@ export class RequisitionFormComponent implements OnInit {
         this.router.navigate(['/requisitions']);
       },
       error: (err) => {
-        this.notification.error('Failed to save requisition.');
+        if (err.status === 422 && err.error?.errors) {
+          this.customFieldFormService.applyServerErrors(
+            err.error.errors,
+            this.form.get('customFields') as unknown as FormGroup
+          );
+          this.notification.error('Please check the custom fields.');
+        } else {
+          this.notification.error('Failed to save requisition.');
+        }
       }
     });
   }

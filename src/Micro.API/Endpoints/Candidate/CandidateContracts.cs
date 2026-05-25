@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using Micro.API.Endpoints.CustomFields;
+
 namespace Micro.API.Endpoints.Candidate;
 
 public record CandidateDetailResponse(
@@ -21,7 +25,8 @@ public record CandidateApplicationResponse(
     int? OpeningSequenceNumber = null,
     string? RequisitionTitle = null,
     Micro.API.Data.Models.InterviewDetails? InterviewDetails = null,
-    Micro.API.Data.Models.OfferDetails? OfferDetails = null
+    Micro.API.Data.Models.OfferDetails? OfferDetails = null,
+    List<CustomFieldValueDto>? CustomFields = null
 );
 
 public record CandidateFeedbackResponse(

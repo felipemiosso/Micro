@@ -42,7 +42,7 @@ public class ApplicationTests : IntegrationTestBase
         await Client.PostAsync($"/api/requisitions/{requisition!.Id}/finalize", null);
         
         var adminJobsResponse = await Client.GetAsync("/api/jobs/admin");
-        var adminJobs = await adminJobsResponse.Content.ReadFromJsonAsync<List<Micro.API.Data.Models.JobPosting>>(JsonOptions);
+        var adminJobs = await adminJobsResponse.Content.ReadFromJsonAsync<List<AdminJobTestResponse>>(JsonOptions);
         return adminJobs!.First(j => j.RequisitionId == requisition.Id).Id;
     }
 
@@ -358,7 +358,7 @@ public class ApplicationTests : IntegrationTestBase
         Assert.Equal(RequisitionStatus.Closed, reqDetail!.Status);
 
         var jobResponse = await Client.GetAsync($"/api/jobs/admin");
-        var jobs = await jobResponse.Content.ReadFromJsonAsync<List<Micro.API.Data.Models.JobPosting>>(JsonOptions);
+        var jobs = await jobResponse.Content.ReadFromJsonAsync<List<AdminJobTestResponse>>(JsonOptions);
         var jobDetail = jobs!.First(j => j.Id == jobId);
         Assert.Equal(JobPostingStatus.Closed, jobDetail.Status);
     }

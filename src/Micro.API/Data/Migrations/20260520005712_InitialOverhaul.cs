@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Micro.API.Migrations
+namespace Micro.API.Data.Migrations
 {
     /// <inheritdoc />
     public partial class InitialOverhaul : Migration

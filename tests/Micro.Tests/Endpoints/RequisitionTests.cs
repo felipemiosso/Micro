@@ -242,7 +242,7 @@ public class RequisitionTests : IntegrationTestBase
         Assert.NotNull(closedReq.ClosedAt);
 
         var jobResponse = await Client.GetAsync($"/api/jobs/admin");
-        var jobs = await jobResponse.Content.ReadFromJsonAsync<List<Micro.API.Data.Models.JobPosting>>(JsonOptions);
+        var jobs = await jobResponse.Content.ReadFromJsonAsync<List<AdminJobTestResponse>>(JsonOptions);
         var jobDetail = jobs!.First(j => j.RequisitionId == requisition.Id);
         Assert.Equal(JobPostingStatus.Closed, jobDetail.Status);
     }

@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ApplicationCardComponent } from './application-card';
-import { ApplicationStatus } from '../application.service';
+import { ApplicationStatus, ArchivalResolution } from '../application.service';
 import { provideRouter } from '@angular/router';
 
 describe('ApplicationCardComponent', () => {
@@ -23,7 +23,8 @@ describe('ApplicationCardComponent', () => {
       appliedAt: new Date().toISOString(),
       jobPostingId: 'job1',
       candidateEmail: 'test@example.com',
-      archivalResolution: 0
+      candidateId: 'candidate1',
+      archivalResolution: ArchivalResolution.None
     };
     fixture.detectChanges();
   });
