@@ -14,11 +14,12 @@ import { ConfirmDialogComponent } from '../../../core/ui/confirm-dialog';
 import { CustomFieldsService, CustomFieldDefinition } from '../../../core/services/custom-fields.service';
 import { CustomFieldFormService } from '../../../core/services/custom-field-form.service';
 import { CustomFieldInputComponent } from '../../../core/ui/custom-field-input/custom-field-input';
+import { FieldAssignmentComponent } from '../../../core/ui/field-assignment/field-assignment';
 
 @Component({
   selector: 'app-requisition-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule, MatIconModule, MatButtonModule, MatTooltipModule, MatDialogModule, CustomFieldInputComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, MatIconModule, MatButtonModule, MatTooltipModule, MatDialogModule, CustomFieldInputComponent, FieldAssignmentComponent],
   templateUrl: './requisition-form.html',
   styleUrls: ['./requisition-form.css'],
 })
@@ -40,6 +41,8 @@ export class RequisitionFormComponent implements OnInit {
 
   customFieldDefs = signal<CustomFieldDefinition[]>([]);
   customFieldsGroup = signal<FormGroup | null>(null);
+  selectablePool = signal<CustomFieldDefinition[]>([]);
+  selectedFieldIds = signal<Set<string>>(new Set());
 
   form = this.fb.group({
     title: ['', [Validators.required]],
@@ -89,7 +92,9 @@ export class RequisitionFormComponent implements OnInit {
       });
     });
 
-    const defsObs = this.customFieldsService.getDefinitions('Requisition');
+    const defsObs = this.requisitionId
+      ? this.customFieldsService.getDefinitions('Requisition', { requisitionId: this.requisitionId })
+      : this.customFieldsService.getDefinitions('Requisition');
 
     if (this.requisitionId) {
       this.isEdit = true;
@@ -136,6 +141,9 @@ export class RequisitionFormComponent implements OnInit {
           this.customFieldsGroup.set(group);
           (this.form as any).addControl('customFields', group);
         }
+      });
+      this.customFieldsService.getSelectableDefinitions('Requisition').subscribe(pool => {
+        this.selectablePool.set(pool);
       });
       this.syncOpeningsFormArray(1);
     }
@@ -251,6 +259,47 @@ export class RequisitionFormComponent implements OnInit {
     });
   }
 
+  toggleSelectableField(def: CustomFieldDefinition) {
+    const current = new Set(this.selectedFieldIds());
+    const cfGroup = this.form.get('customFields') as unknown as FormGroup;
+    if (!cfGroup) return;
+
+    if (current.has(def.id)) {
+      current.delete(def.id);
+      this.customFieldDefs.set(this.customFieldDefs().filter(d => d.id !== def.id));
+      cfGroup.removeControl(def.id);
+    } else {
+      current.add(def.id);
+      this.customFieldDefs.set([...this.customFieldDefs(), def]);
+      const control = new FormControl('', this.customFieldFormService.buildValidators(def));
+      cfGroup.addControl(def.id, control);
+    }
+    this.selectedFieldIds.set(current);
+  }
+
+  onCustomFieldsChanged() {
+    if (!this.requisitionId) return;
+
+    forkJoin({
+      defs: this.customFieldsService.getDefinitions('Requisition', { requisitionId: this.requisitionId }),
+      req: this.requisitionService.getById(this.requisitionId)
+    }).subscribe({
+      next: ({ defs, req }) => {
+        this.requisition.set(req);
+        this.customFieldDefs.set(defs);
+
+        const group = this.customFieldFormService.buildFormGroup(defs, req.customFields || []);
+        (this.form as any).removeControl('customFields');
+        this.customFieldsGroup.set(group);
+        (this.form as any).addControl('customFields', group);
+      },
+      error: (err) => {
+        console.error(err);
+        this.notification.error('Failed to reload custom fields.');
+      }
+    });
+  }
+
   onSubmit() {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -267,7 +316,8 @@ export class RequisitionFormComponent implements OnInit {
 
     const data = {
       ...rawData,
-      customFieldValues: cfValues
+      customFieldValues: cfValues,
+      linkedCustomFieldIds: Array.from(this.selectedFieldIds())
     };
 
     // Convert empty date strings to null for backend deserialization

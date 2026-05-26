@@ -4,11 +4,12 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { JobPostingService } from '../job-posting.service';
 import { NotificationService } from '../../../core/ui/notification.service';
+import { FieldAssignmentComponent } from '../../../core/ui/field-assignment/field-assignment';
 
 @Component({
   selector: 'app-job-posting-edit',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, FieldAssignmentComponent],
   templateUrl: './job-posting-edit.html',
   styleUrls: ['./job-posting-edit.css'],
 })

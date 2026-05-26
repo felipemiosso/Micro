@@ -87,7 +87,7 @@ public static class ApplicationEndpoints
 
         // Validate custom fields
         var cfErrors = await CustomFieldPersistence.ValidateCandidateFacingAsync(
-            db, Guid.Empty, customFieldInputs, CancellationToken.None);
+            db, jobPostingId, Guid.Empty, customFieldInputs, CancellationToken.None);
         if (cfErrors is not null)
         {
             return Results.ValidationProblem(cfErrors);
@@ -153,7 +153,7 @@ public static class ApplicationEndpoints
         // Persist candidate facing custom fields
         if (customFieldInputs.Count > 0)
         {
-            await CustomFieldPersistence.PersistCandidateFacingAsync(db, application.Id, customFieldInputs, CancellationToken.None);
+            await CustomFieldPersistence.PersistCandidateFacingAsync(db, jobPostingId, application.Id, customFieldInputs, CancellationToken.None);
             await db.SaveChangesAsync();
         }
 

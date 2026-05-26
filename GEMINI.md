@@ -71,3 +71,4 @@ Rules:
 - **Deep Linking:** Implement fragment-based scrolling and use the `.highlight-pulse` animation when navigating to specific items (e.g., Kanban cards).
 - **Angular Signals:** Use Angular Signals (`signal`, `computed`, `effect`) for all component state and data flow. Avoid manual change detection (`ChangeDetectorRef.detectChanges()`) and raw property assignments for reactive data.
 - **Standalone Components:** All new components must be standalone.
+- **Style Rules:** Do not use inline CSS styles (`style="..."` attributes) unless extremely necessary; prefer Tailwind utility classes.

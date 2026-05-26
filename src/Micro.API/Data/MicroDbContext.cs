@@ -21,6 +21,8 @@ public class MicroDbContext : DbContext
     public DbSet<Feedback> Feedbacks { get; set; }
     public DbSet<CustomFieldDefinition> CustomFieldDefinitions { get; set; }
     public DbSet<CustomFieldValue> CustomFieldValues { get; set; }
+    public DbSet<RequisitionCustomField> RequisitionCustomFields { get; set; }
+    public DbSet<JobPostingCustomField> JobPostingCustomFields { get; set; }
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {

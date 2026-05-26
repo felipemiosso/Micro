@@ -62,11 +62,78 @@ public static class CustomFieldPersistence
         }
         return cfFilters;
     }
-    /// <summary>
-    /// Validates all active custom field values for an entity.
-    /// Validates ALL active fields — not just those submitted — enforcing retroactive rules.
-    /// Returns a dictionary keyed by definitionId for use with Results.ValidationProblem().
-    /// </summary>
+    public static async Task<List<CustomFieldDefinition>> GetActiveDefinitionsAsync(
+        MicroDbContext db,
+        CustomFieldTargetEntity targetEntity,
+        Guid? entityId,
+        Guid? requisitionId = null,
+        Guid? jobPostingId = null,
+        CancellationToken ct = default)
+    {
+        var query = db.CustomFieldDefinitions
+            .Where(d => d.TargetEntity == targetEntity && !d.IsDisabled);
+
+        if (targetEntity == CustomFieldTargetEntity.Requisition)
+        {
+            var reqId = entityId ?? requisitionId;
+            if (reqId.HasValue && reqId != Guid.Empty)
+            {
+                query = query.Where(d => d.IsGlobal || db.RequisitionCustomFields.Any(rcf => rcf.RequisitionId == reqId && rcf.CustomFieldDefinitionId == d.Id));
+            }
+            else
+            {
+                query = query.Where(d => d.IsGlobal);
+            }
+        }
+        else if (targetEntity == CustomFieldTargetEntity.JobPosting)
+        {
+            var jpId = entityId ?? jobPostingId;
+            if (jpId.HasValue && jpId != Guid.Empty)
+            {
+                query = query.Where(d => d.IsGlobal || db.JobPostingCustomFields.Any(jpcf => jpcf.JobPostingId == jpId && jpcf.CustomFieldDefinitionId == d.Id));
+            }
+            else
+            {
+                query = query.Where(d => d.IsGlobal);
+            }
+        }
+        else if (targetEntity == CustomFieldTargetEntity.Application_Global ||
+                 targetEntity == CustomFieldTargetEntity.Application_Applied ||
+                 targetEntity == CustomFieldTargetEntity.Application_Interview ||
+                 targetEntity == CustomFieldTargetEntity.Application_Offer)
+        {
+            Guid? finalJobPostingId = jobPostingId;
+            Guid? finalRequisitionId = requisitionId;
+
+            if (entityId.HasValue && entityId != Guid.Empty)
+            {
+                var appInfo = await db.Applications
+                    .Where(a => a.Id == entityId)
+                    .Select(a => new { a.JobPostingId, RequisitionId = a.JobPosting.RequisitionId })
+                    .FirstOrDefaultAsync(ct);
+
+                if (appInfo != null)
+                {
+                    finalJobPostingId = appInfo.JobPostingId;
+                    finalRequisitionId = appInfo.RequisitionId;
+                }
+            }
+
+            if (finalJobPostingId.HasValue || finalRequisitionId.HasValue)
+            {
+                query = query.Where(d => d.IsGlobal ||
+                                         (finalJobPostingId.HasValue && db.JobPostingCustomFields.Any(jpcf => jpcf.JobPostingId == finalJobPostingId && jpcf.CustomFieldDefinitionId == d.Id)) ||
+                                         (finalRequisitionId.HasValue && db.RequisitionCustomFields.Any(rcf => rcf.RequisitionId == finalRequisitionId && rcf.CustomFieldDefinitionId == d.Id)));
+            }
+            else
+            {
+                query = query.Where(d => d.IsGlobal);
+            }
+        }
+
+        return await query.OrderBy(d => d.Order).ToListAsync(ct);
+    }
+
     public static async Task<Dictionary<string, string[]>?> ValidateAsync(
         MicroDbContext db,
         CustomFieldTargetEntity targetEntity,
@@ -74,10 +141,7 @@ public static class CustomFieldPersistence
         IEnumerable<CustomFieldValueInput> submitted,
         CancellationToken ct = default)
     {
-        var defs = await db.CustomFieldDefinitions
-            .Where(d => d.TargetEntity == targetEntity && !d.IsDisabled)
-            .OrderBy(d => d.Order)
-            .ToListAsync(ct);
+        var defs = await GetActiveDefinitionsAsync(db, targetEntity, entityId, null, null, ct);
 
         // Merge submitted values with already-stored values
         // Submitted values take precedence; stored values fill the rest
@@ -124,14 +188,14 @@ public static class CustomFieldPersistence
             if (row is null)
             {
                 db.CustomFieldValues.Add(new CustomFieldValue
-                 {
-                     Id = Guid.NewGuid(),
-                     CustomFieldDefinitionId = input.DefinitionId,
-                     EntityId = entityId,
-                     TargetEntity = targetEntity,
-                     Value = input.Value!,
-                     CreatedAt = DateTime.UtcNow
-                 });
+                  {
+                      Id = Guid.NewGuid(),
+                      CustomFieldDefinitionId = input.DefinitionId,
+                      EntityId = entityId,
+                      TargetEntity = targetEntity,
+                      Value = input.Value!,
+                      CreatedAt = DateTime.UtcNow
+                  });
             }
             else
             {
@@ -141,8 +205,6 @@ public static class CustomFieldPersistence
         }
 
         // Handle values set to null or empty: if not required, it can be deleted or set empty.
-        // Wait, does the spec say we delete empty values? Yes, or just save them as empty. Let's delete empty values if they exist, or update them.
-        // Let's delete them to clean up the DB:
         foreach (var input in submittedList.Where(i => i.Value is null or ""))
         {
             var row = existing.FirstOrDefault(e => e.CustomFieldDefinitionId == input.DefinitionId);
@@ -201,9 +263,27 @@ public static class CustomFieldPersistence
         if (status == ApplicationStatus.Offer || status == ApplicationStatus.Archive)
             scopes.Add(CustomFieldTargetEntity.Application_Offer);
 
+        // Fetch application-linked definitions (global + linked to job posting or requisition)
+        var appInfo = await db.Applications
+            .Where(a => a.Id == applicationId)
+            .Select(a => new { a.JobPostingId, RequisitionId = a.JobPosting.RequisitionId })
+            .FirstOrDefaultAsync(ct);
+
         var query = db.CustomFieldValues
             .Include(v => v.Definition)
             .Where(v => v.EntityId == applicationId && scopes.Contains(v.TargetEntity));
+
+        // If not global, verify association exists
+        if (appInfo != null)
+        {
+            query = query.Where(v => v.Definition.IsGlobal ||
+                                     db.JobPostingCustomFields.Any(jpcf => jpcf.JobPostingId == appInfo.JobPostingId && jpcf.CustomFieldDefinitionId == v.CustomFieldDefinitionId) ||
+                                     db.RequisitionCustomFields.Any(rcf => rcf.RequisitionId == appInfo.RequisitionId && rcf.CustomFieldDefinitionId == v.CustomFieldDefinitionId));
+        }
+        else
+        {
+            query = query.Where(v => v.Definition.IsGlobal);
+        }
 
         return await query
             .OrderBy(v => v.Definition.TargetEntity)
@@ -267,15 +347,18 @@ public static class CustomFieldPersistence
 
     public static async Task<Dictionary<string, string[]>?> ValidateCandidateFacingAsync(
         MicroDbContext db,
+        Guid jobPostingId,
         Guid applicationId,
         IEnumerable<CustomFieldValueInput> submitted,
         CancellationToken ct = default)
     {
-        var defs = await db.CustomFieldDefinitions
-            .Where(d => (d.TargetEntity == CustomFieldTargetEntity.Application_Global || d.TargetEntity == CustomFieldTargetEntity.Application_Applied)
-                        && d.IsCandidateFacing && !d.IsDisabled)
+        var globalDefs = await GetActiveDefinitionsAsync(db, CustomFieldTargetEntity.Application_Global, applicationId, null, jobPostingId, ct);
+        var appliedDefs = await GetActiveDefinitionsAsync(db, CustomFieldTargetEntity.Application_Applied, applicationId, null, jobPostingId, ct);
+
+        var defs = globalDefs.Concat(appliedDefs)
+            .Where(d => d.IsCandidateFacing && !d.IsDisabled)
             .OrderBy(d => d.Order)
-            .ToListAsync(ct);
+            .ToList();
 
         var submittedMap = submitted.ToDictionary(x => x.DefinitionId, x => x.Value);
         var errors = new Dictionary<string, string[]>();
@@ -293,14 +376,17 @@ public static class CustomFieldPersistence
 
     public static async Task PersistCandidateFacingAsync(
         MicroDbContext db,
+        Guid jobPostingId,
         Guid applicationId,
         IEnumerable<CustomFieldValueInput> submitted,
         CancellationToken ct = default)
     {
-        var defs = await db.CustomFieldDefinitions
-            .Where(d => (d.TargetEntity == CustomFieldTargetEntity.Application_Global || d.TargetEntity == CustomFieldTargetEntity.Application_Applied)
-                        && d.IsCandidateFacing && !d.IsDisabled)
-            .ToDictionaryAsync(d => d.Id, d => d.TargetEntity, ct);
+        var globalDefs = await GetActiveDefinitionsAsync(db, CustomFieldTargetEntity.Application_Global, applicationId, null, jobPostingId, ct);
+        var appliedDefs = await GetActiveDefinitionsAsync(db, CustomFieldTargetEntity.Application_Applied, applicationId, null, jobPostingId, ct);
+
+        var defs = globalDefs.Concat(appliedDefs)
+            .Where(d => d.IsCandidateFacing && !d.IsDisabled)
+            .ToDictionary(d => d.Id, d => d.TargetEntity);
 
         var submittedList = submitted ?? Enumerable.Empty<CustomFieldValueInput>();
         var grouped = submittedList

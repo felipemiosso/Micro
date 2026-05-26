@@ -183,7 +183,7 @@
       <!-- Custom Fields -->
       @if (customFieldDefs().length > 0 && customFieldsGroup()) {
         <div class="col-span-2 border-t border-slate-100 pt-6">
-          <h3 class="text-xs font-bold text-ink uppercase tracking-widest mb-4">Informações Adicionais</h3>
+          <h3 class="text-xs font-bold text-ink uppercase tracking-widest mb-4">Additional Information</h3>
           <div class="grid grid-cols-2 gap-4">
             @for (def of customFieldDefs(); track def.id) {
               <div class="col-span-1">
@@ -191,6 +191,41 @@
               </div>
             }
           </div>
+        </div>
+      }
+
+      <!-- Selectable Custom Fields Pool (Creation Mode only) -->
+      @if (!isEdit && selectablePool().length > 0) {
+        <div class="col-span-2 border-t border-slate-100 pt-6">
+          <h3 class="text-xs font-bold text-ink uppercase tracking-widest mb-2">Available Additional Fields</h3>
+          <p class="text-xs text-slate-500 mb-4">Select optional fields from the pool to add to this requisition:</p>
+          <div class="flex flex-wrap gap-2">
+            @for (field of selectablePool(); track field.id) {
+              <button
+                type="button"
+                (click)="toggleSelectableField(field)"
+                [class.bg-amber-50]="selectedFieldIds().has(field.id)"
+                [class.border-amber-500]="selectedFieldIds().has(field.id)"
+                [class.text-amber-700]="selectedFieldIds().has(field.id)"
+                [class.bg-white]="!selectedFieldIds().has(field.id)"
+                [class.border-slate-200]="!selectedFieldIds().has(field.id)"
+                [class.text-slate-600]="!selectedFieldIds().has(field.id)"
+                class="flex items-center gap-2 px-3 py-1.5 border rounded-lg text-xs font-semibold hover:border-amber-400 transition-colors shadow-sm"
+              >
+                <mat-icon class="text-sm w-4 h-4 flex items-center justify-center">
+                  {{ selectedFieldIds().has(field.id) ? 'check_box' : 'check_box_outline_blank' }}
+                </mat-icon>
+                {{ field.label }}
+              </button>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Custom Fields Assignment -->
+      @if (isEdit && requisitionId) {
+        <div class="col-span-2 border-t border-slate-100 pt-6">
+          <app-field-assignment [entityId]="requisitionId" entityType="Requisition" (changed)="onCustomFieldsChanged()"></app-field-assignment>
         </div>
       }
 

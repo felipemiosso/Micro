@@ -24,6 +24,8 @@ public static class RequisitionEndpoints
         group.MapGet("/{id:guid}", GetRequisition).RequireAuthorization("Requisition:View");
         group.MapPost("/", CreateRequisition).RequireAuthorization("Requisition:Create");
         group.MapPut("/{id:guid}", UpdateRequisition).RequireAuthorization("Requisition:Edit");
+        group.MapPost("/{id:guid}/custom-fields", LinkCustomField).RequireAuthorization("Requisition:Edit");
+        group.MapDelete("/{id:guid}/custom-fields/{definitionId:guid}", UnlinkCustomField).RequireAuthorization("Requisition:Edit");
         group.MapPut("/{id:guid}/openings/{openingId:guid}", UpdateRequisitionOpening).RequireAuthorization("Requisition:Edit");
         group.MapPost("/{id:guid}/finalize", FinalizeRequisition).RequireAuthorization("Requisition:Finalize");
         group.MapPost("/{id:guid}/close", CloseRequisition).RequireAuthorization("Requisition:Close");
@@ -259,20 +261,47 @@ public static class RequisitionEndpoints
             });
         }
 
-        var cfErrors = await CustomFieldPersistence.ValidateAsync(
-            db, CustomFieldTargetEntity.Requisition, requisition.Id,
-            request.CustomFieldValues ?? [], CancellationToken.None);
+        using var transaction = await db.Database.BeginTransactionAsync();
+        try
+        {
+            db.Requisitions.Add(requisition);
+            await db.SaveChangesAsync();
 
-        if (cfErrors is not null)
-            return Results.ValidationProblem(cfErrors);
+            if (request.LinkedCustomFieldIds is not null)
+            {
+                foreach (var defId in request.LinkedCustomFieldIds)
+                {
+                    db.RequisitionCustomFields.Add(new RequisitionCustomField
+                    {
+                        RequisitionId = requisition.Id,
+                        CustomFieldDefinitionId = defId
+                    });
+                }
+                await db.SaveChangesAsync();
+            }
 
-        db.Requisitions.Add(requisition);
-        await db.SaveChangesAsync();
+            var cfErrors = await CustomFieldPersistence.ValidateAsync(
+                db, CustomFieldTargetEntity.Requisition, requisition.Id,
+                request.CustomFieldValues ?? [], CancellationToken.None);
 
-        await CustomFieldPersistence.PersistAsync(
-            db, CustomFieldTargetEntity.Requisition, requisition.Id,
-            request.CustomFieldValues ?? [], CancellationToken.None);
-        await db.SaveChangesAsync();
+            if (cfErrors is not null)
+            {
+                await transaction.RollbackAsync();
+                return Results.ValidationProblem(cfErrors);
+            }
+
+            await CustomFieldPersistence.PersistAsync(
+                db, CustomFieldTargetEntity.Requisition, requisition.Id,
+                request.CustomFieldValues ?? [], CancellationToken.None);
+            await db.SaveChangesAsync();
+
+            await transaction.CommitAsync();
+        }
+        catch (Exception)
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
 
         var customFields = await CustomFieldPersistence.GetValuesAsync(db, CustomFieldTargetEntity.Requisition, requisition.Id);
         return Results.Created($"/api/requisitions/{requisition.Id}", new {
@@ -474,6 +503,54 @@ public static class RequisitionEndpoints
         }
 
         await db.SaveChangesAsync();
+        return Results.NoContent();
+    }
+
+    [ResourceAction("Requisition", "Edit", "Link a selectable custom field to this requisition")]
+    private static async Task<IResult> LinkCustomField(Guid id, LinkCustomFieldRequest request, MicroDbContext db)
+    {
+        var requisition = await db.Requisitions.FindAsync(id);
+        if (requisition is null) return Results.NotFound();
+
+        var def = await db.CustomFieldDefinitions.FindAsync(request.CustomFieldDefinitionId);
+        if (def is null || def.IsGlobal || def.IsDisabled || def.TargetEntity != CustomFieldTargetEntity.Requisition)
+        {
+            return Results.BadRequest("Invalid custom field definition for linkage.");
+        }
+
+        var exists = await db.RequisitionCustomFields.AnyAsync(rcf => rcf.RequisitionId == id && rcf.CustomFieldDefinitionId == request.CustomFieldDefinitionId);
+        if (!exists)
+        {
+            db.RequisitionCustomFields.Add(new RequisitionCustomField
+            {
+                RequisitionId = id,
+                CustomFieldDefinitionId = request.CustomFieldDefinitionId
+            });
+            await db.SaveChangesAsync();
+        }
+
+        return Results.NoContent();
+    }
+
+    [ResourceAction("Requisition", "Edit", "Unlink a selectable custom field from this requisition")]
+    private static async Task<IResult> UnlinkCustomField(Guid id, Guid definitionId, MicroDbContext db)
+    {
+        var requisition = await db.Requisitions.FindAsync(id);
+        if (requisition is null) return Results.NotFound();
+
+        var hasValues = await db.CustomFieldValues.AnyAsync(v => v.EntityId == id && v.CustomFieldDefinitionId == definitionId);
+        if (hasValues)
+        {
+            return Results.Conflict(new { code = "FIELD_HAS_VALUES", message = "Cannot unlink custom field because it contains recorded values." });
+        }
+
+        var link = await db.RequisitionCustomFields.FirstOrDefaultAsync(rcf => rcf.RequisitionId == id && rcf.CustomFieldDefinitionId == definitionId);
+        if (link is not null)
+        {
+            db.RequisitionCustomFields.Remove(link);
+            await db.SaveChangesAsync();
+        }
+
         return Results.NoContent();
     }
 }

@@ -123,12 +123,12 @@ export class ApplicationService {
     return this.http.put<void>(`${this.adminApiUrl}/${id}/status`, { status, resolution, requisitionOpeningId });
   }
 
-  updateInterviewDetails(id: string, payload: InterviewDetails): Observable<void> {
-    return this.http.put<void>(`${this.adminApiUrl}/${id}/interview-details`, payload);
+  updateInterviewDetails(id: string, payload: InterviewDetails, customFieldValues?: { definitionId: string; value: string | null }[]): Observable<void> {
+    return this.http.put<void>(`${this.adminApiUrl}/${id}/interview-details`, { ...payload, customFieldValues: customFieldValues ?? null });
   }
 
-  updateOfferDetails(id: string, payload: OfferDetails): Observable<void> {
-    return this.http.put<void>(`${this.adminApiUrl}/${id}/offer-details`, payload);
+  updateOfferDetails(id: string, payload: OfferDetails, customFieldValues?: { definitionId: string; value: string | null }[]): Observable<void> {
+    return this.http.put<void>(`${this.adminApiUrl}/${id}/offer-details`, { ...payload, customFieldValues: customFieldValues ?? null });
   }
 
   getAvailableOpenings(jobPostingId: string): Observable<RequisitionOpening[]> {

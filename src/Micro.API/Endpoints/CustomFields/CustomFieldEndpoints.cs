@@ -21,6 +21,7 @@ public static class CustomFieldEndpoints
 
         // Authenticated GET requests (for users to retrieve active fields for forms)
         group.MapGet("/", GetCustomFields).RequireAuthorization();
+        group.MapGet("/selectable", GetSelectableCustomFields).RequireAuthorization();
         group.MapGet("/available-presets", GetAvailablePresets).RequireAuthorization();
 
         // Admin-only management endpoints
@@ -35,20 +36,60 @@ public static class CustomFieldEndpoints
 
     private static async Task<IResult> GetCustomFields(
         CustomFieldTargetEntity entity,
+        Guid? requisitionId = null,
+        Guid? jobPostingId = null,
+        Guid? applicationId = null,
         bool includeDisabled = false,
         bool activeOnly = false,
         MicroDbContext db = null!)
     {
         var activeFilter = activeOnly || !includeDisabled;
+        List<CustomFieldDefinition> definitions;
 
-        var query = db.CustomFieldDefinitions.Where(d => d.TargetEntity == entity);
-        if (activeFilter)
+        if (applicationId.HasValue)
         {
-            query = query.Where(d => !d.IsDisabled);
+            definitions = await CustomFieldPersistence.GetActiveDefinitionsAsync(
+                db, entity, applicationId, null, null, default);
+        }
+        else if (requisitionId.HasValue || jobPostingId.HasValue)
+        {
+            definitions = await CustomFieldPersistence.GetActiveDefinitionsAsync(
+                db, entity, null, requisitionId, jobPostingId, default);
+        }
+        else
+        {
+            var query = db.CustomFieldDefinitions.Where(d => d.TargetEntity == entity);
+            if (activeFilter)
+            {
+                query = query.Where(d => !d.IsDisabled && d.IsGlobal);
+            }
+            definitions = await query.OrderBy(d => d.Order).ToListAsync();
+        }
+
+        var dtos = new List<CustomFieldDefinitionDto>();
+        foreach (var def in definitions)
+        {
+            var valueCount = await db.CustomFieldValues.CountAsync(v => v.CustomFieldDefinitionId == def.Id);
+            dtos.Add(MapToDto(def, valueCount));
+        }
+
+        return Results.Ok(dtos);
+    }
+
+    private static async Task<IResult> GetSelectableCustomFields(
+        CustomFieldTargetEntity? targetEntity,
+        MicroDbContext db)
+    {
+        var query = db.CustomFieldDefinitions
+            .Where(d => !d.IsGlobal && !d.IsDisabled);
+
+        if (targetEntity.HasValue)
+        {
+            query = query.Where(d => d.TargetEntity == targetEntity.Value);
         }
 
         var definitions = await query
-            .OrderBy(d => d.Order)
+            .OrderBy(d => d.Label)
             .ToListAsync();
 
         var dtos = new List<CustomFieldDefinitionDto>();
@@ -107,6 +148,7 @@ public static class CustomFieldEndpoints
             IsDisabled = false,
             IsCandidateFacing = request.IsCandidateFacing,
             ValidationJson = SerializeValidation(request.Validation),
+            IsGlobal = request.IsGlobal,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -129,6 +171,11 @@ public static class CustomFieldEndpoints
         var hasValues = await db.CustomFieldValues.AnyAsync(v => v.CustomFieldDefinitionId == id);
         if (hasValues)
         {
+            if (def.IsGlobal != request.IsGlobal)
+            {
+                return Results.Conflict(new { code = "RULE_CHANGE_BLOCKED", message = "Cannot change Global setting because data exists.", affectedCount = await db.CustomFieldValues.CountAsync(v => v.CustomFieldDefinitionId == id) });
+            }
+
             var oldOpts = string.IsNullOrEmpty(def.ValidationJson) ? null : JsonSerializer.Deserialize<ValidationOptions>(def.ValidationJson);
             
             // Check presets changed
@@ -190,6 +237,7 @@ public static class CustomFieldEndpoints
         def.HelpText = request.HelpText;
         def.IsRequired = request.IsRequired;
         def.IsCandidateFacing = request.IsCandidateFacing;
+        def.IsGlobal = request.IsGlobal;
         def.ValidationJson = SerializeValidation(request.Validation);
         def.UpdatedAt = DateTime.UtcNow;
 
@@ -328,6 +376,7 @@ public static class CustomFieldEndpoints
             def.IsCandidateFacing,
             validationDto,
             valueCount,
+            def.IsGlobal,
             def.CreatedAt,
             def.UpdatedAt
         );

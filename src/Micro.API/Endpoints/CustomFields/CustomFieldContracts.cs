@@ -13,7 +13,8 @@ public record CreateCustomFieldRequest(
     string? HelpText,
     bool IsRequired,
     bool IsCandidateFacing,
-    ValidationOptionsDto? Validation
+    ValidationOptionsDto? Validation,
+    bool IsGlobal = true
 );
 
 public record UpdateCustomFieldRequest(
@@ -21,7 +22,8 @@ public record UpdateCustomFieldRequest(
     string? HelpText,
     bool IsRequired,
     bool IsCandidateFacing,
-    ValidationOptionsDto? Validation
+    ValidationOptionsDto? Validation,
+    bool IsGlobal = true
 );
 
 public record ReorderCustomFieldsRequest(
@@ -46,6 +48,8 @@ public record CustomFieldValueInput(
     string? Value               // null or empty = field not filled (only valid if not Required)
 );
 
+public record LinkCustomFieldRequest(Guid CustomFieldDefinitionId);
+
 // ── Responses ─────────────────────────────────────────────────────────────────
 
 public record CustomFieldDefinitionDto(
@@ -60,6 +64,7 @@ public record CustomFieldDefinitionDto(
     bool IsCandidateFacing,
     ValidationOptionsDto? Validation,
     int ValueCount,             // always returned; used by admin UI for badge + delete decision
+    bool IsGlobal,
     DateTime CreatedAt,
     DateTime? UpdatedAt
 );

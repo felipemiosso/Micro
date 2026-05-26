@@ -18,7 +18,8 @@ public record CreateRequisitionRequest(
     bool IsInternalOnly,
     DateTime? TargetStartDate,
     List<RequisitionOpeningDto>? Openings = null,
-    List<CustomFieldValueInput>? CustomFieldValues = null
+    List<CustomFieldValueInput>? CustomFieldValues = null,
+    List<Guid>? LinkedCustomFieldIds = null
 );
 
 public record UpdateRequisitionRequest(

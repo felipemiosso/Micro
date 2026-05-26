@@ -70,8 +70,13 @@ import { CommonModule } from '@angular/common';
               </select>
             </div>
 
-            <!-- Required & Candidate Facing Toggles -->
+            <!-- Required, Candidate Facing & Global Toggles -->
             <div class="space-y-3 pt-2">
+              <label class="flex items-center space-x-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
+                <input type="checkbox" formControlName="isGlobal" class="rounded border-slate-300 dark:border-slate-700 text-honeycomb-600 focus:ring-honeycomb-500 bg-white dark:bg-slate-900 disabled:opacity-50" />
+                <span>Global Field (automatically active on all instances)</span>
+              </label>
+
               <label class="flex items-center space-x-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
                 <input type="checkbox" formControlName="isRequired" class="rounded border-slate-300 dark:border-slate-700 text-honeycomb-600 focus:ring-honeycomb-500 bg-white dark:bg-slate-900" />
                 <span>Required Field</span>
@@ -211,6 +216,7 @@ export class DefinitionBuilderComponent {
       fieldType: ['ShortText', Validators.required],
       isRequired: [false],
       isCandidateFacing: [false],
+      isGlobal: [true],
       minLength: [null],
       maxLength: [null],
       min: [null],
@@ -241,6 +247,7 @@ export class DefinitionBuilderComponent {
           fieldType: def.fieldType,
           isRequired: def.isRequired,
           isCandidateFacing: def.isCandidateFacing,
+          isGlobal: def.isGlobal,
           minLength: def.validation?.minLength || null,
           maxLength: def.validation?.maxLength || null,
           min: def.validation?.min || null,
@@ -257,15 +264,18 @@ export class DefinitionBuilderComponent {
         if (def.valueCount > 0) {
           this.form.get('fieldType')?.disable();
           this.form.get('formatMask')?.disable();
+          this.form.get('isGlobal')?.disable();
         } else {
           this.form.get('fieldType')?.enable();
           this.form.get('formatMask')?.enable();
+          this.form.get('isGlobal')?.enable();
         }
       } else {
         this.form.reset({
           fieldType: 'ShortText',
           isRequired: false,
           isCandidateFacing: false,
+          isGlobal: true,
           formatMask: '',
           choices: ''
         });
@@ -273,6 +283,7 @@ export class DefinitionBuilderComponent {
         this.selectedType.set('ShortText');
         this.form.get('fieldType')?.enable();
         this.form.get('formatMask')?.enable();
+        this.form.get('isGlobal')?.enable();
       }
     });
 
@@ -349,6 +360,7 @@ export class DefinitionBuilderComponent {
       helpText: rawVal.helpText || null,
       isRequired: rawVal.isRequired,
       isCandidateFacing: this.candidateFacingAllowed() ? rawVal.isCandidateFacing : false,
+      isGlobal: rawVal.isGlobal,
       validation: hasValidation ? validation : null
     };
 

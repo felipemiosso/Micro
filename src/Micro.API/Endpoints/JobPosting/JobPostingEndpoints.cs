@@ -21,6 +21,8 @@ public static class JobPostingEndpoints
         // Management endpoints
         group.MapGet("/admin", GetAdminJobs).RequireAuthorization("JobPosting:View");
         group.MapPut("/{id:guid}", UpdateJobPosting).RequireAuthorization("JobPosting:Edit");
+        group.MapPost("/{id:guid}/custom-fields", LinkCustomField).RequireAuthorization("JobPosting:Edit");
+        group.MapDelete("/{id:guid}/custom-fields/{definitionId:guid}", UnlinkCustomField).RequireAuthorization("JobPosting:Edit");
         group.MapPost("/{id:guid}/close", CloseJobPosting).RequireAuthorization("JobPosting:Close");
     }
 
@@ -50,10 +52,14 @@ public static class JobPostingEndpoints
 
         if (job is null) return Results.NotFound();
 
-        // Load active, candidate-facing definitions for application global and application applied
+        // Load active, candidate-facing definitions (global + job-specific + requisition-specific)
         var candidateFacingFields = await db.CustomFieldDefinitions
             .Where(d => (d.TargetEntity == CustomFieldTargetEntity.Application_Global || d.TargetEntity == CustomFieldTargetEntity.Application_Applied)
-                        && d.IsCandidateFacing && !d.IsDisabled)
+                        && d.IsCandidateFacing && !d.IsDisabled
+                        && (d.IsGlobal ||
+                            db.JobPostingCustomFields.Any(jpcf => jpcf.JobPostingId == id && jpcf.CustomFieldDefinitionId == d.Id) ||
+                            db.RequisitionCustomFields.Any(rcf => rcf.RequisitionId == job.RequisitionId && rcf.CustomFieldDefinitionId == d.Id)
+                        ))
             .OrderBy(d => d.Order)
             .ToListAsync();
 
@@ -74,6 +80,7 @@ public static class JobPostingEndpoints
                 d.IsCandidateFacing,
                 validationDto,
                 0, // Value count not needed for candidate facing public view
+                d.IsGlobal,
                 d.CreatedAt,
                 d.UpdatedAt
             );
@@ -141,6 +148,78 @@ public static class JobPostingEndpoints
         job.ClosedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync();
+        return Results.NoContent();
+    }
+
+    [ResourceAction("JobPosting", "Edit", "Link a selectable custom field to this job posting")]
+    private static async Task<IResult> LinkCustomField(Guid id, LinkCustomFieldRequest request, MicroDbContext db)
+    {
+        var job = await db.JobPostings.FindAsync(id);
+        if (job is null) return Results.NotFound();
+
+        var def = await db.CustomFieldDefinitions.FindAsync(request.CustomFieldDefinitionId);
+        if (def is null || def.IsGlobal || def.IsDisabled)
+        {
+            return Results.BadRequest("Invalid custom field definition for linkage.");
+        }
+
+        var isAllowedScope = def.TargetEntity == CustomFieldTargetEntity.JobPosting ||
+                             def.TargetEntity == CustomFieldTargetEntity.Application_Global ||
+                             def.TargetEntity == CustomFieldTargetEntity.Application_Applied ||
+                             def.TargetEntity == CustomFieldTargetEntity.Application_Interview ||
+                             def.TargetEntity == CustomFieldTargetEntity.Application_Offer;
+
+        if (!isAllowedScope)
+        {
+            return Results.BadRequest("Invalid custom field target scope for Job Posting linkage.");
+        }
+
+        var exists = await db.JobPostingCustomFields.AnyAsync(jpcf => jpcf.JobPostingId == id && jpcf.CustomFieldDefinitionId == request.CustomFieldDefinitionId);
+        if (!exists)
+        {
+            db.JobPostingCustomFields.Add(new JobPostingCustomField
+            {
+                JobPostingId = id,
+                CustomFieldDefinitionId = request.CustomFieldDefinitionId
+            });
+            await db.SaveChangesAsync();
+        }
+
+        return Results.NoContent();
+    }
+
+    [ResourceAction("JobPosting", "Edit", "Unlink a selectable custom field from this job posting")]
+    private static async Task<IResult> UnlinkCustomField(Guid id, Guid definitionId, MicroDbContext db)
+    {
+        var job = await db.JobPostings.FindAsync(id);
+        if (job is null) return Results.NotFound();
+
+        var def = await db.CustomFieldDefinitions.FindAsync(definitionId);
+        if (def is null) return Results.NotFound();
+
+        bool hasValues = false;
+        if (def.TargetEntity == CustomFieldTargetEntity.JobPosting)
+        {
+            hasValues = await db.CustomFieldValues.AnyAsync(v => v.EntityId == id && v.CustomFieldDefinitionId == definitionId);
+        }
+        else
+        {
+            var applicationIds = await db.Applications.Where(a => a.JobPostingId == id).Select(a => a.Id).ToListAsync();
+            hasValues = await db.CustomFieldValues.AnyAsync(v => v.CustomFieldDefinitionId == definitionId && applicationIds.Contains(v.EntityId));
+        }
+
+        if (hasValues)
+        {
+            return Results.Conflict(new { code = "FIELD_HAS_VALUES", message = "Cannot unlink custom field because it contains recorded values." });
+        }
+
+        var link = await db.JobPostingCustomFields.FirstOrDefaultAsync(jpcf => jpcf.JobPostingId == id && jpcf.CustomFieldDefinitionId == definitionId);
+        if (link is not null)
+        {
+            db.JobPostingCustomFields.Remove(link);
+            await db.SaveChangesAsync();
+        }
+
         return Results.NoContent();
     }
 }

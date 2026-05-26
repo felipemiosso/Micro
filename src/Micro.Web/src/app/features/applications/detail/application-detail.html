@@ -147,6 +147,25 @@
                                 <input type="date" class="input-honeycomb" [(ngModel)]="app.interviewDetails.scheduledDate">
                               </div>
                             </div>
+
+                            <!-- Interview Custom Fields -->
+                            @if (getInterviewDefs(app.id).length > 0) {
+                              <div class="mb-4">
+                                <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1">
+                                  <mat-icon class="!text-[13px] !w-[13px] !h-[13px]">tune</mat-icon>
+                                  Additional Fields
+                                </div>
+                                <div class="space-y-0">
+                                  @for (def of getInterviewDefs(app.id); track def.id) {
+                                    <app-custom-field-input
+                                      [definition]="def"
+                                      [control]="getFormControl(getInterviewGroup(app.id), def.id)"
+                                    ></app-custom-field-input>
+                                  }
+                                </div>
+                              </div>
+                            }
+
                             <button (click)="saveInterviewDetails(app)" class="btn-secondary !py-1 !px-3 text-[11px] mb-4">Save Interview Details</button>
                             
                             <mat-divider class="!my-4"></mat-divider>
@@ -211,6 +230,25 @@
                                   </div>
                                 </div>
                               </div>
+
+                              <!-- Offer Custom Fields -->
+                              @if (getOfferDefs(app.id).length > 0) {
+                                <div class="mb-4">
+                                  <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1">
+                                    <mat-icon class="!text-[13px] !w-[13px] !h-[13px]">tune</mat-icon>
+                                    Additional Fields
+                                  </div>
+                                  <div class="space-y-0">
+                                    @for (def of getOfferDefs(app.id); track def.id) {
+                                      <app-custom-field-input
+                                        [definition]="def"
+                                        [control]="getFormControl(getOfferGroup(app.id), def.id)"
+                                      ></app-custom-field-input>
+                                    }
+                                  </div>
+                                </div>
+                              }
+
                               <button (click)="saveOfferDetails(app)" class="btn-primary !py-2 w-full text-xs">Update Offer Details</button>
                             } @else {
                               <div class="grid grid-cols-2 gap-4">

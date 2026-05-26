@@ -69,7 +69,7 @@ cleanup_e2e() {
 run_unit() {
   echo "Running Unit Tests..."
   echo "--- Frontend Unit Tests ---"
-  cmd //c "npm.cmd test --prefix src/Micro.Web -- --run"
+  cmd //c "npm.cmd test --prefix src/Micro.Web -- --watch=false"
 }
 
 # Integration Tests

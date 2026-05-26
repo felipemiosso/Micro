@@ -51,7 +51,7 @@
         <!-- Custom Fields -->
         @if (customFieldsGroup() && job()?.candidateFacingFields?.length) {
           <div class="border-t border-slate-100 pt-6">
-            <h3 class="text-xs font-bold text-ink uppercase tracking-widest mb-4">Informações Adicionais</h3>
+            <h3 class="text-xs font-bold text-ink uppercase tracking-widest mb-4">Additional Information</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               @for (def of job()?.candidateFacingFields; track def.id) {
                 <div class="col-span-1">

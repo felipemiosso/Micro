@@ -37,6 +37,7 @@ export interface CustomFieldDefinition {
   isCandidateFacing: boolean;
   validation?: ValidationOptions;
   valueCount: number;
+  isGlobal: boolean;
   createdAt: string;
   updatedAt?: string;
 }
@@ -72,6 +73,7 @@ export interface CreateCustomFieldRequest {
   isRequired: boolean;
   isCandidateFacing: boolean;
   validation?: ValidationOptions;
+  isGlobal?: boolean;
 }
 
 export interface UpdateCustomFieldRequest {
@@ -80,6 +82,7 @@ export interface UpdateCustomFieldRequest {
   isRequired: boolean;
   isCandidateFacing: boolean;
   validation?: ValidationOptions;
+  isGlobal?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -88,11 +91,20 @@ export class CustomFieldsService {
 
   getDefinitions(
     entity: CustomFieldTargetEntity,
-    options: { includeDisabled?: boolean } = {}
+    options: { includeDisabled?: boolean; requisitionId?: string; jobPostingId?: string; applicationId?: string } = {}
   ): Observable<CustomFieldDefinition[]> {
     let params = new HttpParams()
       .set('entity', entity)
       .set('includeDisabled', (options.includeDisabled ?? false).toString());
+    if (options.requisitionId) {
+      params = params.set('requisitionId', options.requisitionId);
+    }
+    if (options.jobPostingId) {
+      params = params.set('jobPostingId', options.jobPostingId);
+    }
+    if (options.applicationId) {
+      params = params.set('applicationId', options.applicationId);
+    }
     return this.http.get<CustomFieldDefinition[]>('/api/custom-fields', { params });
   }
 
@@ -122,5 +134,33 @@ export class CustomFieldsService {
 
   deleteDefinition(id: string): Observable<void> {
     return this.http.delete<void>(`/api/custom-fields/${id}`);
+  }
+
+  getSelectableDefinitions(targetEntity?: CustomFieldTargetEntity): Observable<CustomFieldDefinition[]> {
+    let params = new HttpParams();
+    if (targetEntity) {
+      params = params.set('targetEntity', targetEntity);
+    }
+    return this.http.get<CustomFieldDefinition[]>('/api/custom-fields/selectable', { params });
+  }
+
+  linkRequisitionField(requisitionId: string, definitionId: string): Observable<void> {
+    return this.http.post<void>(`/api/requisitions/${requisitionId}/custom-fields`, {
+      customFieldDefinitionId: definitionId
+    });
+  }
+
+  unlinkRequisitionField(requisitionId: string, definitionId: string): Observable<void> {
+    return this.http.delete<void>(`/api/requisitions/${requisitionId}/custom-fields/${definitionId}`);
+  }
+
+  linkJobPostingField(jobPostingId: string, definitionId: string): Observable<void> {
+    return this.http.post<void>(`/api/jobs/${jobPostingId}/custom-fields`, {
+      customFieldDefinitionId: definitionId
+    });
+  }
+
+  unlinkJobPostingField(jobPostingId: string, definitionId: string): Observable<void> {
+    return this.http.delete<void>(`/api/jobs/${jobPostingId}/custom-fields/${definitionId}`);
   }
 }

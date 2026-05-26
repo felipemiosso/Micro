@@ -14,6 +14,7 @@ public class CustomFieldDefinition
     public string? ValidationJson { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
+    public bool IsGlobal { get; set; } = true;
 
     public ICollection<CustomFieldValue> Values { get; set; } = new List<CustomFieldValue>();
 }

@@ -1,7 +1,10 @@
 import { Component, OnInit, inject, signal, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, FormGroup } from '@angular/forms';
+import { ReactiveFormsModule } from '@angular/forms';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { ApplicationService, CandidateDetail, ApplicationStatus, ArchivalResolution, CandidateApplication } from '../application.service';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
@@ -10,11 +13,25 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { NotificationService } from '../../../core/ui/notification.service';
 import { ArchiveDialogComponent } from '../../../core/ui/archive-dialog';
 import { CustomFieldDisplayComponent } from '../../../core/ui/custom-field-display/custom-field-display';
+import { CustomFieldInputComponent } from '../../../core/ui/custom-field-input/custom-field-input';
+import { CustomFieldsService, CustomFieldDefinition, CustomFieldTargetEntity } from '../../../core/services/custom-fields.service';
+import { CustomFieldFormService } from '../../../core/services/custom-field-form.service';
+
+interface AppCustomFieldState {
+  interviewDefs: CustomFieldDefinition[];
+  interviewGroup: FormGroup;
+  offerDefs: CustomFieldDefinition[];
+  offerGroup: FormGroup;
+}
 
 @Component({
   selector: 'app-application-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, MatIconModule, MatDividerModule, MatTooltipModule, MatDialogModule, CustomFieldDisplayComponent],
+  imports: [
+    CommonModule, RouterModule, FormsModule, ReactiveFormsModule,
+    MatIconModule, MatDividerModule, MatTooltipModule, MatDialogModule,
+    CustomFieldDisplayComponent, CustomFieldInputComponent
+  ],
   templateUrl: './application-detail.html',
   styleUrls: ['./application-detail.css'],
 })
@@ -24,9 +41,14 @@ export class ApplicationDetailComponent implements OnInit, AfterViewInit {
   private route = inject(ActivatedRoute);
   private dialog = inject(MatDialog);
   private notification = inject(NotificationService);
+  private customFieldsService = inject(CustomFieldsService);
+  private customFieldFormService = inject(CustomFieldFormService);
 
   candidate = signal<CandidateDetail | null>(null);
   loading = signal(true);
+
+  // Custom field state per application id
+  cfState = signal<Map<string, AppCustomFieldState>>(new Map());
 
   // Form state
   feedbackNotes = signal('');
@@ -45,7 +67,6 @@ export class ApplicationDetailComponent implements OnInit, AfterViewInit {
   ngAfterViewInit() {
     this.route.fragment.subscribe(fragment => {
       if (fragment) {
-        // Wait for data to load and view to render
         const checkExist = setInterval(() => {
           const element = document.getElementById(fragment);
           if (element) {
@@ -55,7 +76,6 @@ export class ApplicationDetailComponent implements OnInit, AfterViewInit {
           }
         }, 100);
 
-        // Safety timeout
         setTimeout(() => clearInterval(checkExist), 3000);
       }
     });
@@ -72,7 +92,7 @@ export class ApplicationDetailComponent implements OnInit, AfterViewInit {
             if (interview.scheduledDate) {
               interview.scheduledDate = interview.scheduledDate.substring(0, 10);
             }
-            
+
             const offer = { ...(app.offerDetails || {}) };
             if (offer.targetStartDate) {
               offer.targetStartDate = offer.targetStartDate.substring(0, 10);
@@ -80,7 +100,7 @@ export class ApplicationDetailComponent implements OnInit, AfterViewInit {
             if (offer.deadline) {
               offer.deadline = offer.deadline.substring(0, 10);
             }
-            
+
             return {
               ...app,
               interviewDetails: interview,
@@ -89,12 +109,86 @@ export class ApplicationDetailComponent implements OnInit, AfterViewInit {
           })
         });
         this.loading.set(false);
+        // Load custom field definitions for all applications
+        this.loadCustomFieldsForApps(data.applications);
       },
       error: (err) => {
         console.error('Failed to load candidate', err);
         this.loading.set(false);
       }
     });
+  }
+
+  loadCustomFieldsForApps(apps: CandidateApplication[]) {
+    apps.forEach(app => {
+      const interviewScopes: CustomFieldTargetEntity[] = ['Application_Global', 'Application_Applied', 'Application_Interview'];
+      const offerScopes: CustomFieldTargetEntity[] = ['Application_Global', 'Application_Applied', 'Application_Interview', 'Application_Offer'];
+
+      const interviewQueries = interviewScopes.map(scope =>
+        this.customFieldsService.getDefinitions(scope, { applicationId: app.id }).pipe(catchError(() => of([])))
+      );
+      const offerQueries = offerScopes.map(scope =>
+        this.customFieldsService.getDefinitions(scope, { applicationId: app.id }).pipe(catchError(() => of([])))
+      );
+
+      forkJoin({
+        interviewDefs: forkJoin(interviewQueries),
+        offerDefs: forkJoin(offerQueries)
+      }).subscribe({
+        next: ({ interviewDefs, offerDefs }) => {
+          const flatInterview = this.deduplicateDefs(interviewDefs.flat());
+          const flatOffer = this.deduplicateDefs(offerDefs.flat());
+
+          const existingValues = app.customFields || [];
+
+          const interviewGroup = this.customFieldFormService.buildFormGroup(flatInterview, existingValues);
+          const offerGroup = this.customFieldFormService.buildFormGroup(flatOffer, existingValues);
+
+          const newState = new Map(this.cfState());
+          newState.set(app.id, {
+            interviewDefs: flatInterview,
+            interviewGroup,
+            offerDefs: flatOffer,
+            offerGroup
+          });
+          this.cfState.set(newState);
+        },
+        error: (err) => console.error('Failed to load custom field defs for app', app.id, err)
+      });
+    });
+  }
+
+  private deduplicateDefs(defs: CustomFieldDefinition[]): CustomFieldDefinition[] {
+    const seen = new Set<string>();
+    return defs.filter(d => {
+      if (seen.has(d.id)) return false;
+      seen.add(d.id);
+      return true;
+    });
+  }
+
+  getInterviewState(appId: string): AppCustomFieldState | null {
+    return this.cfState().get(appId) ?? null;
+  }
+
+  getInterviewDefs(appId: string): CustomFieldDefinition[] {
+    return this.cfState().get(appId)?.interviewDefs ?? [];
+  }
+
+  getInterviewGroup(appId: string): FormGroup {
+    return this.cfState().get(appId)?.interviewGroup ?? new FormGroup({});
+  }
+
+  getOfferDefs(appId: string): CustomFieldDefinition[] {
+    return this.cfState().get(appId)?.offerDefs ?? [];
+  }
+
+  getOfferGroup(appId: string): FormGroup {
+    return this.cfState().get(appId)?.offerGroup ?? new FormGroup({});
+  }
+
+  getFormControl(group: FormGroup, defId: string) {
+    return group.get(defId) as any;
   }
 
   updateStatus(appId: string, status: ApplicationStatus) {
@@ -143,21 +237,51 @@ export class ApplicationDetailComponent implements OnInit, AfterViewInit {
 
   saveInterviewDetails(app: CandidateApplication) {
     if (!app.interviewDetails) return;
-    this.applicationService.updateInterviewDetails(app.id, app.interviewDetails).subscribe({
+
+    const state = this.cfState().get(app.id);
+    const cfValues = state
+      ? this.customFieldFormService.extractValues(state.interviewGroup, state.interviewDefs)
+      : undefined;
+
+    this.applicationService.updateInterviewDetails(app.id, app.interviewDetails, cfValues).subscribe({
       next: () => {
         this.notification.success('Interview details updated successfully');
+        const candidateId = this.route.snapshot.paramMap.get('id');
+        if (candidateId) this.loadCandidate(candidateId);
       },
-      error: () => this.notification.error('Failed to update interview details')
+      error: (err) => {
+        if (err.status === 422 && err.error?.errors && state) {
+          this.customFieldFormService.applyServerErrors(err.error.errors, state.interviewGroup);
+          this.notification.error('Please check the custom fields.');
+        } else {
+          this.notification.error('Failed to update interview details');
+        }
+      }
     });
   }
 
   saveOfferDetails(app: CandidateApplication) {
     if (!app.offerDetails) return;
-    this.applicationService.updateOfferDetails(app.id, app.offerDetails).subscribe({
+
+    const state = this.cfState().get(app.id);
+    const cfValues = state
+      ? this.customFieldFormService.extractValues(state.offerGroup, state.offerDefs)
+      : undefined;
+
+    this.applicationService.updateOfferDetails(app.id, app.offerDetails, cfValues).subscribe({
       next: () => {
         this.notification.success('Offer details updated successfully');
+        const candidateId = this.route.snapshot.paramMap.get('id');
+        if (candidateId) this.loadCandidate(candidateId);
       },
-      error: () => this.notification.error('Failed to update offer details')
+      error: (err) => {
+        if (err.status === 422 && err.error?.errors && state) {
+          this.customFieldFormService.applyServerErrors(err.error.errors, state.offerGroup);
+          this.notification.error('Please check the custom fields.');
+        } else {
+          this.notification.error('Failed to update offer details');
+        }
+      }
     });
   }
 

@@ -73,6 +73,8 @@ export interface CreateRequisitionRequest {
   isInternalOnly: boolean;
   targetStartDate?: string | null;
   openings?: CreateRequisitionOpeningRequest[];
+  customFieldValues?: { definitionId: string; value: string | null }[];
+  linkedCustomFieldIds?: string[];
 }
 
 @Injectable({
