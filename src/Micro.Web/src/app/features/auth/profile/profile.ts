@@ -9,7 +9,6 @@ import { MatIconModule } from '@angular/material/icon';
   standalone: true,
   imports: [CommonModule, MatIconModule],
   templateUrl: './profile.html',
-  styleUrl: './profile.css'
 })
 export class ProfileComponent {
   public authService = inject(AuthService);

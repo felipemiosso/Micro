@@ -1,12 +1,12 @@
-<div class="detail-container">
+<div class="max-w-[1000px] mx-auto px-4 my-8">
   @if (loading()) {
     <div class="flex flex-col items-center justify-center py-20 text-slate-400 font-bold uppercase tracking-widest text-sm gap-4">
       <div class="w-8 h-8 border-4 border-honeycomb-200 border-t-honeycomb-500 rounded-full animate-spin"></div>
       Loading candidate profile...
     </div>
   } @else if (candidate(); as c) {
-    <header class="detail-header">
-      <div class="header-main">
+    <header class="mb-8 border-b border-slate-200 pb-6">
+      <div class="w-full">
         <a routerLink="/candidates" class="flex items-center gap-1 text-honeycomb-600 hover:text-honeycomb-700 font-bold text-xs uppercase tracking-widest no-underline mb-4">
           <mat-icon class="!text-[18px] !w-[18px] !h-[18px]">arrow_back</mat-icon>
           Back to Candidates
@@ -17,11 +17,11 @@
         </div>
         <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1>{{ c.fullName }}</h1>
-            <div class="subtitle flex items-center gap-2 flex-wrap">
+            <h1 class="text-4xl font-bold text-slate-800 tracking-tight leading-none mb-2">{{ c.fullName }}</h1>
+            <div class="text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
               <span class="flex items-center gap-1">
                 <mat-icon class="!text-[14px] !w-[14px] !h-[14px] text-slate-400">email</mat-icon>
-                <span class="truncate-text">{{ c.email }}</span>
+                <span class="truncate block flex-1">{{ c.email }}</span>
               </span>
               <span class="text-slate-300 hidden md:inline">•</span>
               <span class="flex items-center gap-1">

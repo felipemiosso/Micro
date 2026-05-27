@@ -11,7 +11,6 @@ import { FieldAssignmentComponent } from '../../../core/ui/field-assignment/fiel
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterModule, FieldAssignmentComponent],
   templateUrl: './job-posting-edit.html',
-  styleUrls: ['./job-posting-edit.css'],
 })
 export class JobPostingEditComponent implements OnInit {
   private fb = inject(FormBuilder);

@@ -35,6 +35,7 @@ public static class RequisitionEndpoints
     private static async Task<IResult> GetRequisitions(HttpContext context, MicroDbContext db)
     {
         var query = db.Requisitions
+            .AsNoTracking()
             .Include(r => r.Department)
             .Include(r => r.Openings)
             .AsQueryable();
@@ -147,10 +148,13 @@ public static class RequisitionEndpoints
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync();
 
+        var reqIds = requisitions.Select(r => r.Id).ToList();
+        var customFieldsMap = await CustomFieldPersistence.GetBatchRequisitionValuesAsync(db, reqIds);
+
         var results = new List<object>();
         foreach (var r in requisitions)
         {
-            var customFields = await CustomFieldPersistence.GetValuesAsync(db, CustomFieldTargetEntity.Requisition, r.Id);
+            var customFields = customFieldsMap.TryGetValue(r.Id, out var cf) ? cf : new List<CustomFieldValueDto>();
             results.Add(new {
                 r.Id,
                 r.Title,

@@ -129,3 +129,95 @@ Next step: Wait user approval of plan.
 
 **Gemini:** I have identified and fixed the issue causing the Edit and Delete buttons to be invisible. In the custom field list row component, the SVG icons were styled with non-standard Tailwind size classes (`h-4.5` and `w-4.5`). Since these classes do not exist in default Tailwind, the icons collapsed to `0x0` pixels, rendering the buttons completely invisible. I updated all buttons to use the standard `h-5` and `w-5` classes, restoring their visibility in the Admin Custom Fields settings page. Tested and verified that the layout compiles and is fully responsive.
 
+**User:** Instead of working on another feature spec, lets step back a little bit and make sure we are building with a solid foundation. I want you to write a spec to asses what we build so far, check standards in the back and frontend, and increase the test coverage numbers. For example, remove all inline css from code. Remove dup validation from c# entities like .HasMaxLength(200); and [MaxLength(200)] and so on and so on. I need you to write a spec with your finds on what you are going to work next
+
+**Gemini:** I have completed a thorough tech-debt and standards assessment of the Micro codebase. Based on my findings, I have written the hardening specification under `product/020-foundation-hardening/` and created the `implementation_plan.md` artifact.
+
+### Key Findings & Action Plan:
+1. **Duplicate Validations (Backend)**:
+   - Identified duplicate validation attributes in [Candidate.cs](file:///C:/Users/felip/source/Micro/src/Micro.API/Data/Models/Candidate.cs) (e.g. `[Required]` and `[MaxLength]` on properties also defined in [CandidateConfiguration.cs](file:///C:/Users/felip/source/Micro/src/Micro.API/Data/Configuration/CandidateConfiguration.cs)). These will be removed.
+   
+2. **Missing Entity Configurations (Backend)**:
+   - `CostCenter`, `Department`, and `SalaryBand` currently lack explicit `IEntityTypeConfiguration<T>` classes, violating the database design guidelines. I will introduce configuration classes for each of them.
+
+3. **High Complexity Hotspots (Backend)**:
+   - [CustomFieldValidator.Validate](file:///C:/Users/felip/source/Micro/src/Micro.API/Infrastructure/CustomFields/CustomFieldValidator.cs#L14) has a high cyclomatic complexity (89). I will refactor it into smaller, type-specific helper methods to improve maintainability.
+
+4. **Style Cleanup (Frontend)**:
+   - Identified five custom stylesheet files ([apply.css](file:///C:/Users/felip/source/Micro/src/Micro.Web/src/app/features/applications/apply/apply.css), [application-detail.css](file:///C:/Users/felip/source/Micro/src/Micro.Web/src/app/features/applications/detail/application-detail.css), [success.css](file:///C:/Users/felip/source/Micro/src/Micro.Web/src/app/features/applications/success/success.css), [job-posting-edit.css](file:///C:/Users/felip/source/Micro/src/Micro.Web/src/app/features/job-postings/admin-edit/job-posting-edit.css), [app.css](file:///C:/Users/felip/source/Micro/src/Micro.Web/src/app/app.css)) containing layout rules that can be fully replaced with Tailwind classes.
+   - Identified 10 empty/placeholder CSS files that can be safely deleted once their component references are removed.
+   - Found style guide violations in [job-posting-edit.css](file:///C:/Users/felip/source/Micro/src/Micro.Web/src/app/features/job-postings/admin-edit/job-posting-edit.css#L30-L31) (using custom blue/grey colors instead of Honeycomb tokens).
+
+5. **Test Coverage Gaps (Tests)**:
+   - Core API endpoints (Candidate, Role, User, UserProfile, Admin) have **zero integration tests**.
+   - Custom preset validators (CPF, CNPJ, PIS, CEP, CNH, Phone, etc.) have **zero unit tests**, leaving their complex algorithmic branching completely untested (overall branch coverage is currently 38.3%).
+   - I will create dedicated unit and integration tests for all of them to drive total line coverage past **90%**.
+
+The detailed implementation steps and verification plans are fully documented in the [implementation_plan.md](file:///C:/Users/felip/.gemini/antigravity-cli/brain/7b72346f-13fe-4084-8fa8-23724482dfeb/implementation_plan.md) artifact. Please review the plan and let me know if you approve.
+
+**User:** regarding item 3, if you are going to break the class just for the sake for a number (without actually improving code performance or applying any pattern), dont. the rest is fine
+
+**Gemini:** I understand. I have removed the `CustomFieldValidator` refactoring from the specification (`product/020-foundation-hardening/backend.md`) and updated the [implementation_plan.md](file:///C:/Users/felip/.gemini/antigravity-cli/brain/7b72346f-13fe-4084-8fa8-23724482dfeb/implementation_plan.md) to exclude it.
+
+I have completed the foundation hardening checklist:
+1. **Entity Configurations & Database Constraints**: Removed duplicate C# Data Annotations on `Candidate`, `CostCenter`, `Department`, and `SalaryBand`. Created explicit config files (`CostCenterConfiguration`, `DepartmentConfiguration`, `SalaryBandConfiguration`). No pending model changes exist.
+2. **Frontend Redundancies Cleaning**: Migrated all rules from `apply.css`, `application-detail.css`, `success.css`, `job-posting-edit.css`, and `app.css` to standard Tailwind utilities. Removed all component `styleUrls`/`styleUrl` metadata and deleted 15 CSS files (including 10 empty placeholders).
+3. **Unit & Integration Tests**: Created `PresetValidatorsTests` (for CPF, CNPJ, PIS, CEP, CNH, Phone, etc.) and `CustomFieldValidatorTests`. Created integration tests for `Candidate`, `Role`, `User`, `UserProfile`, and `Admin` endpoints.
+4. **Coverage & Verification**: Refactored `scripts/coverage.sh` to start and stop the Firebase emulator. All 72 backend unit and integration tests are passing, achieving **90.5% line coverage** on the backend.
+
+The [task.md](file:///C:/Users/felip/.gemini/antigravity-cli/brain/7b72346f-13fe-4084-8fa8-23724482dfeb/task.md) and [walkthrough.md](file:///C:/Users/felip/.gemini/antigravity-cli/brain/7b72346f-13fe-4084-8fa8-23724482dfeb/walkthrough.md) artifacts have been updated.
+
+**User:** why some classes have 0% test coverage?
+
+**Gemini:** Some classes show 0% test coverage for the following reasons:
+1. **Pure DTOs and API Contracts:** Classes/records like `UpdateInterviewDetailsRequest`, `UpdateOfferDetailsRequest`, `CandidateApplicationResponse`, `PresetDto`, etc., are pure data transfer objects. Since they contain only auto-properties and no business logic, if a test doesn't explicitly instantiate, serialize, or read them, the compiler-generated properties show up as 0% covered lines.
+2. **Untested Flow Code:** Classes like `JobPostingCustomField` (the join table for selectable custom fields on job postings) are not covered because our current test coverage covers selectable fields on *requisitions*, leaving the job posting linking flow untested.
+3. **Unused EF Core Owned/Dependent Types:** `InterviewDetails` and `OfferDetails` are dependent entity types. If tests do not read or write values to these details during execution, they remain uninstantiated and report 0% coverage.
+
+**User:** does that mean we have lots of branchs not being tested? can we add more test to cover some of these scenarios?
+
+**Gemini:** Yes, that is correct. Some paths and edge cases (especially custom field validators and nested objects on responses) were not exercised.
+
+To address this, I added the following tests:
+1. **Validation Presets & Formats:** Added unit tests in `CustomFieldValidatorTests.cs` to test regex format masks (e.g., matching a Zip Code layout like `#####-###`) and format presets (e.g., validating invalid email addresses via the lowercase `"email"` preset flow).
+2. **Detailed Candidates Integration Flow:** Added `GetCandidateDetail_WithApplicationsAndFeedbacks_ReturnsSuccess` in `CandidateEndpointsTests.cs`. This seeds a candidate with an active job posting, requisition, application, and feedback, fully instantiating and serializing `CandidateApplicationResponse` and `CandidateFeedbackResponse`.
+
+**Results:**
+- **All 76 unit and integration tests are passing successfully.**
+- **Overall Line Coverage:** Increased to **91.1%** (from 90.5%).
+- **Overall Branch Coverage:** Increased to **52.5%** (from 50.7%).
+- `CandidateApplicationResponse` coverage rose from **0%** to **78.9%**.
+- `CandidateFeedbackResponse` coverage rose from **0%** to **50.0%**.
+- `CandidateEndpoints` coverage rose from **75.6%** to **97.5%**.
+
+The updated coverage report is generated at: `tests/Micro.Tests/TestResults/CoverageReport/index.html`.
+
+**User:** take a look at the backend and see if you find something to improve, maybe the queries or how validations are done. anything
+
+**Gemini:** I have analyzed the backend architecture (focusing on custom fields, validation flow, and query efficiency) and identified three key improvements:
+
+1. **N+1 Database Query Bottlenecks (Performance)**
+   - **Where:** `CandidateEndpoints.GetCandidateDetail`, `ApplicationEndpoints.GetAdminApplications`, and `RequisitionEndpoints.GetRequisitions`.
+   - **Issue:** These list and detail endpoints loop over fetched entities and call `CustomFieldPersistence.GetApplicationValuesAsync` or `GetValuesAsync` individually inside the loop. If a list returns 50 requisitions/applications, it executes 50 to 100 extra database queries.
+   - **Solution:** Implement batch custom field loading helpers (e.g. `GetBatchApplicationValuesAsync` and `GetBatchRequisitionValuesAsync`) that execute exactly 2 to 4 queries total to load all definition linkages and values in one go, grouping them in memory.
+
+2. **Non-Atomic DB Saves in Application Submission (Consistency & Round-Trips)**
+   - **Where:** `ApplicationEndpoints.ApplyToJob`.
+   - **Issue:** The endpoint saves the `Application` record via `await db.SaveChangesAsync()`, and then conditionally persists candidate-facing custom fields using a second `await db.SaveChangesAsync()`. If the second save fails, the application is left orphaned without its custom fields.
+   - **Solution:** Move the second `db.SaveChangesAsync()` to the end of the method, executing both the application and custom fields additions in a single, atomic round-trip.
+
+3. **Missing `.AsNoTracking()` on Read-Only List Queries (Performance)**
+   - **Where:** List queries in `GetAdminApplications` and `GetRequisitions`.
+   - **Issue:** Read-only listing queries lack `.AsNoTracking()`, incurring EF Core tracking overhead.
+   - **Solution:** Apply `.AsNoTracking()` to these read-only list endpoints.
+
+**User:** update the spec to reflect this
+
+**Gemini:** I have updated the technical and functional spec files under `product/020-foundation-hardening/`:
+1. **[backend.md](file:///C:/Users/felip/source/Micro/product/020-foundation-hardening/backend.md):** Added the **Query and Transaction Optimizations** section detailing bulk/batch custom field retrieval helpers to solve N+1 bottlenecks, consolidation of DB saves in `ApplyToJob` for atomicity, and `.AsNoTracking()` on read-only queries.
+2. **[acceptance.md](file:///C:/Users/felip/source/Micro/product/020-foundation-hardening/acceptance.md):** Added two new scenarios (**AC-07: Batch Custom Field Loading on Lists** and **AC-08: Atomic Application Creation and Custom Fields Save**) to verify these backend optimizations functional requirements.
+
+Next, I will update the implementation plan to outline how we will implement these improvements.
+
+
+

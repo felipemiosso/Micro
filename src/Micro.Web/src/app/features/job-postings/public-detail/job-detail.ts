@@ -8,7 +8,6 @@ import { JobPostingService, PublicJobDetailResponse } from '../job-posting.servi
   standalone: true,
   imports: [CommonModule, RouterModule],
   templateUrl: './job-detail.html',
-  styleUrls: ['./job-detail.css'],
 })
 export class JobDetailComponent implements OnInit {
   private jobPostingService = inject(JobPostingService);

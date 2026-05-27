@@ -21,7 +21,6 @@ import { FieldAssignmentComponent } from '../../../core/ui/field-assignment/fiel
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterModule, MatIconModule, MatButtonModule, MatTooltipModule, MatDialogModule, CustomFieldInputComponent, FieldAssignmentComponent],
   templateUrl: './requisition-form.html',
-  styleUrls: ['./requisition-form.css'],
 })
 export class RequisitionFormComponent implements OnInit {
   private fb = inject(FormBuilder);

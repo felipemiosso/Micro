@@ -1,4 +1,0 @@
-/* Layout styles moved to global styles (src/styles.css) */
-main {
-  min-height: calc(100vh - 64px);
-}

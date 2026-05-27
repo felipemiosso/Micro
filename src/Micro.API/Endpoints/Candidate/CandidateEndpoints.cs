@@ -1,4 +1,5 @@
 using Micro.API.Data;
+using Micro.API.Endpoints.CustomFields;
 using Micro.API.Infrastructure.Auth;
 using Micro.API.Infrastructure.CustomFields;
 using Microsoft.EntityFrameworkCore;
@@ -63,10 +64,13 @@ public static class CandidateEndpoints
             return Results.NotFound();
         }
 
+        var appIds = candidateDto.Applications.Select(a => a.Id).ToList();
+        var customFieldsMap = await CustomFieldPersistence.GetBatchApplicationValuesAsync(db, appIds);
+
         var apps = new List<CandidateApplicationResponse>();
         foreach (var a in candidateDto.Applications)
         {
-            var customFields = await CustomFieldPersistence.GetApplicationValuesAsync(db, a.Id, a.Status);
+            var customFields = customFieldsMap.TryGetValue(a.Id, out var cf) ? cf : new List<CustomFieldValueDto>();
             apps.Add(new CandidateApplicationResponse(
                 a.Id,
                 a.JobPostingId,

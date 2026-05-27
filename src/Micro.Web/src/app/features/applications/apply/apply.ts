@@ -12,7 +12,6 @@ import { CustomFieldInputComponent } from '../../../core/ui/custom-field-input/c
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterModule, CustomFieldInputComponent],
   templateUrl: './apply.html',
-  styleUrls: ['./apply.css'],
 })
 export class ApplyComponent implements OnInit {
   private fb = inject(FormBuilder);

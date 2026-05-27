@@ -18,7 +18,6 @@ import { HttpParams } from '@angular/common/http';
   standalone: true,
   imports: [CommonModule, RouterModule, MatIconModule, MatButtonModule, MatTooltipModule, MatDialogModule, CustomFieldFilterComponent],
   templateUrl: './requisition-list.html',
-  styleUrls: ['./requisition-list.css'],
 })
 export class RequisitionListComponent implements OnInit {
   private requisitionService = inject(RequisitionService);

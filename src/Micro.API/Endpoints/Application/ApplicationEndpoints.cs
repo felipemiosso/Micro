@@ -148,14 +148,14 @@ public static class ApplicationEndpoints
         };
 
         db.Applications.Add(application);
-        await db.SaveChangesAsync();
 
         // Persist candidate facing custom fields
         if (customFieldInputs.Count > 0)
         {
             await CustomFieldPersistence.PersistCandidateFacingAsync(db, jobPostingId, application.Id, customFieldInputs, CancellationToken.None);
-            await db.SaveChangesAsync();
         }
+
+        await db.SaveChangesAsync();
 
         return Results.Created($"/api/applications/{application.Id}", new { application.Id });
     }
@@ -168,6 +168,7 @@ public static class ApplicationEndpoints
         MicroDbContext db)
     {
         var query = db.Applications
+            .AsNoTracking()
             .Include(a => a.JobPosting)
             .Include(a => a.Candidate)
             .AsQueryable();
@@ -283,10 +284,13 @@ public static class ApplicationEndpoints
             .OrderByDescending(a => a.AppliedAt)
             .ToListAsync();
 
+        var appIds = apps.Select(a => a.Id).ToList();
+        var customFieldsMap = await CustomFieldPersistence.GetBatchApplicationValuesAsync(db, appIds);
+
         var results = new List<object>();
         foreach (var a in apps)
         {
-            var customFields = await CustomFieldPersistence.GetApplicationValuesAsync(db, a.Id, a.Status);
+            var customFields = customFieldsMap.TryGetValue(a.Id, out var cf) ? cf : new List<CustomFieldValueDto>();
             results.Add(new {
                 a.Id,
                 a.JobPostingId,

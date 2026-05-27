@@ -10,7 +10,6 @@ import { MatDividerModule } from '@angular/material/divider';
   selector: 'app-root',
   imports: [RouterOutlet, RouterModule, MatMenuModule, MatButtonModule, MatIconModule, MatDividerModule],
   templateUrl: './app.html',
-  styleUrl: './app.css'
 })
 export class App {
   protected readonly title = signal('Micro.Web');

@@ -33,7 +33,6 @@ interface AppCustomFieldState {
     CustomFieldDisplayComponent, CustomFieldInputComponent
   ],
   templateUrl: './application-detail.html',
-  styleUrls: ['./application-detail.css'],
 })
 export class ApplicationDetailComponent implements OnInit, AfterViewInit {
 

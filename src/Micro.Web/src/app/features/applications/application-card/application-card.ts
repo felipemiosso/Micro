@@ -10,7 +10,6 @@ import { MatIconModule } from '@angular/material/icon';
   standalone: true,
   imports: [CommonModule, RouterLink, MatIconModule],
   templateUrl: './application-card.html',
-  styleUrl: './application-card.css',
 })
 export class ApplicationCardComponent {
   @Input({ required: true }) application!: Application;

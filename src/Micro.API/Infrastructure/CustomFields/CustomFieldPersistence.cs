@@ -398,4 +398,139 @@ public static class CustomFieldPersistence
             await PersistAsync(db, group.Key, applicationId, group, ct);
         }
     }
+
+    public static async Task<Dictionary<Guid, List<CustomFieldValueDto>>> GetBatchApplicationValuesAsync(
+        MicroDbContext db,
+        IEnumerable<Guid> applicationIds,
+        CancellationToken ct = default)
+    {
+        var appIdsList = applicationIds.Distinct().ToList();
+        if (appIdsList.Count == 0) return new();
+
+        var appsInfo = await db.Applications
+            .AsNoTracking()
+            .Where(a => appIdsList.Contains(a.Id))
+            .Select(a => new { a.Id, a.Status, a.JobPostingId, RequisitionId = a.JobPosting.RequisitionId })
+            .ToListAsync(ct);
+
+        var appsInfoMap = appsInfo.ToDictionary(a => a.Id);
+
+        var allValues = await db.CustomFieldValues
+            .AsNoTracking()
+            .Include(v => v.Definition)
+            .Where(v => appIdsList.Contains(v.EntityId))
+            .ToListAsync(ct);
+
+        var valuesByApp = allValues
+            .GroupBy(v => v.EntityId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var jobPostingIds = appsInfo.Select(a => a.JobPostingId).Distinct().ToList();
+        var requisitionIds = appsInfo.Select(a => a.RequisitionId).Distinct().ToList();
+
+        var jobPostingFields = await db.JobPostingCustomFields
+            .AsNoTracking()
+            .Where(jpcf => jobPostingIds.Contains(jpcf.JobPostingId))
+            .Select(jpcf => new { jpcf.JobPostingId, jpcf.CustomFieldDefinitionId })
+            .ToListAsync(ct);
+
+        var jobPostingFieldsMap = jobPostingFields
+            .GroupBy(x => x.JobPostingId)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.CustomFieldDefinitionId).ToHashSet());
+
+        var requisitionFields = await db.RequisitionCustomFields
+            .AsNoTracking()
+            .Where(rcf => requisitionIds.Contains(rcf.RequisitionId))
+            .Select(rcf => new { rcf.RequisitionId, rcf.CustomFieldDefinitionId })
+            .ToListAsync(ct);
+
+        var requisitionFieldsMap = requisitionFields
+            .GroupBy(x => x.RequisitionId)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.CustomFieldDefinitionId).ToHashSet());
+
+        var result = new Dictionary<Guid, List<CustomFieldValueDto>>();
+
+        foreach (var appId in appIdsList)
+        {
+            if (!appsInfoMap.TryGetValue(appId, out var app))
+            {
+                result[appId] = new();
+                continue;
+            }
+
+            var allowedScopes = new HashSet<CustomFieldTargetEntity> { CustomFieldTargetEntity.Application_Global, CustomFieldTargetEntity.Application_Applied };
+            if (app.Status is ApplicationStatus.Interview or ApplicationStatus.Offer or ApplicationStatus.Archive)
+            {
+                allowedScopes.Add(CustomFieldTargetEntity.Application_Interview);
+            }
+            if (app.Status is ApplicationStatus.Offer or ApplicationStatus.Archive)
+            {
+                allowedScopes.Add(CustomFieldTargetEntity.Application_Offer);
+            }
+
+            var appValues = valuesByApp.TryGetValue(appId, out var vals) ? vals : new List<CustomFieldValue>();
+
+            var filtered = appValues
+                .Where(v => allowedScopes.Contains(v.TargetEntity))
+                .Where(v =>
+                {
+                    if (v.Definition.IsGlobal) return true;
+
+                    var isLinkedToJp = jobPostingFieldsMap.TryGetValue(app.JobPostingId, out var jpSet) && jpSet.Contains(v.CustomFieldDefinitionId);
+                    var isLinkedToReq = requisitionFieldsMap.TryGetValue(app.RequisitionId, out var reqSet) && reqSet.Contains(v.CustomFieldDefinitionId);
+
+                    return isLinkedToJp || isLinkedToReq;
+                })
+                .OrderBy(v => v.Definition.TargetEntity)
+                .ThenBy(v => v.Definition.Order)
+                .Select(v => new CustomFieldValueDto(
+                    v.CustomFieldDefinitionId,
+                    v.Definition.Label,
+                    v.Definition.FieldType,
+                    v.Value,
+                    v.Definition.IsDisabled))
+                .ToList();
+
+            result[appId] = filtered;
+        }
+
+        return result;
+    }
+
+    public static async Task<Dictionary<Guid, List<CustomFieldValueDto>>> GetBatchRequisitionValuesAsync(
+        MicroDbContext db,
+        IEnumerable<Guid> requisitionIds,
+        CancellationToken ct = default)
+    {
+        var reqIdsList = requisitionIds.Distinct().ToList();
+        if (reqIdsList.Count == 0) return new();
+
+        var allValues = await db.CustomFieldValues
+            .AsNoTracking()
+            .Include(v => v.Definition)
+            .Where(v => reqIdsList.Contains(v.EntityId) && v.TargetEntity == CustomFieldTargetEntity.Requisition)
+            .ToListAsync(ct);
+
+        var valuesByReq = allValues
+            .GroupBy(v => v.EntityId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderBy(v => v.Definition.Order)
+                      .Select(v => new CustomFieldValueDto(
+                          v.CustomFieldDefinitionId,
+                          v.Definition.Label,
+                          v.Definition.FieldType,
+                          v.Value,
+                          v.Definition.IsDisabled))
+                      .ToList()
+            );
+
+        var result = new Dictionary<Guid, List<CustomFieldValueDto>>();
+        foreach (var reqId in reqIdsList)
+        {
+            result[reqId] = valuesByReq.TryGetValue(reqId, out var list) ? list : new();
+        }
+
+        return result;
+    }
 }

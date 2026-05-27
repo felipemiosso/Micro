@@ -10,7 +10,6 @@ import { MatIconModule } from '@angular/material/icon';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, MatIconModule],
   templateUrl: './login.html',
-  styleUrl: './login.css'
 })
 export class LoginComponent {
   loginForm: FormGroup;

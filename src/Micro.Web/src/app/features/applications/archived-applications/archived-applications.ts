@@ -13,7 +13,6 @@ import { MatIconModule } from '@angular/material/icon';
   standalone: true,
   imports: [CommonModule, FormsModule, ApplicationCardComponent, RouterLink, MatIconModule],
   templateUrl: './archived-applications.html',
-  styleUrl: './archived-applications.css',
 })
 export class ArchivedApplicationsComponent implements OnInit {
   private applicationService = inject(ApplicationService);

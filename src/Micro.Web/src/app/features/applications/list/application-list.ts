@@ -17,7 +17,6 @@ import { forkJoin } from 'rxjs';
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule, MatIconModule, MatButtonModule, MatTooltipModule, CustomFieldFilterComponent],
   templateUrl: './application-list.html',
-  styleUrls: ['./application-list.css'],
 })
 export class ApplicationListComponent implements OnInit {
 

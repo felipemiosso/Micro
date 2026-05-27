@@ -36,6 +36,15 @@ public static class ActionDiscovery
             }
         }
 
+        // Deduplicate by permission string — multiple endpoints can share the same
+        // Resource:Action (e.g. all three Application "Edit" endpoints). Keep first seen.
+        _cachedActions = _cachedActions
+            .GroupBy(a => a.Permission)
+            .Select(g => g.First())
+            .OrderBy(a => a.Resource)
+            .ThenBy(a => a.Action)
+            .ToList();
+
         // Also scan Minimal API endpoint metadata if possible, but standard scanning of static classes works for our structure
         return _cachedActions;
     }

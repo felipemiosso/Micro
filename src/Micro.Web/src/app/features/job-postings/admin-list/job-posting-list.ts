@@ -14,7 +14,6 @@ import { ConfirmDialogComponent } from '../../../core/ui/confirm-dialog';
   standalone: true,
   imports: [CommonModule, RouterModule, MatIconModule, MatButtonModule, MatTooltipModule, MatDialogModule],
   templateUrl: './job-posting-list.html',
-  styleUrls: ['./job-posting-list.css'],
 })
 export class JobPostingListComponent implements OnInit {
   private jobPostingService = inject(JobPostingService);
