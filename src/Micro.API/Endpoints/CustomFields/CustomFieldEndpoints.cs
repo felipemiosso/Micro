@@ -10,6 +10,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Micro.API.Infrastructure.Auth;
 
 namespace Micro.API.Endpoints.CustomFields;
 
@@ -32,6 +35,7 @@ public static class CustomFieldEndpoints
         group.MapPatch("/{id:guid}/enable", EnableCustomField).RequireAuthorization("Admin");
         group.MapPut("/reorder", ReorderCustomFields).RequireAuthorization("Admin");
         group.MapDelete("/{id:guid}", DeleteCustomField).RequireAuthorization("Admin");
+        group.MapPut("/{id:guid}/choices", SyncChoices).RequireAuthorization(AuthExtensions.ApiKeyPolicy);
     }
 
     private static async Task<IResult> GetCustomFields(
@@ -216,20 +220,33 @@ public static class CustomFieldEndpoints
                 }
             }
 
-            // Check Choices option removed
+            // Check Choices option removed -> Archive if in use
             if (def.FieldType == CustomFieldType.SingleChoice && request.Validation?.Choices is not null)
             {
                 var oldChoices = oldOpts?.Choices ?? new List<string>();
+                var oldDisabled = oldOpts?.DisabledChoices ?? new List<string>();
                 var newChoices = request.Validation.Choices;
-                var removedChoices = oldChoices.Except(newChoices).ToList();
-                if (removedChoices.Count > 0)
+
+                var removedChoices = oldChoices.Concat(oldDisabled).Except(newChoices).ToList();
+                var newDisabledChoices = new List<string>();
+
+                foreach (var rc in removedChoices)
                 {
-                    var affectedCount = await db.CustomFieldValues.CountAsync(v => v.CustomFieldDefinitionId == id && removedChoices.Contains(v.Value));
-                    if (affectedCount > 0)
+                    var isUsed = await db.CustomFieldValues.AnyAsync(v => v.CustomFieldDefinitionId == id && v.Value == rc);
+                    if (isUsed)
                     {
-                        return Results.Conflict(new { code = "RULE_CHANGE_BLOCKED", message = "Cannot remove choices that are currently in use.", affectedCount });
+                        newDisabledChoices.Add(rc);
                     }
                 }
+
+                // Construct updated request validation options
+                var updatedValidation = request.Validation with
+                {
+                    Choices = newChoices,
+                    DisabledChoices = newDisabledChoices
+                };
+
+                request = request with { Validation = updatedValidation };
             }
         }
 
@@ -395,7 +412,57 @@ public static class CustomFieldEndpoints
             MaxDate = validation.MaxDate,
             Presets = validation.Presets,
             FormatMask = validation.FormatMask,
-            Choices = validation.Choices
+            Choices = validation.Choices,
+            DisabledChoices = validation.DisabledChoices
         });
+    }
+
+    private static async Task<IResult> SyncChoices(
+        Guid id,
+        SyncChoicesRequest request,
+        MicroDbContext db)
+    {
+        var def = await db.CustomFieldDefinitions.FindAsync(id);
+        if (def is null) return Results.NotFound();
+
+        if (def.FieldType != CustomFieldType.SingleChoice)
+        {
+            return Results.BadRequest(new { code = "INVALID_FIELD_TYPE", message = "API choice sync is only supported for SingleChoice custom fields." });
+        }
+
+        var newChoices = request.Choices
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Select(c => c.Trim())
+            .Distinct()
+            .ToList();
+
+        var oldOpts = string.IsNullOrEmpty(def.ValidationJson) ? null : JsonSerializer.Deserialize<ValidationOptions>(def.ValidationJson);
+        var oldChoices = oldOpts?.Choices ?? new List<string>();
+        var oldDisabled = oldOpts?.DisabledChoices ?? new List<string>();
+
+        var removedChoices = oldChoices.Concat(oldDisabled).Except(newChoices).ToList();
+        var newDisabledChoices = new List<string>();
+
+        foreach (var rc in removedChoices)
+        {
+            var isUsed = await db.CustomFieldValues.AnyAsync(v => v.CustomFieldDefinitionId == id && v.Value == rc);
+            if (isUsed)
+            {
+                newDisabledChoices.Add(rc);
+            }
+        }
+
+        var newOpts = (oldOpts ?? new ValidationOptions()) with
+        {
+            Choices = newChoices,
+            DisabledChoices = newDisabledChoices
+        };
+
+        def.ValidationJson = JsonSerializer.Serialize(newOpts);
+        def.UpdatedAt = DateTime.UtcNow;
+
+        await db.SaveChangesAsync();
+
+        return Results.NoContent();
     }
 }

@@ -11,7 +11,7 @@ public static class CustomFieldValidator
     /// Validates a single submitted value against its field definition.
     /// Returns zero or more user-facing error strings.
     /// </summary>
-    public static IEnumerable<string> Validate(CustomFieldDefinition def, string? value)
+    public static IEnumerable<string> Validate(CustomFieldDefinition def, string? value, string? existingValue = null)
     {
         var errors = new List<string>();
         var opts = DeserializeOptions(def.ValidationJson);
@@ -80,7 +80,11 @@ public static class CustomFieldValidator
                 break;
 
             case CustomFieldType.SingleChoice:
-                if (opts?.Choices is { Count: > 0 } && !opts.Choices.Contains(value))
+                var isActive = opts?.Choices is { Count: > 0 } && opts.Choices.Contains(value);
+                var isExisting = existingValue == value;
+                var isDisabled = opts?.DisabledChoices is { Count: > 0 } && opts.DisabledChoices.Contains(value);
+
+                if (!isActive && !(isExisting && isDisabled))
                     errors.Add($"'{def.Label}' contains an invalid value.");
                 break;
         }

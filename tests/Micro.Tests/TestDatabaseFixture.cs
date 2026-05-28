@@ -31,7 +31,8 @@ public class TestDatabaseFixture : IAsyncLifetime
                     ["Serilog:MinimumLevel:Override:Microsoft.EntityFrameworkCore.Database.Connection"] = "Fatal",
                     ["Firebase:ProjectId"] = "demo-micro-ats",
                     ["Firebase:UseEmulator"] = "true",
-                    ["Firebase:EmulatorHost"] = "localhost:9099"
+                    ["Firebase:EmulatorHost"] = "localhost:9099",
+                    ["CustomFields:ApiKey"] = "test-sync-api-key"
                 });
             });
 

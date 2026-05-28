@@ -7,4 +7,5 @@ public class SalaryBand
     public decimal MinAmount { get; set; }
     public decimal MaxAmount { get; set; }
     public string Currency { get; set; } = "USD";
+    public bool IsActive { get; set; } = true;
 }

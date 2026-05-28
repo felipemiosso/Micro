@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
@@ -6,6 +7,10 @@ namespace Micro.API.Infrastructure.Auth;
 
 public static class AuthExtensions
 {
+    public static readonly AuthorizationPolicy ApiKeyPolicy = new AuthorizationPolicyBuilder("ApiKey")
+        .RequireAuthenticatedUser()
+        .Build();
+
     public static void AddAuth(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
     {
         var projectId = configuration["Firebase:ProjectId"];
@@ -47,6 +52,8 @@ public static class AuthExtensions
                 };
             });
         }
+
+        authBuilder.AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>("ApiKey", null);
 
         services.AddAuthorization(options =>
         {

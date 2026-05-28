@@ -13,5 +13,6 @@ public class SalaryBandConfiguration : IEntityTypeConfiguration<SalaryBand>
         builder.Property(x => x.MinAmount).HasColumnType("decimal(18,2)");
         builder.Property(x => x.MaxAmount).HasColumnType("decimal(18,2)");
         builder.Property(x => x.Currency).IsRequired().HasMaxLength(10).HasDefaultValue("USD");
+        builder.Property(x => x.IsActive).HasDefaultValue(true);
     }
 }

@@ -39,7 +39,8 @@ public record ValidationOptionsDto(
     DateOnly? MaxDate,
     List<string>? Presets,      // OR logic — multiple preset keys
     string? FormatMask,
-    List<string>? Choices
+    List<string>? Choices,
+    List<string>? DisabledChoices = null
 );
 
 // Used by all entity create/update endpoints to submit custom field values
@@ -85,3 +86,5 @@ public record PresetGroupDto(
 );
 
 public record PresetDto(string Key, string Label);
+
+public record SyncChoicesRequest(List<string> Choices);

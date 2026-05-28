@@ -17,8 +17,10 @@
         <label for="departmentId" class="text-xs font-bold text-ink uppercase tracking-widest">Department</label>
         <select id="departmentId" formControlName="departmentId" class="input-honeycomb">
           <option value="">Select Department</option>
-          @for (d of departments(); track d.id) {
-            <option [value]="d.id">{{ d.name }}</option>
+          @for (d of activeDepartments(); track d.id) {
+            <option [value]="d.id" [disabled]="!d.isActive">
+              {{ d.name }}{{ d.isActive ? '' : ' (inactive)' }}
+            </option>
           }
         </select>
       </div>
@@ -28,8 +30,10 @@
         <label for="costCenterId" class="text-xs font-bold text-ink uppercase tracking-widest">Cost Center</label>
         <select id="costCenterId" formControlName="costCenterId" class="input-honeycomb">
           <option value="">Select Cost Center</option>
-          @for (cc of costCenters(); track cc.id) {
-            <option [value]="cc.id">{{ cc.code }} - {{ cc.name }}</option>
+          @for (cc of activeCostCenters(); track cc.id) {
+            <option [value]="cc.id" [disabled]="!cc.isActive">
+              {{ cc.code }} - {{ cc.name }}{{ cc.isActive ? '' : ' (inactive)' }}
+            </option>
           }
         </select>
       </div>
@@ -39,8 +43,10 @@
         <label for="salaryBandId" class="text-xs font-bold text-ink uppercase tracking-widest">Salary Band</label>
         <select id="salaryBandId" formControlName="salaryBandId" class="input-honeycomb">
           <option value="">Select Salary Band</option>
-          @for (b of salaryBands(); track b.id) {
-            <option [value]="b.id">{{ b.name }} ({{ b.minAmount | number }} - {{ b.maxAmount | number }})</option>
+          @for (b of activeSalaryBands(); track b.id) {
+            <option [value]="b.id" [disabled]="!b.isActive">
+              {{ b.name }} ({{ b.minAmount | number }} - {{ b.maxAmount | number }}){{ b.isActive ? '' : ' (inactive)' }}
+            </option>
           }
         </select>
       </div>

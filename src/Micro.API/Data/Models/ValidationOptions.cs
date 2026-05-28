@@ -11,4 +11,5 @@ public record ValidationOptions
     public List<string>? Presets { get; init; }
     public string? FormatMask { get; init; }
     public List<string>? Choices { get; init; }
+    public List<string>? DisabledChoices { get; init; }
 }

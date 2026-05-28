@@ -222,4 +222,159 @@ public class AdminEndpointsTests : IntegrationTestBase
             Assert.Equal("New CC", updated.Name);
         }
     }
+
+    [Fact]
+    public async Task SyncLookupEntities_Flow()
+    {
+        // =========================================================================
+        // Arrange
+        // =========================================================================
+        await AuthenticateAsync();
+
+        // 1. Create a Requisition to use existing lookup values to test "in-use deactivation"
+        Department testDept;
+        SalaryBand testBand;
+        CostCenter testCC;
+
+        using (var scope = Fixture.Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<MicroDbContext>();
+            testDept = new Department { Id = Guid.NewGuid(), Name = "Sync Dept InUse", IsActive = true };
+            testBand = new SalaryBand { Id = Guid.NewGuid(), Name = "Sync Band InUse", MinAmount = 1000, MaxAmount = 2000, Currency = "USD", IsActive = true };
+            testCC = new CostCenter { Id = Guid.NewGuid(), Code = "CC-INUSE", Name = "Sync CC InUse", IsActive = true };
+
+            db.Departments.Add(testDept);
+            db.SalaryBands.Add(testBand);
+            db.CostCenters.Add(testCC);
+            await db.SaveChangesAsync();
+
+            var req = new Requisition
+            {
+                Id = Guid.NewGuid(),
+                Title = "Requisition utilizing lookup entities",
+                DepartmentId = testDept.Id,
+                SalaryBandId = testBand.Id,
+                CostCenterId = testCC.Id,
+                OpeningsCount = 1,
+                CreatedBy = "admin@microats.com",
+                HiringManagerId = Guid.NewGuid()
+            };
+            db.Requisitions.Add(req);
+            await db.SaveChangesAsync();
+        }
+
+        // Create unused lookup values to test deletion when missing from sync payload
+        Department unusedDept = new() { Id = Guid.NewGuid(), Name = "Unused Dept", IsActive = true };
+        SalaryBand unusedBand = new() { Id = Guid.NewGuid(), Name = "Unused Band", MinAmount = 500, MaxAmount = 900, IsActive = true };
+        CostCenter unusedCC = new() { Id = Guid.NewGuid(), Code = "CC-UNUSED", Name = "Unused CC", IsActive = true };
+
+        using (var scope = Fixture.Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<MicroDbContext>();
+            db.Departments.Add(unusedDept);
+            db.SalaryBands.Add(unusedBand);
+            db.CostCenters.Add(unusedCC);
+            await db.SaveChangesAsync();
+        }
+
+        // =========================================================================
+        // Act & Assert (Departments Sync)
+        // =========================================================================
+
+        // 2. Sync departments: new dept, update in-use dept, omit unused dept, omit in-use dept
+        var newDeptId = Guid.NewGuid();
+        var deptPayload = new List<Department>
+        {
+            new Department { Id = newDeptId, Name = "Newly Synced Dept" },
+            new Department { Id = testDept.Id, Name = "Updated Dept Name" }
+        };
+
+        var deptReq = new HttpRequestMessage(HttpMethod.Put, "/api/departments/sync")
+        {
+            Content = JsonContent.Create(deptPayload, mediaType: null, JsonOptions)
+        };
+        deptReq.Headers.Add("X-API-Key", "test-sync-api-key");
+        var deptRes = await Client.SendAsync(deptReq);
+        Assert.Equal(HttpStatusCode.NoContent, deptRes.StatusCode);
+
+        using (var scope = Fixture.Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<MicroDbContext>();
+            
+            // Newly Synced Dept is created and Active
+            var dNew = await db.Departments.FindAsync(newDeptId);
+            Assert.NotNull(dNew);
+            Assert.Equal("Newly Synced Dept", dNew.Name);
+            Assert.True(dNew.IsActive);
+
+            // testDept is updated and remains Active
+            var dInUse = await db.Departments.FindAsync(testDept.Id);
+            Assert.NotNull(dInUse);
+            Assert.Equal("Updated Dept Name", dInUse.Name);
+            Assert.True(dInUse.IsActive);
+
+            // unusedDept is completely deleted from the database
+            var dUnused = await db.Departments.FindAsync(unusedDept.Id);
+            Assert.Null(dUnused);
+        }
+
+        // =========================================================================
+        // Act & Assert (Salary Bands Sync)
+        // =========================================================================
+        var newBandId = Guid.NewGuid();
+        var bandPayload = new List<SalaryBand>
+        {
+            new SalaryBand { Id = newBandId, Name = "Newly Synced Band", MinAmount = 5000, MaxAmount = 6000, Currency = "USD" },
+            new SalaryBand { Id = testBand.Id, Name = "Updated Band Name", MinAmount = 1500, MaxAmount = 2500, Currency = "USD" }
+        };
+
+        var bandReq = new HttpRequestMessage(HttpMethod.Put, "/api/salary-bands/sync")
+        {
+            Content = JsonContent.Create(bandPayload, mediaType: null, JsonOptions)
+        };
+        bandReq.Headers.Add("X-API-Key", "test-sync-api-key");
+        var bandRes = await Client.SendAsync(bandReq);
+        Assert.Equal(HttpStatusCode.NoContent, bandRes.StatusCode);
+
+        using (var scope = Fixture.Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<MicroDbContext>();
+
+            // New band exists
+            var bNew = await db.SalaryBands.FindAsync(newBandId);
+            Assert.NotNull(bNew);
+            Assert.True(bNew.IsActive);
+
+            // In-use band updated
+            var bInUse = await db.SalaryBands.FindAsync(testBand.Id);
+            Assert.NotNull(bInUse);
+            Assert.Equal("Updated Band Name", bInUse.Name);
+            Assert.True(bInUse.IsActive);
+
+            // Unused band deleted
+            var bUnused = await db.SalaryBands.FindAsync(unusedBand.Id);
+            Assert.Null(bUnused);
+        }
+
+        // Now sync again, omitting the in-use band to check deactivation
+        var bandPayloadOmitInUse = new List<SalaryBand>
+        {
+            new SalaryBand { Id = newBandId, Name = "Newly Synced Band", MinAmount = 5000, MaxAmount = 6000, Currency = "USD" }
+        };
+        var bandReqOmit = new HttpRequestMessage(HttpMethod.Put, "/api/salary-bands/sync")
+        {
+            Content = JsonContent.Create(bandPayloadOmitInUse, mediaType: null, JsonOptions)
+        };
+        bandReqOmit.Headers.Add("X-API-Key", "test-sync-api-key");
+        var bandOmitRes = await Client.SendAsync(bandReqOmit);
+        Assert.Equal(HttpStatusCode.NoContent, bandOmitRes.StatusCode);
+
+        using (var scope = Fixture.Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<MicroDbContext>();
+            var bInUse = await db.SalaryBands.FindAsync(testBand.Id);
+            Assert.NotNull(bInUse); // left in db because it's referenced
+            Assert.False(bInUse.IsActive); // marked inactive!
+        }
+    }
 }

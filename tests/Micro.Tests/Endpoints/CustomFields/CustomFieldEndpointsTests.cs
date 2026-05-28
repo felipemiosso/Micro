@@ -9,6 +9,7 @@ using Micro.API.Endpoints.CustomFields;
 using Micro.API.Endpoints.Requisition;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using System.Text.Json;
 using Xunit;
 
 namespace Micro.Tests.Endpoints.CustomFields;
@@ -246,5 +247,121 @@ public class CustomFieldEndpointsTests : IntegrationTestBase
         var updated2 = await updateResponse2.Content.ReadFromJsonAsync<CustomFieldDefinitionDto>(JsonOptions);
         Assert.NotNull(updated2);
         Assert.False(updated2.IsGlobal);
+    }
+
+    [Fact]
+    public async Task SyncChoices_ValidationAndArchiving_Flow()
+    {
+        // =========================================================================
+        // Arrange
+        // =========================================================================
+        await AuthenticateAsync($"admin-{Guid.NewGuid()}@microats.com", roles: new Dictionary<string, object> { ["role"] = "Admin" });
+        var (deptId, bandId, ccId) = await GetLookupIds();
+
+        // 1. Create a global SingleChoice custom field
+        var createRequest = new CreateCustomFieldRequest(
+            CustomFieldTargetEntity.Requisition,
+            CustomFieldType.SingleChoice,
+            "Target Group",
+            "Target department group",
+            false, // IsRequired
+            false, // IsCandidateFacing
+            new ValidationOptionsDto(null, null, null, null, null, null, null, null, new List<string> { "A", "B" }),
+            true // IsGlobal = true
+        );
+
+        var createResponse = await Client.PostAsJsonAsync("/api/custom-fields", createRequest, JsonOptions);
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+        var definition = await createResponse.Content.ReadFromJsonAsync<CustomFieldDefinitionDto>(JsonOptions);
+        Assert.NotNull(definition);
+
+        // 2. Create Requisition
+        var createReqRequest = new CreateRequisitionRequest(
+            "Requisition with Choice B", deptId, bandId, ccId, 1, 
+            EmploymentType.FullTime, WorkplaceType.OnSite, 
+            "Berlin", "Desc", false, null);
+        var reqResponse = await Client.PostAsJsonAsync("/api/requisitions", createReqRequest, JsonOptions);
+        Assert.Equal(HttpStatusCode.Created, reqResponse.StatusCode);
+        var requisition = await reqResponse.Content.ReadFromJsonAsync<Requisition>(JsonOptions);
+        Assert.NotNull(requisition);
+
+        // Link/Save custom field value "B" on the requisition
+        var valRequest = new UpdateRequisitionRequest(
+            "Requisition with Choice B", deptId, bandId, ccId, 1,
+            EmploymentType.FullTime, WorkplaceType.OnSite,
+            "Berlin", "Desc", false, null,
+            new List<RequisitionOpeningDto> { new RequisitionOpeningDto(1, null) },
+            new List<CustomFieldValueInput> { new CustomFieldValueInput(definition.Id, "B") }
+        );
+        var valResponse = await Client.PutAsJsonAsync($"/api/requisitions/{requisition.Id}", valRequest, JsonOptions);
+        Assert.Equal(HttpStatusCode.NoContent, valResponse.StatusCode);
+
+        // =========================================================================
+        // Act & Assert
+        // =========================================================================
+
+        // 3. Call choices sync with invalid API key (401 Unauthorized)
+        var syncPayload = new SyncChoicesRequest(new List<string> { "A", "C" });
+        var invalidReq = new HttpRequestMessage(HttpMethod.Put, $"/api/custom-fields/{definition.Id}/choices")
+        {
+            Content = JsonContent.Create(syncPayload, mediaType: null, JsonOptions)
+        };
+        invalidReq.Headers.Add("X-API-Key", "wrong-key");
+        var invalidResponse = await Client.SendAsync(invalidReq);
+        Assert.Equal(HttpStatusCode.Unauthorized, invalidResponse.StatusCode);
+
+        // 4. Call choices sync with valid API key (204 NoContent)
+        var validReq = new HttpRequestMessage(HttpMethod.Put, $"/api/custom-fields/{definition.Id}/choices")
+        {
+            Content = JsonContent.Create(syncPayload, mediaType: null, JsonOptions)
+        };
+        validReq.Headers.Add("X-API-Key", "test-sync-api-key");
+        var validResponse = await Client.SendAsync(validReq);
+        Assert.Equal(HttpStatusCode.NoContent, validResponse.StatusCode);
+
+        // 5. Verify Choice "B" was moved to DisabledChoices and "A", "C" are active
+        using (var scope = Fixture.Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<MicroDbContext>();
+            var updatedDef = await db.CustomFieldDefinitions.FindAsync(definition.Id);
+            Assert.NotNull(updatedDef);
+            var opts = JsonSerializer.Deserialize<ValidationOptions>(updatedDef.ValidationJson!);
+            Assert.NotNull(opts);
+            Assert.Contains("A", opts.Choices!);
+            Assert.Contains("C", opts.Choices!);
+            Assert.DoesNotContain("B", opts.Choices!);
+            Assert.Contains("B", opts.DisabledChoices!);
+        }
+
+        // 6. Try to create a new requisition with choice "B" (should fail validation)
+        var failedReqRequest = new UpdateRequisitionRequest(
+            "Requisition with Choice B", deptId, bandId, ccId, 1,
+            EmploymentType.FullTime, WorkplaceType.OnSite,
+            "Berlin", "Desc", false, null,
+            new List<RequisitionOpeningDto> { new RequisitionOpeningDto(1, null) },
+            new List<CustomFieldValueInput> { new CustomFieldValueInput(definition.Id, "B") }
+        );
+        var failedReqResponse = await Client.PutAsJsonAsync($"/api/requisitions/{requisition.Id}", failedReqRequest, JsonOptions);
+        // Wait, since B is already the existing value on the requisition, this update should SUCCEED (AC-08)!
+        Assert.Equal(HttpStatusCode.NoContent, failedReqResponse.StatusCode);
+
+        // Let's create a *new* requisition and try to save choice "B" (should fail validation because B is inactive for new records!)
+        var newReqRequest = new CreateRequisitionRequest(
+            "New Requisition", deptId, bandId, ccId, 1,
+            EmploymentType.FullTime, WorkplaceType.OnSite,
+            "Berlin", "Desc", false, null);
+        var newReqResponse = await Client.PostAsJsonAsync("/api/requisitions", newReqRequest, JsonOptions);
+        var newReq = await newReqResponse.Content.ReadFromJsonAsync<Requisition>(JsonOptions);
+        Assert.NotNull(newReq);
+
+        var failedNewRequest = new UpdateRequisitionRequest(
+            "New Requisition", deptId, bandId, ccId, 1,
+            EmploymentType.FullTime, WorkplaceType.OnSite,
+            "Berlin", "Desc", false, null,
+            new List<RequisitionOpeningDto> { new RequisitionOpeningDto(1, null) },
+            new List<CustomFieldValueInput> { new CustomFieldValueInput(definition.Id, "B") }
+        );
+        var failedNewResponse = await Client.PutAsJsonAsync($"/api/requisitions/{newReq.Id}", failedNewRequest, JsonOptions);
+        Assert.Equal(HttpStatusCode.BadRequest, failedNewResponse.StatusCode); // fails validation!
     }
 }

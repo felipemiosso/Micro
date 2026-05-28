@@ -14,12 +14,14 @@ export interface SalaryBand {
   minAmount: number;
   maxAmount: number;
   currency: string;
+  isActive: boolean;
 }
 
 export interface CostCenter {
   id: string;
   code: string;
   name: string;
+  isActive: boolean;
 }
 
 @Injectable({ providedIn: 'root' })

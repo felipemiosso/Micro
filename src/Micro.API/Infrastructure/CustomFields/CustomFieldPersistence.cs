@@ -158,7 +158,9 @@ public static class CustomFieldPersistence
                 : stored.TryGetValue(def.Id, out var st) ? st
                 : null;
 
-            var fieldErrors = CustomFieldValidator.Validate(def, value).ToArray();
+            stored.TryGetValue(def.Id, out var existingVal);
+
+            var fieldErrors = CustomFieldValidator.Validate(def, value, existingVal).ToArray();
             if (fieldErrors.Length > 0)
                 errors[$"customFields.{def.Id}"] = fieldErrors;
         }

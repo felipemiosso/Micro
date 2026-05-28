@@ -1,5 +1,6 @@
-import { Component, input, computed } from '@angular/core';
+import { Component, input, computed, OnInit, OnDestroy, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { CustomFieldDefinition } from '../../services/custom-fields.service';
 import { InputMaskDirective, PRESET_DISPLAY_MASKS } from '../input-mask.directive';
 import { getCustomFieldErrorMessage } from '../../validators/custom-field.validators';
@@ -88,8 +89,10 @@ import { CommonModule } from '@angular/common';
             class="input-honeycomb"
           >
             <option value="">Select an option</option>
-            @for (choice of definition().validation?.choices || []; track choice) {
-              <option [value]="choice">{{ choice }}</option>
+            @for (choice of choicesToDisplay(); track choice) {
+              <option [value]="choice" [disabled]="isChoiceDisabled(choice)">
+                {{ getChoiceLabel(choice) }}
+              </option>
             }
           </select>
         }
@@ -105,9 +108,45 @@ import { CommonModule } from '@angular/common';
     </div>
   `
 })
-export class CustomFieldInputComponent {
+export class CustomFieldInputComponent implements OnInit, OnDestroy {
   definition = input.required<CustomFieldDefinition>();
   control    = input.required<FormControl>();
+
+  currentControlValue = signal<string>('');
+  private valueSub?: Subscription;
+
+  ngOnInit() {
+    this.currentControlValue.set(this.control().value);
+    this.valueSub = this.control().valueChanges.subscribe(val => {
+      this.currentControlValue.set(val);
+    });
+  }
+
+  ngOnDestroy() {
+    this.valueSub?.unsubscribe();
+  }
+
+  choicesToDisplay = computed(() => {
+    const def = this.definition();
+    const active = def.validation?.choices || [];
+    const disabled = def.validation?.disabledChoices || [];
+    const currentValue = this.currentControlValue();
+
+    if (currentValue && disabled.includes(currentValue) && !active.includes(currentValue)) {
+      return [...active, currentValue];
+    }
+    return active;
+  });
+
+  isChoiceDisabled(choice: string): boolean {
+    const disabled = this.definition().validation?.disabledChoices || [];
+    return disabled.includes(choice);
+  }
+
+  getChoiceLabel(choice: string): string {
+    const disabled = this.definition().validation?.disabledChoices || [];
+    return disabled.includes(choice) ? `${choice} (retired)` : choice;
+  }
 
   hasError = computed(() =>
     this.control().invalid && (this.control().dirty || this.control().touched)

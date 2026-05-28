@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormArray, FormControl, FormGroup } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -37,6 +37,28 @@ export class RequisitionFormComponent implements OnInit {
   salaryBands = signal<SalaryBand[]>([]);
   costCenters = signal<CostCenter[]>([]);
   requisition = signal<Requisition | null>(null);
+
+  currentDepartmentId = signal<string>('');
+  currentSalaryBandId = signal<string>('');
+  currentCostCenterId = signal<string>('');
+
+  activeDepartments = computed(() => {
+    const list = this.departments();
+    const currentId = this.currentDepartmentId();
+    return list.filter(d => d.isActive || d.id === currentId);
+  });
+
+  activeSalaryBands = computed(() => {
+    const list = this.salaryBands();
+    const currentId = this.currentSalaryBandId();
+    return list.filter(b => b.isActive || b.id === currentId);
+  });
+
+  activeCostCenters = computed(() => {
+    const list = this.costCenters();
+    const currentId = this.currentCostCenterId();
+    return list.filter(c => c.isActive || c.id === currentId);
+  });
 
   customFieldDefs = signal<CustomFieldDefinition[]>([]);
   customFieldsGroup = signal<FormGroup | null>(null);
@@ -91,6 +113,10 @@ export class RequisitionFormComponent implements OnInit {
       });
     });
 
+    this.form.get('departmentId')?.valueChanges.subscribe(val => this.currentDepartmentId.set(val || ''));
+    this.form.get('salaryBandId')?.valueChanges.subscribe(val => this.currentSalaryBandId.set(val || ''));
+    this.form.get('costCenterId')?.valueChanges.subscribe(val => this.currentCostCenterId.set(val || ''));
+
     const defsObs = this.requisitionId
       ? this.customFieldsService.getDefinitions('Requisition', { requisitionId: this.requisitionId })
       : this.customFieldsService.getDefinitions('Requisition');
@@ -122,6 +148,11 @@ export class RequisitionFormComponent implements OnInit {
             isInternalOnly: req.isInternalOnly,
             targetStartDate: req.targetStartDate ? this.formatDateForInput(req.targetStartDate) : null
           });
+
+          this.currentDepartmentId.set(req.departmentId || '');
+          this.currentSalaryBandId.set(req.salaryBandId || '');
+          this.currentCostCenterId.set(req.costCenterId || '');
+
           this.syncOpeningsFormArray(req.openingsCount, req.openings);
           if (req.status !== RequisitionStatus.Draft) {
             this.form.disable();

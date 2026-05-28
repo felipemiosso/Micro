@@ -1,6 +1,9 @@
 using Micro.API.Data;
 using Micro.API.Data.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Micro.API.Infrastructure.Auth;
 
 namespace Micro.API.Endpoints;
 
@@ -24,6 +27,13 @@ public static class AdminEndpoints
         group.MapGet("/cost-centers", GetCostCenters);
         group.MapPost("/cost-centers", CreateCostCenter);
         group.MapPut("/cost-centers/{id:guid}", UpdateCostCenter);
+
+        app.MapPut("/api/departments/sync", SyncDepartments)
+           .RequireAuthorization(AuthExtensions.ApiKeyPolicy);
+        app.MapPut("/api/salary-bands/sync", SyncSalaryBands)
+           .RequireAuthorization(AuthExtensions.ApiKeyPolicy);
+        app.MapPut("/api/cost-centers/sync", SyncCostCenters)
+           .RequireAuthorization(AuthExtensions.ApiKeyPolicy);
     }
 
     // Departments
@@ -90,6 +100,136 @@ public static class AdminEndpoints
         if (cc is null) return Results.NotFound();
         cc.Code = input.Code;
         cc.Name = input.Name;
+        await db.SaveChangesAsync();
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> SyncDepartments(
+        List<Department> payload,
+        MicroDbContext db)
+    {
+        foreach (var item in payload)
+        {
+            var existing = await db.Departments.FindAsync(item.Id);
+            if (existing is not null)
+            {
+                existing.Name = item.Name;
+                existing.IsActive = true;
+            }
+            else
+            {
+                if (item.Id == Guid.Empty) item.Id = Guid.NewGuid();
+                item.IsActive = true;
+                db.Departments.Add(item);
+            }
+        }
+
+        var payloadIds = payload.Select(x => x.Id).ToList();
+        var missingItems = await db.Departments
+            .Where(x => !payloadIds.Contains(x.Id))
+            .ToListAsync();
+
+        foreach (var item in missingItems)
+        {
+            var isUsed = await db.Requisitions.AnyAsync(r => r.DepartmentId == item.Id);
+            if (isUsed)
+            {
+                item.IsActive = false;
+            }
+            else
+            {
+                db.Departments.Remove(item);
+            }
+        }
+
+        await db.SaveChangesAsync();
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> SyncSalaryBands(
+        List<SalaryBand> payload,
+        MicroDbContext db)
+    {
+        foreach (var item in payload)
+        {
+            var existing = await db.SalaryBands.FindAsync(item.Id);
+            if (existing is not null)
+            {
+                existing.Name = item.Name;
+                existing.MinAmount = item.MinAmount;
+                existing.MaxAmount = item.MaxAmount;
+                existing.Currency = item.Currency;
+                existing.IsActive = true;
+            }
+            else
+            {
+                if (item.Id == Guid.Empty) item.Id = Guid.NewGuid();
+                item.IsActive = true;
+                db.SalaryBands.Add(item);
+            }
+        }
+
+        var payloadIds = payload.Select(x => x.Id).ToList();
+        var missingItems = await db.SalaryBands
+            .Where(x => !payloadIds.Contains(x.Id))
+            .ToListAsync();
+
+        foreach (var item in missingItems)
+        {
+            var isUsed = await db.Requisitions.AnyAsync(r => r.SalaryBandId == item.Id);
+            if (isUsed)
+            {
+                item.IsActive = false;
+            }
+            else
+            {
+                db.SalaryBands.Remove(item);
+            }
+        }
+
+        await db.SaveChangesAsync();
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> SyncCostCenters(
+        List<CostCenter> payload,
+        MicroDbContext db)
+    {
+        foreach (var item in payload)
+        {
+            var existing = await db.CostCenters.FindAsync(item.Id);
+            if (existing is not null)
+            {
+                existing.Code = item.Code;
+                existing.Name = item.Name;
+                existing.IsActive = true;
+            }
+            else
+            {
+                if (item.Id == Guid.Empty) item.Id = Guid.NewGuid();
+                item.IsActive = true;
+                db.CostCenters.Add(item);
+            }
+        }
+
+        var payloadIds = payload.Select(x => x.Id).ToList();
+        var missingItems = await db.CostCenters
+            .Where(x => !payloadIds.Contains(x.Id))
+            .ToListAsync();
+
+        foreach (var item in missingItems)
+        {
+            var isUsed = await db.Requisitions.AnyAsync(r => r.CostCenterId == item.Id);
+            if (isUsed)
+            {
+                item.IsActive = false;
+            }
+            else
+            {
+                db.CostCenters.Remove(item);
+            }
+        }
+
         await db.SaveChangesAsync();
         return Results.NoContent();
     }

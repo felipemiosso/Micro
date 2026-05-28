@@ -23,6 +23,7 @@ export interface ValidationOptions {
   presets?: string[];     // OR logic — keys from available-presets
   formatMask?: string;
   choices?: string[];
+  disabledChoices?: string[];
 }
 
 export interface CustomFieldDefinition {
