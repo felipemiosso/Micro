@@ -9,6 +9,7 @@ using Micro.API.Endpoints.Requisition;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using Micro.API.Infrastructure.Pagination;
 
 namespace Micro.Tests.Endpoints;
 
@@ -42,8 +43,8 @@ public class ApplicationTests : IntegrationTestBase
         await Client.PostAsync($"/api/requisitions/{requisition!.Id}/finalize", null);
         
         var adminJobsResponse = await Client.GetAsync("/api/jobs/admin");
-        var adminJobs = await adminJobsResponse.Content.ReadFromJsonAsync<List<AdminJobTestResponse>>(JsonOptions);
-        return adminJobs!.First(j => j.RequisitionId == requisition.Id).Id;
+        var pagedJobs = await adminJobsResponse.Content.ReadFromJsonAsync<PagedResponse<AdminJobTestResponse>>(JsonOptions);
+        return pagedJobs!.Items.First(j => j.RequisitionId == requisition.Id).Id;
     }
 
     [Fact]
@@ -69,11 +70,11 @@ public class ApplicationTests : IntegrationTestBase
 
         await AuthenticateAsync();
         var adminResponse = await Client.GetAsync($"/api/applications?jobPostingId={jobId}");
-        var applications = await adminResponse.Content.ReadFromJsonAsync<List<JsonElement>>(JsonOptions);
-        Assert.Single(applications!);
+        var pagedApps = await adminResponse.Content.ReadFromJsonAsync<PagedResponse<JsonElement>>(JsonOptions);
+        Assert.Single(pagedApps!.Items);
         
         // Regression test: Ensure CandidateId is present and valid
-        var candidateId = applications![0].GetProperty("candidateId").GetGuid();
+        var candidateId = pagedApps.Items[0].GetProperty("candidateId").GetGuid();
         Assert.NotEqual(Guid.Empty, candidateId);
     }
 
@@ -358,8 +359,8 @@ public class ApplicationTests : IntegrationTestBase
         Assert.Equal(RequisitionStatus.Closed, reqDetail!.Status);
 
         var jobResponse = await Client.GetAsync($"/api/jobs/admin");
-        var jobs = await jobResponse.Content.ReadFromJsonAsync<List<AdminJobTestResponse>>(JsonOptions);
-        var jobDetail = jobs!.First(j => j.Id == jobId);
+        var pagedJobs = await jobResponse.Content.ReadFromJsonAsync<PagedResponse<AdminJobTestResponse>>(JsonOptions);
+        var jobDetail = pagedJobs!.Items.First(j => j.Id == jobId);
         Assert.Equal(JobPostingStatus.Closed, jobDetail.Status);
     }
 }

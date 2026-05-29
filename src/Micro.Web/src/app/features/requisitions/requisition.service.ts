@@ -77,15 +77,17 @@ export interface CreateRequisitionRequest {
   linkedCustomFieldIds?: string[];
 }
 
+import { PagedResponse } from '../../core/services/pagination.types';
+
 @Injectable({
   providedIn: 'root',
-  })
+})
 export class RequisitionService {
   private http = inject(HttpClient);
   private apiUrl = '/api/requisitions';
 
-  getAll(params?: import('@angular/common/http').HttpParams): Observable<Requisition[]> {
-    return this.http.get<Requisition[]>(this.apiUrl, { params });
+  getAll(params?: import('@angular/common/http').HttpParams): Observable<PagedResponse<Requisition>> {
+    return this.http.get<PagedResponse<Requisition>>(this.apiUrl, { params });
   }
 
   getById(id: string): Observable<Requisition> {

@@ -11,6 +11,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { NotificationService } from '../../../core/ui/notification.service';
 import { ArchiveDialogComponent } from '../../../core/ui/archive-dialog';
 import { MatIconModule } from '@angular/material/icon';
+import { HttpParams } from '@angular/common/http';
 
 @Component({
   selector: 'app-applications-board',
@@ -41,16 +42,24 @@ export class ApplicationsBoardComponent implements OnInit {
   }
 
   loadJobs() {
-    this.jobService.getAllJobs().subscribe(jobs => this.jobPostings.set(jobs));
+    const params = new HttpParams().set('page', '1').set('pageSize', '100');
+    this.jobService.getAllJobs(params).subscribe(data => this.jobPostings.set(data.items));
   }
 
   loadApplications() {
     const jobId = this.selectedJobId() === '' ? undefined : this.selectedJobId();
-    this.applicationService.getApplications(jobId).subscribe(apps => {
-      const activeApps = apps.filter(a => a.status !== ApplicationStatus.Archive);
-      this.applied.set(activeApps.filter(a => a.status === ApplicationStatus.Applied));
-      this.interview.set(activeApps.filter(a => a.status === ApplicationStatus.Interview));
-      this.offer.set(activeApps.filter(a => a.status === ApplicationStatus.Offer));
+    const limitParams = new HttpParams().set('page', '1').set('pageSize', '50');
+
+    this.applicationService.getApplications(jobId, undefined, ApplicationStatus.Applied, undefined, limitParams).subscribe(data => {
+      this.applied.set(data.items);
+    });
+
+    this.applicationService.getApplications(jobId, undefined, ApplicationStatus.Interview, undefined, limitParams).subscribe(data => {
+      this.interview.set(data.items);
+    });
+
+    this.applicationService.getApplications(jobId, undefined, ApplicationStatus.Offer, undefined, limitParams).subscribe(data => {
+      this.offer.set(data.items);
     });
   }
 

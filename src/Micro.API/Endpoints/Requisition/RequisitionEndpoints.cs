@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Micro.API.Infrastructure.Pagination;
 
 namespace Micro.API.Endpoints.Requisition;
 
@@ -32,8 +33,16 @@ public static class RequisitionEndpoints
     }
 
     [ResourceAction("Requisition", "View", "List all requisitions")]
-    private static async Task<IResult> GetRequisitions(HttpContext context, MicroDbContext db)
+    private static async Task<IResult> GetRequisitions(
+        HttpContext context,
+        MicroDbContext db,
+        [AsParameters] PaginationParams pagination)
     {
+        if (!pagination.IsValid(out var error))
+        {
+            return Results.BadRequest(new { error });
+        }
+
         var query = db.Requisitions
             .AsNoTracking()
             .Include(r => r.Department)
@@ -144,9 +153,9 @@ public static class RequisitionEndpoints
             }
         }
 
-        var requisitions = await query
+        var (requisitions, totalCount, totalPages) = await query
             .OrderByDescending(r => r.CreatedAt)
-            .ToListAsync();
+            .GetPagedItemsAsync(pagination.GetPage(), pagination.GetPageSize());
 
         var reqIds = requisitions.Select(r => r.Id).ToList();
         var customFieldsMap = await CustomFieldPersistence.GetBatchRequisitionValuesAsync(db, reqIds);
@@ -183,7 +192,7 @@ public static class RequisitionEndpoints
                 CustomFields = customFields
             });
         }
-        return Results.Ok(results);
+        return Results.Ok(new PagedResponse<object>(results, totalCount, pagination.GetPage(), pagination.GetPageSize(), totalPages));
     }
 
     [ResourceAction("Requisition", "View", "View requisition details")]

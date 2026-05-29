@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Micro.API.Infrastructure.Pagination;
 
 namespace Micro.API.Endpoints.Application;
 
@@ -165,13 +166,31 @@ public static class ApplicationEndpoints
         HttpContext context,
         Guid? jobPostingId,
         string? search,
-        MicroDbContext db)
+        ApplicationStatus? status,
+        ArchivalResolution? archivalResolution,
+        MicroDbContext db,
+        [AsParameters] PaginationParams pagination)
     {
+        if (!pagination.IsValid(out var error))
+        {
+            return Results.BadRequest(new { error });
+        }
+
         var query = db.Applications
             .AsNoTracking()
             .Include(a => a.JobPosting)
             .Include(a => a.Candidate)
             .AsQueryable();
+
+        if (status.HasValue)
+        {
+            query = query.Where(a => a.Status == status.Value);
+        }
+
+        if (archivalResolution.HasValue)
+        {
+            query = query.Where(a => a.ArchivalResolution == archivalResolution.Value);
+        }
         
         if (jobPostingId.HasValue)
         {
@@ -280,9 +299,9 @@ public static class ApplicationEndpoints
             }
         }
 
-        var apps = await query
+        var (apps, totalCount, totalPages) = await query
             .OrderByDescending(a => a.AppliedAt)
-            .ToListAsync();
+            .GetPagedItemsAsync(pagination.GetPage(), pagination.GetPageSize());
 
         var appIds = apps.Select(a => a.Id).ToList();
         var customFieldsMap = await CustomFieldPersistence.GetBatchApplicationValuesAsync(db, appIds);
@@ -308,7 +327,7 @@ public static class ApplicationEndpoints
             });
         }
 
-        return Results.Ok(results);
+        return Results.Ok(new PagedResponse<object>(results, totalCount, pagination.GetPage(), pagination.GetPageSize(), totalPages));
     }
 
     [ResourceAction("Application", "ViewResume", "Download candidate resume")]

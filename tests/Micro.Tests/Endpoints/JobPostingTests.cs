@@ -8,6 +8,7 @@ using Micro.API.Endpoints.Requisition;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using Micro.API.Infrastructure.Pagination;
 
 namespace Micro.Tests.Endpoints;
 
@@ -46,8 +47,8 @@ public class JobPostingTests : IntegrationTestBase
 
         // Assert
         var jobsResponse = await Client.GetAsync("/api/jobs");
-        var jobs = await jobsResponse.Content.ReadFromJsonAsync<List<PublicJobResponse>>(JsonOptions);
-        Assert.Contains(jobs!, j => j.Title == "Engineer");
+        var pagedJobs = await jobsResponse.Content.ReadFromJsonAsync<PagedResponse<PublicJobResponse>>(JsonOptions);
+        Assert.Contains(pagedJobs!.Items, j => j.Title == "Engineer");
     }
 
     [Fact]
@@ -69,8 +70,8 @@ public class JobPostingTests : IntegrationTestBase
 
         // Assert
         var jobsResponse = await Client.GetAsync("/api/jobs");
-        var jobs = await jobsResponse.Content.ReadFromJsonAsync<List<PublicJobResponse>>(JsonOptions);
-        Assert.DoesNotContain(jobs!, j => j.Title == "Closer");
+        var pagedJobs = await jobsResponse.Content.ReadFromJsonAsync<PagedResponse<PublicJobResponse>>(JsonOptions);
+        Assert.DoesNotContain(pagedJobs!.Items, j => j.Title == "Closer");
     }
 
     [Fact]
@@ -88,8 +89,8 @@ public class JobPostingTests : IntegrationTestBase
         await Client.PostAsync($"/api/requisitions/{requisition!.Id}/finalize", null);
         
         var adminJobsResponse = await Client.GetAsync("/api/jobs/admin");
-        var adminJobs = await adminJobsResponse.Content.ReadFromJsonAsync<List<AdminJobTestResponse>>(JsonOptions);
-        var job = adminJobs!.First(j => j.RequisitionId == requisition.Id);
+        var pagedJobs = await adminJobsResponse.Content.ReadFromJsonAsync<PagedResponse<AdminJobTestResponse>>(JsonOptions);
+        var job = pagedJobs!.Items.First(j => j.RequisitionId == requisition.Id);
 
         var updateRequest = new UpdateJobPostingRequest("New Title", "New Desc", "New Req");
 

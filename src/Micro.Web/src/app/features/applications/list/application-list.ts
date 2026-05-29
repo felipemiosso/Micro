@@ -11,11 +11,21 @@ import { CustomFieldsService, CustomFieldDefinition } from '../../../core/servic
 import { CustomFieldFilterComponent } from '../../../core/ui/custom-field-filter/custom-field-filter';
 import { HttpParams } from '@angular/common/http';
 import { forkJoin } from 'rxjs';
+import { PaginationComponent } from '../../../core/ui/pagination/pagination.component';
 
 @Component({
   selector: 'app-application-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, MatIconModule, MatButtonModule, MatTooltipModule, CustomFieldFilterComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    MatIconModule,
+    MatButtonModule,
+    MatTooltipModule,
+    CustomFieldFilterComponent,
+    PaginationComponent
+  ],
   templateUrl: './application-list.html',
 })
 export class ApplicationListComponent implements OnInit {
@@ -30,6 +40,12 @@ export class ApplicationListComponent implements OnInit {
   jobPostingId = signal<string | null>(null);
   searchQuery = signal('');
   loading = signal(true);
+
+  // Pagination signals
+  page = signal(1);
+  pageSize = signal(20);
+  totalCount = signal(0);
+  totalPages = signal(1);
 
   // Filter signals
   customFieldDefs = signal<CustomFieldDefinition[]>([]);
@@ -53,6 +69,12 @@ export class ApplicationListComponent implements OnInit {
       let httpParams = new HttpParams();
       const newActiveFilters: Record<string, any> = {};
       let hasFilters = false;
+
+      const pageVal = params['page'] ? Number(params['page']) : 1;
+      const pageSizeVal = params['pageSize'] ? Number(params['pageSize']) : 20;
+      this.page.set(pageVal);
+      this.pageSize.set(pageSizeVal);
+      httpParams = httpParams.set('page', pageVal.toString()).set('pageSize', pageSizeVal.toString());
 
       for (const key of Object.keys(params)) {
         if (key.startsWith('cfFilter[')) {
@@ -89,9 +111,13 @@ export class ApplicationListComponent implements OnInit {
 
   loadApplications(httpParams?: HttpParams) {
     this.loading.set(true);
-    this.applicationService.getApplications(this.jobPostingId() ?? undefined, this.searchQuery() || undefined, httpParams).subscribe({
+    this.applicationService.getApplications(this.jobPostingId() ?? undefined, this.searchQuery() || undefined, undefined, undefined, httpParams).subscribe({
       next: (data) => {
-        this.applications.set(data);
+        this.applications.set(data.items);
+        this.totalCount.set(data.totalCount);
+        this.page.set(data.page);
+        this.pageSize.set(data.pageSize);
+        this.totalPages.set(data.totalPages);
         this.loading.set(false);
       },
       error: (err) => {
@@ -102,7 +128,10 @@ export class ApplicationListComponent implements OnInit {
   }
 
   onSearch() {
-    const queryParams: Record<string, string | null> = {};
+    const queryParams: Record<string, string | null> = {
+      page: '1',
+      pageSize: this.pageSize().toString()
+    };
     if (this.jobPostingId()) {
       queryParams['jobPostingId'] = this.jobPostingId();
     }
@@ -131,7 +160,10 @@ export class ApplicationListComponent implements OnInit {
   toggleFilters() {
     this.showFilters.set(!this.showFilters());
     if (!this.showFilters()) {
-      const queryParams: Record<string, string | null> = {};
+      const queryParams: Record<string, string | null> = {
+        page: '1',
+        pageSize: this.pageSize().toString()
+      };
       if (this.jobPostingId()) {
         queryParams['jobPostingId'] = this.jobPostingId();
       }
@@ -158,7 +190,10 @@ export class ApplicationListComponent implements OnInit {
     }
     this.activeFilters.set(current);
 
-    const queryParams: Record<string, string | null> = {};
+    const queryParams: Record<string, string | null> = {
+      page: '1',
+      pageSize: this.pageSize().toString()
+    };
     if (this.jobPostingId()) {
       queryParams['jobPostingId'] = this.jobPostingId();
     }
@@ -181,6 +216,22 @@ export class ApplicationListComponent implements OnInit {
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams
+    });
+  }
+
+  onPageChange(page: number) {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { page },
+      queryParamsHandling: 'merge'
+    });
+  }
+
+  onPageSizeChange(pageSize: number) {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { page: 1, pageSize },
+      queryParamsHandling: 'merge'
     });
   }
 

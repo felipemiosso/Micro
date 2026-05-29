@@ -6,6 +6,8 @@ import { JobPostingService } from '../job-posting.service';
 import { NotificationService } from '../../../core/ui/notification.service';
 import { FieldAssignmentComponent } from '../../../core/ui/field-assignment/field-assignment';
 
+import { HttpParams } from '@angular/common/http';
+
 @Component({
   selector: 'app-job-posting-edit',
   standalone: true,
@@ -30,9 +32,10 @@ export class JobPostingEditComponent implements OnInit {
   ngOnInit() {
     this.jobId = this.route.snapshot.paramMap.get('id') ?? undefined;
     if (this.jobId) {
-      this.jobPostingService.getAllJobs().subscribe({
-        next: (jobs) => {
-          const job = jobs.find(j => j.id === this.jobId);
+      const params = new HttpParams().set('page', '1').set('pageSize', '100');
+      this.jobPostingService.getAllJobs(params).subscribe({
+        next: (data) => {
+          const job = data.items.find((j: any) => j.id === this.jobId);
           if (job) {
             this.form.patchValue(job);
           } else {

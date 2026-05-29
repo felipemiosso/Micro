@@ -4,6 +4,7 @@ using Micro.API.Infrastructure.Auth;
 using Microsoft.EntityFrameworkCore;
 using Micro.API.Endpoints.CustomFields;
 using System.Linq;
+using Micro.API.Infrastructure.Pagination;
 using System.Collections.Generic;
 
 namespace Micro.API.Endpoints.JobPosting;
@@ -26,9 +27,16 @@ public static class JobPostingEndpoints
         group.MapPost("/{id:guid}/close", CloseJobPosting).RequireAuthorization("JobPosting:Close");
     }
 
-    private static async Task<IResult> GetPublicJobs(MicroDbContext db)
+    private static async Task<IResult> GetPublicJobs(
+        MicroDbContext db,
+        [AsParameters] PaginationParams pagination)
     {
-        var jobs = await db.JobPostings
+        if (!pagination.IsValid(out var error))
+        {
+            return Results.BadRequest(new { error });
+        }
+
+        var query = db.JobPostings
             .Where(j => j.Status == JobPostingStatus.Published)
             .Select(j => new PublicJobResponse(
                 j.Id,
@@ -36,10 +44,10 @@ public static class JobPostingEndpoints
                 j.Requisition.Department.Name,
                 j.Description,
                 j.CreatedAt
-            ))
-            .ToListAsync();
+            ));
 
-        return Results.Ok(jobs);
+        var pagedResponse = await query.ToPagedResponseAsync(pagination.GetPage(), pagination.GetPageSize());
+        return Results.Ok(pagedResponse);
     }
 
     private static async Task<IResult> GetPublicJob(Guid id, MicroDbContext db)
@@ -100,9 +108,16 @@ public static class JobPostingEndpoints
     }
 
     [ResourceAction("JobPosting", "View", "List all job postings (including closed)")]
-    private static async Task<IResult> GetAdminJobs(MicroDbContext db)
+    private static async Task<IResult> GetAdminJobs(
+        MicroDbContext db,
+        [AsParameters] PaginationParams pagination)
     {
-        var jobs = await db.JobPostings
+        if (!pagination.IsValid(out var error))
+        {
+            return Results.BadRequest(new { error });
+        }
+
+        var query = db.JobPostings
             .OrderByDescending(j => j.CreatedAt)
             .Select(j => new {
                 j.Id,
@@ -117,10 +132,10 @@ public static class JobPostingEndpoints
                 Requisition = new {
                     Department = j.Requisition.Department.Name
                 }
-            })
-            .ToListAsync();
-        
-        return Results.Ok(jobs);
+            });
+
+        var pagedResponse = await query.ToPagedResponseAsync(pagination.GetPage(), pagination.GetPageSize());
+        return Results.Ok(pagedResponse);
     }
 
     [ResourceAction("JobPosting", "Edit", "Update job posting details")]

@@ -87,6 +87,8 @@ export interface ApplicationDetail extends Application {
   offerDetails?: OfferDetails;
 }
 
+import { PagedResponse } from '../../core/services/pagination.types';
+
 @Injectable({
   providedIn: 'root',
 })
@@ -102,12 +104,14 @@ export class ApplicationService {
   }
 
   // Admin APIs
-  getApplications(jobPostingId?: string, search?: string, httpParams?: HttpParams): Observable<Application[]> {
+  getApplications(jobPostingId?: string, search?: string, status?: ApplicationStatus, archivalResolution?: ArchivalResolution, httpParams?: HttpParams): Observable<PagedResponse<Application>> {
     let params = httpParams || new HttpParams();
     if (jobPostingId) params = params.set('jobPostingId', jobPostingId);
     if (search) params = params.set('search', search);
+    if (status) params = params.set('status', status);
+    if (archivalResolution) params = params.set('archivalResolution', archivalResolution);
 
-    return this.http.get<Application[]>(this.adminApiUrl, { params });
+    return this.http.get<PagedResponse<Application>>(this.adminApiUrl, { params });
   }
 
   getApplication(id: string): Observable<ApplicationDetail> {

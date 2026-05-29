@@ -103,6 +103,14 @@
           }
         </tbody>
       </table>
+      <app-pagination
+        [page]="page()"
+        [pageSize]="pageSize()"
+        [totalCount]="totalCount()"
+        [totalPages]="totalPages()"
+        (pageChange)="onPageChange($event)"
+        (pageSizeChange)="onPageSizeChange($event)">
+      </app-pagination>
     </div>
   }
 </div>

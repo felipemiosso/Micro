@@ -5,8 +5,8 @@ import { ApplicationService, Application, ApplicationStatus, ArchivalResolution 
 import { JobPostingService, JobPosting } from '../../job-postings/job-posting.service';
 import { ApplicationCardComponent } from '../application-card/application-card';
 import { RouterLink } from '@angular/router';
-
 import { MatIconModule } from '@angular/material/icon';
+import { HttpParams } from '@angular/common/http';
 
 @Component({
   selector: 'app-archived-applications',
@@ -32,17 +32,28 @@ export class ArchivedApplicationsComponent implements OnInit {
   }
 
   loadJobs() {
-    this.jobService.getAllJobs().subscribe(jobs => this.jobPostings.set(jobs));
+    const params = new HttpParams().set('page', '1').set('pageSize', '100');
+    this.jobService.getAllJobs(params).subscribe(data => this.jobPostings.set(data.items));
   }
 
   loadApplications() {
     const jobId = this.selectedJobId() === '' ? undefined : this.selectedJobId();
-    this.applicationService.getApplications(jobId).subscribe(apps => {
-      const archivedApps = apps.filter(a => a.status === ApplicationStatus.Archive);
-      this.hired.set(archivedApps.filter(a => a.archivalResolution === ArchivalResolution.Hired));
-      this.rejected.set(archivedApps.filter(a => a.archivalResolution === ArchivalResolution.Rejected));
-      this.declined.set(archivedApps.filter(a => a.archivalResolution === ArchivalResolution.Declined));
-      this.withdrawn.set(archivedApps.filter(a => a.archivalResolution === ArchivalResolution.Withdrawn));
+    const limitParams = new HttpParams().set('page', '1').set('pageSize', '50');
+
+    this.applicationService.getApplications(jobId, undefined, ApplicationStatus.Archive, ArchivalResolution.Hired, limitParams).subscribe(data => {
+      this.hired.set(data.items);
+    });
+
+    this.applicationService.getApplications(jobId, undefined, ApplicationStatus.Archive, ArchivalResolution.Rejected, limitParams).subscribe(data => {
+      this.rejected.set(data.items);
+    });
+
+    this.applicationService.getApplications(jobId, undefined, ApplicationStatus.Archive, ArchivalResolution.Declined, limitParams).subscribe(data => {
+      this.declined.set(data.items);
+    });
+
+    this.applicationService.getApplications(jobId, undefined, ApplicationStatus.Archive, ArchivalResolution.Withdrawn, limitParams).subscribe(data => {
+      this.withdrawn.set(data.items);
     });
   }
 }

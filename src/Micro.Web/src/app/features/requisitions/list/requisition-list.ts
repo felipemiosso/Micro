@@ -12,11 +12,21 @@ import { ConfirmDialogComponent } from '../../../core/ui/confirm-dialog';
 import { CustomFieldsService, CustomFieldDefinition } from '../../../core/services/custom-fields.service';
 import { CustomFieldFilterComponent } from '../../../core/ui/custom-field-filter/custom-field-filter';
 import { HttpParams } from '@angular/common/http';
+import { PaginationComponent } from '../../../core/ui/pagination/pagination.component';
 
 @Component({
   selector: 'app-requisition-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, MatIconModule, MatButtonModule, MatTooltipModule, MatDialogModule, CustomFieldFilterComponent],
+  imports: [
+    CommonModule,
+    RouterModule,
+    MatIconModule,
+    MatButtonModule,
+    MatTooltipModule,
+    MatDialogModule,
+    CustomFieldFilterComponent,
+    PaginationComponent
+  ],
   templateUrl: './requisition-list.html',
 })
 export class RequisitionListComponent implements OnInit {
@@ -30,6 +40,12 @@ export class RequisitionListComponent implements OnInit {
 
   requisitions = signal<Requisition[]>([]);
   Status = RequisitionStatus;
+
+  // Pagination signals
+  page = signal(1);
+  pageSize = signal(20);
+  totalCount = signal(0);
+  totalPages = signal(1);
 
   // Filter signals
   customFieldDefs = signal<CustomFieldDefinition[]>([]);
@@ -45,6 +61,12 @@ export class RequisitionListComponent implements OnInit {
       let httpParams = new HttpParams();
       const newActiveFilters: Record<string, any> = {};
       let hasFilters = false;
+
+      const pageVal = params['page'] ? Number(params['page']) : 1;
+      const pageSizeVal = params['pageSize'] ? Number(params['pageSize']) : 20;
+      this.page.set(pageVal);
+      this.pageSize.set(pageSizeVal);
+      httpParams = httpParams.set('page', pageVal.toString()).set('pageSize', pageSizeVal.toString());
 
       for (const key of Object.keys(params)) {
         if (key.startsWith('cfFilter[')) {
@@ -82,7 +104,11 @@ export class RequisitionListComponent implements OnInit {
   loadRequisitions(params?: HttpParams) {
     this.requisitionService.getAll(params).subscribe({
       next: (data) => {
-        this.requisitions.set(data);
+        this.requisitions.set(data.items);
+        this.totalCount.set(data.totalCount);
+        this.page.set(data.page);
+        this.pageSize.set(data.pageSize);
+        this.totalPages.set(data.totalPages);
       },
       error: (err) => {
         console.error('Failed to load requisitions', err);
@@ -148,7 +174,7 @@ export class RequisitionListComponent implements OnInit {
       // Clear filters on hide
       this.router.navigate([], {
         relativeTo: this.route,
-        queryParams: {}
+        queryParams: { page: 1, pageSize: this.pageSize() }
       });
     }
   }
@@ -166,7 +192,10 @@ export class RequisitionListComponent implements OnInit {
     }
     this.activeFilters.set(current);
 
-    const queryParams: Record<string, string | null> = {};
+    const queryParams: Record<string, string | null> = {
+      page: '1',
+      pageSize: this.pageSize().toString()
+    };
     for (const [defId, filter] of Object.entries(current)) {
       if (filter.value !== null) {
         queryParams[`cfFilter[${defId}]`] = filter.value;
@@ -182,6 +211,22 @@ export class RequisitionListComponent implements OnInit {
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams
+    });
+  }
+
+  onPageChange(page: number) {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { page },
+      queryParamsHandling: 'merge'
+    });
+  }
+
+  onPageSizeChange(pageSize: number) {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { page: 1, pageSize },
+      queryParamsHandling: 'merge'
     });
   }
 }

@@ -47,6 +47,8 @@ export interface PublicJobDetailResponse {
   candidateFacingFields?: CustomFieldDefinition[];
 }
 
+import { PagedResponse } from '../../core/services/pagination.types';
+
 @Injectable({
   providedIn: 'root'
 })
@@ -55,16 +57,16 @@ export class JobPostingService {
   private publicApiUrl = '/api/jobs';
   private adminApiUrl = '/api/jobs/admin';
 
-  getPublicJobs(): Observable<PublicJobResponse[]> {
-    return this.http.get<PublicJobResponse[]>(this.publicApiUrl);
+  getPublicJobs(params?: import('@angular/common/http').HttpParams): Observable<PagedResponse<PublicJobResponse>> {
+    return this.http.get<PagedResponse<PublicJobResponse>>(this.publicApiUrl, { params });
   }
 
   getJobDetail(id: string): Observable<PublicJobDetailResponse> {
     return this.http.get<PublicJobDetailResponse>(`${this.publicApiUrl}/${id}`);
   }
 
-  getAllJobs(): Observable<JobPosting[]> {
-    return this.http.get<JobPosting[]>(this.adminApiUrl);
+  getAllJobs(params?: import('@angular/common/http').HttpParams): Observable<PagedResponse<JobPosting>> {
+    return this.http.get<PagedResponse<JobPosting>>(this.adminApiUrl, { params });
   }
 
   updateJob(id: string, request: UpdateJobPostingRequest): Observable<void> {
